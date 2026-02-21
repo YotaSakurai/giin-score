@@ -1,25 +1,58 @@
 "use client";
 
-import { useState, useMemo, use } from "react";
+import { useState, useEffect, useMemo, useCallback, use } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
+import { Pagination } from "@/components/ui/pagination";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { ErrorMessage } from "@/components/ui/error";
 import { ScoreRadarChart } from "@/components/score/ScoreRadarChart";
 import { ScoreCard } from "@/components/score/ScoreCard";
 import { ScoreBreakdown } from "@/components/score/ScoreBreakdown";
 import { CHAMBER_LABELS, AXIS_LABELS } from "@/lib/types";
-import { getMockMemberDetail } from "@/lib/mock-data";
+import type { MemberDetail, VoteRecord } from "@/lib/types";
+import { getMember, getMemberSpeeches, getMemberVotes } from "@/lib/api";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+const VOTE_LABELS: Record<string, string> = {
+  aye: "賛成",
+  nay: "反対",
+  abstain: "棄権",
+  absent: "欠席",
+};
+
+const VOTE_COLORS: Record<string, string> = {
+  aye: "bg-emerald-100 text-emerald-800",
+  nay: "bg-red-100 text-red-800",
+  abstain: "bg-yellow-100 text-yellow-800",
+  absent: "bg-slate-100 text-slate-600",
+};
+
 export default function MemberDetailPage({ params }: PageProps) {
   const { id } = use(params);
-  const member = getMockMemberDetail(Number(id));
-  const latestScore = member.scores[0];
+  const memberId = Number(id);
+
+  const [member, setMember] = useState<MemberDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Speeches state
+  const [speeches, setSpeeches] = useState<Record<string, unknown>[]>([]);
+  const [speechPage, setSpeechPage] = useState(1);
+  const [speechPages, setSpeechPages] = useState(0);
+  const [speechLoading, setSpeechLoading] = useState(false);
+
+  // Votes state
+  const [votes, setVotes] = useState<VoteRecord[]>([]);
+  const [votePage, setVotePage] = useState(1);
+  const [votePages, setVotePages] = useState(0);
+  const [voteLoading, setVoteLoading] = useState(false);
 
   const [weights, setWeights] = useState({
     legislative_activity: 30,
@@ -27,6 +60,59 @@ export default function MemberDetailPage({ params }: PageProps) {
     policy_influence: 25,
     transparency: 20,
   });
+
+  const fetchMember = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getMember(memberId);
+      setMember(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "データの取得に失敗しました");
+    } finally {
+      setLoading(false);
+    }
+  }, [memberId]);
+
+  const fetchSpeeches = useCallback(async () => {
+    setSpeechLoading(true);
+    try {
+      const res = await getMemberSpeeches(memberId, speechPage, 10);
+      setSpeeches(res.items);
+      setSpeechPages(res.pages);
+    } catch {
+      // silently fail for tab data
+    } finally {
+      setSpeechLoading(false);
+    }
+  }, [memberId, speechPage]);
+
+  const fetchVotes = useCallback(async () => {
+    setVoteLoading(true);
+    try {
+      const res = await getMemberVotes(memberId, votePage, 10);
+      setVotes(res.items);
+      setVotePages(res.pages);
+    } catch {
+      // silently fail for tab data
+    } finally {
+      setVoteLoading(false);
+    }
+  }, [memberId, votePage]);
+
+  useEffect(() => {
+    fetchMember();
+  }, [fetchMember]);
+
+  useEffect(() => {
+    fetchSpeeches();
+  }, [fetchSpeeches]);
+
+  useEffect(() => {
+    fetchVotes();
+  }, [fetchVotes]);
+
+  const latestScore = member?.scores?.[0] ?? null;
 
   const customTotal = useMemo(() => {
     if (!latestScore) return 0;
@@ -42,9 +128,9 @@ export default function MemberDetailPage({ params }: PageProps) {
 
   const customGrade = customTotal >= 80 ? "A" : customTotal >= 60 ? "B" : customTotal >= 40 ? "C" : customTotal >= 20 ? "D" : "F";
 
-  if (!latestScore) {
-    return <div className="mx-auto max-w-7xl px-4 py-8">スコアデータがありません</div>;
-  }
+  if (loading) return <div className="mx-auto max-w-7xl px-4 py-8"><LoadingSpinner /></div>;
+  if (error) return <div className="mx-auto max-w-7xl px-4 py-8"><ErrorMessage message={error} onRetry={fetchMember} /></div>;
+  if (!member) return <div className="mx-auto max-w-7xl px-4 py-8">議員が見つかりません</div>;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -73,96 +159,149 @@ export default function MemberDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* スコア概要 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div>
-          <ScoreCard total={customTotal} grade={customGrade} label="総合スコア" />
-        </div>
-        <div className="md:col-span-2">
-          <Card>
-            <CardContent className="p-4">
-              <ScoreRadarChart
-                legislative_activity={latestScore.legislative_activity}
-                voting_behavior={latestScore.voting_behavior}
-                policy_influence={latestScore.policy_influence}
-                transparency={latestScore.transparency}
-              />
+      {latestScore ? (
+        <>
+          {/* スコア概要 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div>
+              <ScoreCard total={customTotal} grade={customGrade} label="総合スコア" />
+            </div>
+            <div className="md:col-span-2">
+              <Card>
+                <CardContent className="p-4">
+                  <ScoreRadarChart
+                    legislative_activity={latestScore.legislative_activity}
+                    voting_behavior={latestScore.voting_behavior}
+                    policy_influence={latestScore.policy_influence}
+                    transparency={latestScore.transparency}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* 重みカスタマイズスライダー */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-base">スコアの重みカスタマイズ</CardTitle>
+              <p className="text-xs text-slate-500">各軸の重みを調整して、あなた独自の評価基準でスコアを算出できます</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(Object.keys(weights) as Array<keyof typeof weights>).map((key) => (
+                <div key={key} className="flex items-center gap-4">
+                  <span className="text-sm text-slate-700 w-24">{AXIS_LABELS[key]}</span>
+                  <Slider
+                    value={[weights[key]]}
+                    onValueChange={([v]) => setWeights((prev) => ({ ...prev, [key]: v }))}
+                    max={100}
+                    min={0}
+                    step={5}
+                    className="flex-1"
+                  />
+                  <span className="text-sm font-mono text-slate-600 w-12 text-right">{weights[key]}%</span>
+                </div>
+              ))}
             </CardContent>
           </Card>
-        </div>
-      </div>
 
-      {/* 重みカスタマイズスライダー */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-base">スコアの重みカスタマイズ</CardTitle>
-          <p className="text-xs text-slate-500">各軸の重みを調整して、あなた独自の評価基準でスコアを算出できます</p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {(Object.keys(weights) as Array<keyof typeof weights>).map((key) => (
-            <div key={key} className="flex items-center gap-4">
-              <span className="text-sm text-slate-700 w-24">{AXIS_LABELS[key]}</span>
-              <Slider
-                value={[weights[key]]}
-                onValueChange={([v]) => setWeights((prev) => ({ ...prev, [key]: v }))}
-                max={100}
-                min={0}
-                step={5}
-                className="flex-1"
-              />
-              <span className="text-sm font-mono text-slate-600 w-12 text-right">{weights[key]}%</span>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* スコア内訳 */}
-      <div className="mb-8">
-        <ScoreBreakdown
-          breakdown={latestScore.breakdown as Record<string, unknown>}
-          scores={{
-            legislative_activity: latestScore.legislative_activity,
-            voting_behavior: latestScore.voting_behavior,
-            policy_influence: latestScore.policy_influence,
-            transparency: latestScore.transparency,
-          }}
-        />
-      </div>
+          {/* スコア内訳 */}
+          <div className="mb-8">
+            <ScoreBreakdown
+              breakdown={latestScore.breakdown as Record<string, unknown>}
+              scores={{
+                legislative_activity: latestScore.legislative_activity,
+                voting_behavior: latestScore.voting_behavior,
+                policy_influence: latestScore.policy_influence,
+                transparency: latestScore.transparency,
+              }}
+            />
+          </div>
+        </>
+      ) : (
+        <Card className="mb-8">
+          <CardContent className="p-6 text-center text-sm text-slate-500">
+            スコアデータがまだ計算されていません
+          </CardContent>
+        </Card>
+      )}
 
       {/* タブ: 発言・投票・法案 */}
       <Tabs defaultValue="speeches">
         <TabsList>
           <TabsTrigger value="speeches">発言履歴</TabsTrigger>
           <TabsTrigger value="votes">投票記録</TabsTrigger>
-          <TabsTrigger value="bills">法案関与</TabsTrigger>
         </TabsList>
+
         <TabsContent value="speeches">
           <Card>
             <CardContent className="p-4">
-              <p className="text-sm text-slate-500">
-                発言データはバックエンドAPI接続後に表示されます。
-                この議員は第213回国会で計{(latestScore.breakdown as Record<string, Record<string, number>>)?.legislative_activity?.speech_count ?? 0}回の発言を行いました。
-              </p>
+              {speechLoading ? (
+                <LoadingSpinner />
+              ) : speeches.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-4">発言データがありません</p>
+              ) : (
+                <>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b text-left text-xs text-slate-500">
+                        <th className="p-2">日付</th>
+                        <th className="p-2">会議名</th>
+                        <th className="p-2 text-right">文字数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {speeches.map((s, i) => (
+                        <tr key={i} className="border-b hover:bg-slate-50">
+                          <td className="p-2 text-sm text-slate-600">
+                            {(s.speech_date as string) ?? "-"}
+                          </td>
+                          <td className="p-2 text-sm">{(s.meeting_name as string) ?? "-"}</td>
+                          <td className="p-2 text-sm text-right text-slate-600">
+                            {((s.speech_chars as number) ?? 0).toLocaleString()}字
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <Pagination page={speechPage} pages={speechPages} onPageChange={setSpeechPage} />
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
+
         <TabsContent value="votes">
           <Card>
             <CardContent className="p-4">
-              <p className="text-sm text-slate-500">
-                投票データはバックエンドAPI接続後に表示されます。
-                投票参加率: {(latestScore.breakdown as Record<string, Record<string, number>>)?.voting_behavior?.participation_rate ?? 0}%
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="bills">
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-slate-500">
-                法案データはバックエンドAPI接続後に表示されます。
-                成立法案数: {(latestScore.breakdown as Record<string, Record<string, number>>)?.policy_influence?.enacted_count ?? 0}件
-              </p>
+              {voteLoading ? (
+                <LoadingSpinner />
+              ) : votes.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-4">投票データがありません</p>
+              ) : (
+                <>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b text-left text-xs text-slate-500">
+                        <th className="p-2">法案名</th>
+                        <th className="p-2 text-center">投票</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {votes.map((v) => (
+                        <tr key={v.id} className="border-b hover:bg-slate-50">
+                          <td className="p-2 text-sm">{v.bill_title ?? "-"}</td>
+                          <td className="p-2 text-center">
+                            <Badge className={VOTE_COLORS[v.vote] ?? "bg-slate-100"}>
+                              {VOTE_LABELS[v.vote] ?? v.vote}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <Pagination page={votePage} pages={votePages} onPageChange={setVotePage} />
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

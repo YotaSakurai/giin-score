@@ -1,34 +1,56 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Pagination } from "@/components/ui/pagination";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { ErrorMessage } from "@/components/ui/error";
 import { BillList } from "@/components/bill/BillList";
+import { getBills } from "@/lib/api";
 import type { Bill } from "@/lib/types";
-
-const mockBills: Bill[] = [
-  { id: 1, session_id: 1, bill_kind: "閣法", bill_number: "1", title: "デジタル社会形成基本法の一部を改正する法律案", status: "成立", result: "成立", proposer_type: "cabinet", url: null },
-  { id: 2, session_id: 1, bill_kind: "衆法", bill_number: "5", title: "子ども・子育て支援法の一部を改正する法律案", status: "成立", result: "成立", proposer_type: "member", url: null },
-  { id: 3, session_id: 1, bill_kind: "閣法", bill_number: "12", title: "地方自治法の一部を改正する法律案", status: "審議中", result: null, proposer_type: "cabinet", url: null },
-  { id: 4, session_id: 1, bill_kind: "参法", bill_number: "3", title: "公職選挙法の一部を改正する法律案", status: "否決", result: "否決", proposer_type: "member", url: null },
-  { id: 5, session_id: 1, bill_kind: "閣法", bill_number: "20", title: "防衛力整備計画に基づく財源確保に関する特別措置法案", status: "成立", result: "成立", proposer_type: "cabinet", url: null },
-  { id: 6, session_id: 1, bill_kind: "衆法", bill_number: "8", title: "国民年金法等の一部を改正する法律案", status: "継続", result: null, proposer_type: "member", url: null },
-  { id: 7, session_id: 1, bill_kind: "閣法", bill_number: "15", title: "出入国管理及び難民認定法の一部を改正する法律案", status: "成立", result: "成立", proposer_type: "cabinet", url: null },
-  { id: 8, session_id: 1, bill_kind: "衆法", bill_number: "11", title: "再生可能エネルギー電気の利用の促進に関する特別措置法案", status: "廃案", result: "廃案", proposer_type: "member", url: null },
-];
 
 export default function BillsPage() {
   const [search, setSearch] = useState("");
   const [billKind, setBillKind] = useState("all");
   const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = useMemo(() => {
-    return mockBills.filter((b) => {
-      if (search && !b.title.includes(search)) return false;
-      if (billKind !== "all" && b.bill_kind !== billKind) return false;
-      if (status !== "all" && b.status !== status) return false;
-      return true;
-    });
+  const perPage = 20;
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getBills({
+        search: search || undefined,
+        bill_kind: billKind === "all" ? undefined : billKind,
+        status: status === "all" ? undefined : status,
+        page,
+        per_page: perPage,
+      });
+      setBills(res.items);
+      setTotal(res.total);
+      setPages(res.pages);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "データの取得に失敗しました");
+    } finally {
+      setLoading(false);
+    }
+  }, [search, billKind, status, page]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // フィルタ変更時にページをリセット
+  useEffect(() => {
+    setPage(1);
   }, [search, billKind, status]);
 
   return (
@@ -68,8 +90,18 @@ export default function BillsPage() {
         </Select>
       </div>
 
-      <p className="text-sm text-slate-500 mb-4">{filtered.length}件の法案</p>
-      <BillList bills={filtered} />
+      <p className="text-sm text-slate-500 mb-4">{total}件の法案</p>
+
+      {loading ? (
+        <LoadingSpinner />
+      ) : error ? (
+        <ErrorMessage message={error} onRetry={fetchData} />
+      ) : (
+        <>
+          <BillList bills={bills} />
+          <Pagination page={page} pages={pages} onPageChange={setPage} />
+        </>
+      )}
     </div>
   );
 }
