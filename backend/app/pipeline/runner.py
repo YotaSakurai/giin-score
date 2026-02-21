@@ -4,7 +4,7 @@
   python -m app.pipeline.runner --pipeline all --session 213
   python -m app.pipeline.runner --pipeline members --session 213
   python -m app.pipeline.runner --pipeline speeches --session 213
-  python -m app.pipeline.runner --pipeline bills
+  python -m app.pipeline.runner --pipeline bills --session 213
   python -m app.pipeline.runner --pipeline votes --session 213
   python -m app.pipeline.runner --pipeline scoring --session 213
 """
@@ -40,12 +40,12 @@ def run_speeches(db, session_number: int):
     logger.info(f"Processed {count} speeches")
 
 
-def run_bills(db, **kwargs):
-    from app.pipeline.smartnews_loader import load_bills_csv
+def run_bills(db, session_number: int):
+    from app.pipeline.shugiin_scraper import scrape_bills_list
 
-    logger.info("=== Loading bills from CSV ===")
-    count = load_bills_csv(db)
-    logger.info(f"Loaded {count} bills")
+    logger.info(f"=== Scraping bills list from Shugiin (session {session_number}) ===")
+    count = scrape_bills_list(db, session_number)
+    logger.info(f"Scraped {count} bills")
 
 
 def run_votes(db, session_number: int):
@@ -75,7 +75,7 @@ def run_scoring(db, session_number: int):
 def run_all(db, session_number: int):
     """全パイプラインを順番に実行する。"""
     logger.info(f"=== Running ALL pipelines for session {session_number} ===")
-    run_bills(db)
+    run_bills(db, session_number)
     run_members(db, session_number)
     run_speeches(db, session_number)
     run_votes(db, session_number)
@@ -114,10 +114,7 @@ def main():
     db = SessionLocal()
     try:
         pipeline_func = PIPELINES[args.pipeline]
-        if args.pipeline == "bills":
-            pipeline_func(db)
-        else:
-            pipeline_func(db, session_number=args.session)
+        pipeline_func(db, session_number=args.session)
     except Exception as e:
         logger.error(f"Pipeline failed: {e}")
         sys.exit(1)
