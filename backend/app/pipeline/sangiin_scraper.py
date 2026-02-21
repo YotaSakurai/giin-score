@@ -3,6 +3,7 @@
 参議院Webサイトの投票結果ページから個別議員の投票記録を取得する。
 """
 import logging
+import re
 import time
 from datetime import datetime
 
@@ -38,9 +39,9 @@ def scrape_votes(db: Session, session_number: int) -> int:
     total_processed = 0
 
     try:
-        vote_list_url = f"{BASE_URL}/japanese/joho1/kousei/vote/kaiki/{session_number}/vote_list.htm"
+        vote_list_url = f"{BASE_URL}/japanese/touhyoulist/{session_number}/vote_ind.htm"
 
-        with httpx.Client(timeout=30.0, headers={"User-Agent": USER_AGENT}) as client:
+        with httpx.Client(timeout=30.0, headers={"User-Agent": USER_AGENT}, follow_redirects=True) as client:
             time.sleep(settings.kokkai_api_rate_limit)
             resp = client.get(vote_list_url)
             resp.raise_for_status()
@@ -55,7 +56,7 @@ def scrape_votes(db: Session, session_number: int) -> int:
                 db.commit()
                 return 0
 
-            vote_links = _extract_vote_links(soup)
+            vote_links = _extract_vote_links(soup, vote_list_url)
             logger.info(f"Found {len(vote_links)} vote pages for session {session_number}")
 
             for link in vote_links:
@@ -99,16 +100,21 @@ def _health_check(soup: BeautifulSoup) -> bool:
     return soup.find("table") is not None or soup.find("a") is not None
 
 
-def _extract_vote_links(soup: BeautifulSoup) -> list[str]:
+def _extract_vote_links(soup: BeautifulSoup, base_url: str) -> list[str]:
     """投票結果ページへのリンクを抽出する。"""
+    # base_url から相対パスを解決するためのディレクトリ部分
+    base_dir = base_url.rsplit("/", 1)[0]
     links = []
     for a_tag in soup.find_all("a", href=True):
         href = a_tag["href"]
-        if "vote_ind" in href or "vote_result" in href:
+        # 個別投票結果ページ（例: 213-0619-v001.htm）のパターン
+        if href.endswith(".htm") and "-v" in href:
             if href.startswith("http"):
                 links.append(href)
+            elif href.startswith("/"):
+                links.append(f"{BASE_URL}{href}")
             else:
-                links.append(f"{BASE_URL}{href}" if href.startswith("/") else f"{BASE_URL}/{href}")
+                links.append(f"{base_dir}/{href}")
     return links
 
 
@@ -119,27 +125,67 @@ def _scrape_vote_page(db: Session, client: httpx.Client, session_number: int, ur
     resp.encoding = _detect_encoding(resp)
 
     soup = BeautifulSoup(resp.text, "lxml")
+    body_text = soup.get_text()
 
-    # 議案名を取得
-    title_elem = soup.find("h2") or soup.find("h3") or soup.find("title")
-    bill_title = title_elem.get_text(strip=True) if title_elem else "不明"
+    # 議案名を取得（dl/dd構造から）
+    bill_title = ""
+    for dt in soup.find_all("dt"):
+        if "案件名" in dt.get_text():
+            dd = dt.find_next_sibling("dd")
+            if dd:
+                bill_title = dd.get_text(strip=True)
+                # 「日程第N　」プレフィクスを除去
+                bill_title = re.sub(r"^日程第\d+\s*", "", bill_title)
+                # 「（内閣提出、衆議院送付）」などのサフィックスを除去
+                bill_title = re.sub(r"（[^）]*提出[^）]*）$", "", bill_title)
+                bill_title = bill_title.strip()
+            break
+
+    if not bill_title:
+        # フォールバック: h2/h3からタイトル取得
+        title_elem = soup.find("h2") or soup.find("h3")
+        if title_elem:
+            bill_title = title_elem.get_text(strip=True)
+
+    if not bill_title:
+        return 0
 
     # 会期とbillを関連付け
     diet_session = db.query(DietSession).filter_by(session_number=session_number).first()
     if not diet_session:
         return 0
 
-    bill = db.query(Bill).filter_by(session_id=diet_session.id, title=bill_title).first()
+    # タイトル部分一致で法案を検索
+    bill = db.query(Bill).filter(
+        Bill.session_id == diet_session.id,
+        Bill.title.contains(bill_title[:30]),
+    ).first()
 
-    # 集計結果の取得
+    # 結果を判定
+    result_text = None
+    if "可決" in body_text:
+        result_text = "可決"
+    elif "否決" in body_text:
+        result_text = "否決"
+
+    if not bill:
+        logger.debug(f"Bill not found for: {bill_title[:50]}")
+        return 0
+
+    # 既存VoteResultチェック
+    existing = db.query(VoteResult).filter_by(
+        bill_id=bill.id, chamber="councillors"
+    ).first()
+    if existing:
+        return 0
+
+    # 集計結果の取得（テーブルがある場合 = 記名投票）
     ayes = 0
     nays = 0
-    result_text = None
     tables = soup.find_all("table")
     for table in tables:
         text = table.get_text()
         if "賛成" in text and "反対" in text:
-            # 賛否数の抽出を試みる
             for row in table.find_all("tr"):
                 cells = row.find_all(["td", "th"])
                 for i, cell in enumerate(cells):
@@ -155,16 +201,6 @@ def _scrape_vote_page(db: Session, client: httpx.Client, session_number: int, ur
                         except ValueError:
                             pass
 
-    if ayes > nays:
-        result_text = "可決"
-    elif nays > ayes:
-        result_text = "否決"
-
-    if not bill:
-        # billがなければVoteResultだけ作成（bill_idは後でリンク可能）
-        logger.info(f"Bill not found for: {bill_title}")
-        return 0
-
     vote_result = VoteResult(
         bill_id=bill.id,
         chamber="councillors",
@@ -175,7 +211,7 @@ def _scrape_vote_page(db: Session, client: httpx.Client, session_number: int, ur
     db.add(vote_result)
     db.flush()
 
-    # 個別議員の投票記録を取得
+    # 個別議員の投票記録を取得（記名投票の場合のみ）
     count = 0
     for table in tables:
         rows = table.find_all("tr")
@@ -206,7 +242,8 @@ def _scrape_vote_page(db: Session, client: httpx.Client, session_number: int, ur
                 db.add(record)
                 count += 1
 
-    return count
+    # 起立採決の場合もVoteResultは1件としてカウント
+    return max(count, 1) if result_text else count
 
 
 def _parse_vote(text: str) -> str | None:
