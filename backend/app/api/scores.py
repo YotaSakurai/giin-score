@@ -20,6 +20,29 @@ from app.schemas.score import (
 router = APIRouter(prefix="/scores", tags=["scores"])
 
 
+def _resolve_session_id(db: Session, session_number: int | None) -> int | None:
+    """指定会期またはスコアが存在する最新会期のIDを返す。"""
+    if session_number:
+        session = db.execute(
+            select(DietSession).where(DietSession.session_number == session_number)
+        ).scalar_one_or_none()
+        return session.id if session else None
+
+    # スコアが存在する最新の会期を取得
+    from sqlalchemy import func as sa_func
+    latest_scored = db.execute(
+        select(DietSession.id)
+        .where(
+            DietSession.id.in_(
+                select(MemberScore.session_id).distinct()
+            )
+        )
+        .order_by(DietSession.session_number.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    return latest_scored
+
+
 @router.get("/ranking", response_model=RankingResponse)
 def get_ranking(
     chamber: str | None = None,
@@ -33,18 +56,9 @@ def get_ranking(
 ):
     query = select(MemberScore).options(selectinload(MemberScore.member))
 
-    if session_number:
-        session = db.execute(
-            select(DietSession).where(DietSession.session_number == session_number)
-        ).scalar_one_or_none()
-        if session:
-            query = query.where(MemberScore.session_id == session.id)
-    else:
-        latest_session = db.execute(
-            select(DietSession).order_by(DietSession.session_number.desc()).limit(1)
-        ).scalar_one_or_none()
-        if latest_session:
-            query = query.where(MemberScore.session_id == latest_session.id)
+    session_id = _resolve_session_id(db, session_number)
+    if session_id:
+        query = query.where(MemberScore.session_id == session_id)
 
     if chamber:
         query = query.join(Member).where(Member.chamber == chamber)
@@ -95,18 +109,9 @@ def get_stats(
 ):
     query = select(MemberScore)
 
-    if session_number:
-        session = db.execute(
-            select(DietSession).where(DietSession.session_number == session_number)
-        ).scalar_one_or_none()
-        if session:
-            query = query.where(MemberScore.session_id == session.id)
-    else:
-        latest_session = db.execute(
-            select(DietSession).order_by(DietSession.session_number.desc()).limit(1)
-        ).scalar_one_or_none()
-        if latest_session:
-            query = query.where(MemberScore.session_id == latest_session.id)
+    session_id = _resolve_session_id(db, session_number)
+    if session_id:
+        query = query.where(MemberScore.session_id == session_id)
 
     if chamber:
         query = query.join(Member).where(Member.chamber == chamber)
