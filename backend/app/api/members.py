@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy import func, select, case
+from sqlalchemy.orm import Session, selectinload, aliased
 
 from app.database import get_db
 from app.models.member import Member
@@ -12,6 +12,15 @@ from app.schemas.member import MemberWithScore, MemberDetail, ScoreDetail, Score
 from app.schemas.vote import VoteRecordResponse
 
 router = APIRouter(prefix="/members", tags=["members"])
+
+# スコアソート可能なフィールド
+SCORE_SORT_FIELDS = {
+    "total": MemberScore.total,
+    "legislative_activity": MemberScore.legislative_activity,
+    "voting_behavior": MemberScore.voting_behavior,
+    "policy_influence": MemberScore.policy_influence,
+    "transparency": MemberScore.transparency,
+}
 
 
 @router.get("", response_model=PaginatedResponse[MemberWithScore])
@@ -25,7 +34,32 @@ def list_members(
     per_page: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    query = select(Member)
+    # 最新スコアのサブクエリ
+    latest_score_sq = (
+        select(
+            MemberScore.member_id,
+            func.max(MemberScore.session_id).label("max_session_id"),
+        )
+        .group_by(MemberScore.member_id)
+        .subquery()
+    )
+
+    LatestScore = aliased(MemberScore)
+
+    # メインクエリ: Member + 最新スコアをJOIN
+    query = (
+        select(Member, LatestScore)
+        .outerjoin(
+            latest_score_sq,
+            Member.id == latest_score_sq.c.member_id,
+        )
+        .outerjoin(
+            LatestScore,
+            (LatestScore.member_id == latest_score_sq.c.member_id)
+            & (LatestScore.session_id == latest_score_sq.c.max_session_id),
+        )
+    )
+
     count_query = select(func.count(Member.id))
 
     if chamber:
@@ -43,45 +77,38 @@ def list_members(
 
     total = db.execute(count_query).scalar_one()
 
-    if sort_by == "name":
-        query = query.order_by(Member.name)
+    # ソート
+    if sort_by in SCORE_SORT_FIELDS:
+        score_col = getattr(LatestScore, sort_by)
+        query = query.order_by(score_col.desc().nullslast(), Member.name)
     else:
         query = query.order_by(Member.name)
 
     offset = (page - 1) * per_page
-    members = db.execute(query.offset(offset).limit(per_page)).scalars().all()
+    rows = db.execute(query.offset(offset).limit(per_page)).all()
 
     items = []
-    for m in members:
-        latest = (
-            db.execute(
-                select(MemberScore)
-                .where(MemberScore.member_id == m.id)
-                .order_by(MemberScore.session_id.desc())
-                .limit(1)
-            )
-            .scalar_one_or_none()
-        )
+    for member, score in rows:
         score_summary = None
-        if latest:
+        if score:
             score_summary = ScoreSummary(
-                total=latest.total,
-                grade=latest.grade,
-                legislative_activity=latest.legislative_activity,
-                voting_behavior=latest.voting_behavior,
-                policy_influence=latest.policy_influence,
-                transparency=latest.transparency,
+                total=score.total,
+                grade=score.grade,
+                legislative_activity=score.legislative_activity,
+                voting_behavior=score.voting_behavior,
+                policy_influence=score.policy_influence,
+                transparency=score.transparency,
             )
         items.append(
             MemberWithScore(
-                id=m.id,
-                name=m.name,
-                name_reading=m.name_reading,
-                chamber=m.chamber,
-                party=m.party,
-                faction=m.faction,
-                district=m.district,
-                role_category=m.role_category,
+                id=member.id,
+                name=member.name,
+                name_reading=member.name_reading,
+                chamber=member.chamber,
+                party=member.party,
+                faction=member.faction,
+                district=member.district,
+                role_category=member.role_category,
                 latest_score=score_summary,
             )
         )
