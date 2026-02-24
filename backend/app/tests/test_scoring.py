@@ -43,7 +43,7 @@ class TestBillKindWeight:
     def test_minor_amendment_kakuhou(self):
         # 閣法: base=1.0, 軽微改正 -> 1.0 * 0.3 = 0.3
         assert _bill_kind_weight("民法の一部改正", "閣法") == 0.3
-        assert _bill_kind_weight("整備に関する法律", "閣法") == 0.3
+        assert _bill_kind_weight("関係法律の整備等に関する法律の一部改正", "閣法") == 0.3
 
     def test_minor_amendment_shuhou(self):
         # 衆法: base=0.8, 軽微改正 -> 0.8 * 0.3 = 0.24
