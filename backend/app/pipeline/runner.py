@@ -72,11 +72,18 @@ def run_scoring(db, session_number: int):
     logger.info(f"Computed scores for {count} members")
 
 
+def run_smartnews(db, session_number: int):
+    from app.pipeline.smartnews_loader import load_bills_csv
+
+    logger.info("=== Loading bills from SmartNews CSV ===")
+    count = load_bills_csv(db)
+    logger.info(f"Loaded {count} bills from CSV")
+
+
 def run_all(db, session_number: int):
     """全パイプラインを順番に実行する。"""
     logger.info(f"=== Running ALL pipelines for session {session_number} ===")
     run_bills(db, session_number)
-    run_members(db, session_number)
     run_speeches(db, session_number)
     run_votes(db, session_number)
     run_shugiin(db, session_number)
@@ -92,6 +99,7 @@ PIPELINES = {
     "votes": run_votes,
     "shugiin": run_shugiin,
     "scoring": run_scoring,
+    "smartnews": run_smartnews,
 }
 
 

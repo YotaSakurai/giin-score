@@ -1,3 +1,4 @@
+import sqlalchemy as sa
 from sqlalchemy import Integer, String, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,6 +25,9 @@ class Bill(Base):
 
 class BillSponsor(Base):
     __tablename__ = "bill_sponsors"
+    __table_args__ = (
+        sa.UniqueConstraint("bill_id", "member_id", name="uq_bill_sponsors_bill_member"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     bill_id: Mapped[int] = mapped_column(Integer, ForeignKey("bills.id"), nullable=False, index=True)

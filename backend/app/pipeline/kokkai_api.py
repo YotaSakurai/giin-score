@@ -88,7 +88,7 @@ def fetch_speeches(db: Session, session_number: int, resume_from: int = 0) -> in
 
         db.commit()
         pipeline_run.status = "completed"
-        pipeline_run.records_processed = total_processed
+        pipeline_run.records_processed = start_record - 1
         pipeline_run.finished_at = datetime.utcnow()
         db.commit()
         logger.info(f"Completed: {total_processed} speeches for session {session_number}")
@@ -96,7 +96,7 @@ def fetch_speeches(db: Session, session_number: int, resume_from: int = 0) -> in
     except Exception as e:
         pipeline_run.status = "failed"
         pipeline_run.error_message = str(e)
-        pipeline_run.records_processed = total_processed
+        pipeline_run.records_processed = start_record - 1
         pipeline_run.finished_at = datetime.utcnow()
         db.commit()
         logger.error(f"Pipeline failed: {e}")
@@ -135,6 +135,12 @@ def _process_speech_record(db: Session, diet_session: DietSession, record: dict)
         except ValueError:
             pass
 
+    speech_url = record.get("speechURL", "")
+    if speech_url:
+        existing = db.query(Speech.id).filter_by(speech_url=speech_url).first()
+        if existing:
+            return
+
     speech = Speech(
         session_id=diet_session.id,
         member_id=member.id,
@@ -142,19 +148,20 @@ def _process_speech_record(db: Session, diet_session: DietSession, record: dict)
         speech_date=speech_date,
         speech_text=speech_text,
         speech_chars=len(speech_text),
-        speech_url=record.get("speechURL", ""),
+        speech_url=speech_url,
     )
     db.add(speech)
 
 
 def get_last_run(db: Session, session_number: int) -> int:
-    """前回実行の最終レコード位置を取得する。"""
+    """前回実行の最終レコード位置を取得する（完了・失敗いずれからも再開可能）。"""
     run = (
         db.query(PipelineRun)
         .filter_by(pipeline_name="kokkai_speeches", session_number=session_number)
+        .filter(PipelineRun.status.in_(["completed", "failed"]))
         .order_by(PipelineRun.id.desc())
         .first()
     )
-    if run and run.status == "completed":
+    if run and run.records_processed:
         return run.records_processed
     return 0

@@ -1,3 +1,4 @@
+import sqlalchemy as sa
 from sqlalchemy import Integer, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -20,6 +21,9 @@ class VoteResult(Base):
 
 class VoteRecord(Base):
     __tablename__ = "vote_records"
+    __table_args__ = (
+        sa.UniqueConstraint("vote_result_id", "member_id", name="uq_vote_records_result_member"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     vote_result_id: Mapped[int] = mapped_column(Integer, ForeignKey("vote_results.id"), nullable=False, index=True)
