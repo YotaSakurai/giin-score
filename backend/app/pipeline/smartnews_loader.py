@@ -3,7 +3,7 @@
 法案データCSVを読み込み、bills/diet_sessionsテーブルに保存する。
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -31,7 +31,7 @@ def load_bills_csv(db: Session, csv_path: str | None = None) -> int:
     pipeline_run = PipelineRun(
         pipeline_name="smartnews_bills",
         status="running",
-        started_at=datetime.utcnow(),
+        started_at=datetime.now(timezone.utc),
     )
     db.add(pipeline_run)
     db.commit()
@@ -60,14 +60,14 @@ def load_bills_csv(db: Session, csv_path: str | None = None) -> int:
         db.commit()
         pipeline_run.status = "completed"
         pipeline_run.records_processed = total_processed
-        pipeline_run.finished_at = datetime.utcnow()
+        pipeline_run.finished_at = datetime.now(timezone.utc)
         db.commit()
         logger.info(f"Loaded {total_processed} bills from CSV")
 
     except Exception as e:
         pipeline_run.status = "failed"
         pipeline_run.error_message = str(e)
-        pipeline_run.finished_at = datetime.utcnow()
+        pipeline_run.finished_at = datetime.now(timezone.utc)
         db.commit()
         raise
 

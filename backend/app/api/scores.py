@@ -1,7 +1,8 @@
 import statistics
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
@@ -29,7 +30,6 @@ def _resolve_session_id(db: Session, session_number: int | None) -> int | None:
         return session.id if session else None
 
     # スコアが存在する最新の会期を取得
-    from sqlalchemy import func as sa_func
     latest_scored = db.execute(
         select(DietSession.id)
         .where(
@@ -43,44 +43,61 @@ def _resolve_session_id(db: Session, session_number: int | None) -> int | None:
     return latest_scored
 
 
+RANKING_SORT_FIELDS = {
+    "total": MemberScore.total,
+    "legislative_activity": MemberScore.legislative_activity,
+    "voting_behavior": MemberScore.voting_behavior,
+    "policy_influence": MemberScore.policy_influence,
+    "transparency": MemberScore.transparency,
+}
+
+
 @router.get("/ranking", response_model=RankingResponse)
 def get_ranking(
-    chamber: str | None = None,
+    chamber: Literal["representatives", "councillors"] | None = None,
     party: str | None = None,
     role_category: str | None = None,
     session_number: int | None = None,
-    sort_by: str = "total",
+    sort_by: Literal[
+        "total",
+        "legislative_activity",
+        "voting_behavior",
+        "policy_influence",
+        "transparency",
+    ] = "total",
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    query = select(MemberScore).options(selectinload(MemberScore.member))
+    base_query = select(MemberScore)
 
     session_id = _resolve_session_id(db, session_number)
     if session_id:
-        query = query.where(MemberScore.session_id == session_id)
+        base_query = base_query.where(MemberScore.session_id == session_id)
 
     if chamber:
-        query = query.join(Member).where(Member.chamber == chamber)
+        base_query = base_query.join(Member).where(Member.chamber == chamber)
     elif party or role_category:
-        query = query.join(Member)
+        base_query = base_query.join(Member)
 
     if party:
-        query = query.where(Member.party == party)
+        base_query = base_query.where(Member.party == party)
     if role_category:
-        query = query.where(Member.role_category == role_category)
+        base_query = base_query.where(Member.role_category == role_category)
 
-    sort_column = {
-        "total": MemberScore.total,
-        "legislative_activity": MemberScore.legislative_activity,
-        "voting_behavior": MemberScore.voting_behavior,
-        "policy_influence": MemberScore.policy_influence,
-        "transparency": MemberScore.transparency,
-    }.get(sort_by, MemberScore.total)
+    # COUNT クエリ（全件数取得）
+    count_query = select(func.count()).select_from(base_query.subquery())
+    total = db.execute(count_query).scalar_one()
 
-    all_scores = db.execute(query.order_by(sort_column.desc())).scalars().all()
-    total = len(all_scores)
-    paged = all_scores[offset : offset + limit]
+    # データクエリ（OFFSET/LIMIT でページング）
+    sort_column = RANKING_SORT_FIELDS[sort_by]
+    data_query = (
+        base_query.options(selectinload(MemberScore.member))
+        .order_by(sort_column.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    paged = db.execute(data_query).scalars().all()
 
     items = []
     for i, s in enumerate(paged):
@@ -103,7 +120,7 @@ def get_ranking(
 
 @router.get("/stats", response_model=StatsResponse)
 def get_stats(
-    chamber: str | None = None,
+    chamber: Literal["representatives", "councillors"] | None = None,
     session_number: int | None = None,
     db: Session = Depends(get_db),
 ):

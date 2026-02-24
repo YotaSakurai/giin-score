@@ -4,7 +4,7 @@ https://kokkai.ndl.go.jp/api/speech のREST APIからデータを取得する。
 """
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import httpx
 from sqlalchemy.orm import Session
@@ -15,11 +15,11 @@ from app.models.pipeline import PipelineRun
 from app.models.session import DietSession
 from app.models.speech import Speech
 from app.pipeline.member_master import normalize_name, find_or_create_member
+from app.pipeline.utils import USER_AGENT
 
 logger = logging.getLogger(__name__)
 
 RECORDS_PER_PAGE = 100
-USER_AGENT = "GiinScore/0.1 (Data Pipeline)"
 
 
 def fetch_speeches(db: Session, session_number: int, resume_from: int = 0) -> int:
@@ -28,7 +28,7 @@ def fetch_speeches(db: Session, session_number: int, resume_from: int = 0) -> in
         pipeline_name="kokkai_speeches",
         session_number=session_number,
         status="running",
-        started_at=datetime.utcnow(),
+        started_at=datetime.now(timezone.utc),
     )
     db.add(pipeline_run)
     db.commit()
@@ -89,7 +89,7 @@ def fetch_speeches(db: Session, session_number: int, resume_from: int = 0) -> in
         db.commit()
         pipeline_run.status = "completed"
         pipeline_run.records_processed = start_record - 1
-        pipeline_run.finished_at = datetime.utcnow()
+        pipeline_run.finished_at = datetime.now(timezone.utc)
         db.commit()
         logger.info(f"Completed: {total_processed} speeches for session {session_number}")
 
@@ -97,7 +97,7 @@ def fetch_speeches(db: Session, session_number: int, resume_from: int = 0) -> in
         pipeline_run.status = "failed"
         pipeline_run.error_message = str(e)
         pipeline_run.records_processed = start_record - 1
-        pipeline_run.finished_at = datetime.utcnow()
+        pipeline_run.finished_at = datetime.now(timezone.utc)
         db.commit()
         logger.error(f"Pipeline failed: {e}")
         raise

@@ -5,7 +5,7 @@
 import logging
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import httpx
 from bs4 import BeautifulSoup
@@ -18,11 +18,11 @@ from app.models.pipeline import PipelineRun
 from app.models.session import DietSession
 from app.models.vote import VoteRecord, VoteResult
 from app.pipeline.member_master import normalize_name, find_or_create_member
+from app.pipeline.utils import USER_AGENT, detect_encoding, health_check
 
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.sangiin.go.jp"
-USER_AGENT = "GiinScore/0.1 (Data Pipeline)"
 
 
 def scrape_votes(db: Session, session_number: int) -> int:
@@ -31,7 +31,7 @@ def scrape_votes(db: Session, session_number: int) -> int:
         pipeline_name="sangiin_votes",
         session_number=session_number,
         status="running",
-        started_at=datetime.utcnow(),
+        started_at=datetime.now(timezone.utc),
     )
     db.add(pipeline_run)
     db.commit()
@@ -45,14 +45,14 @@ def scrape_votes(db: Session, session_number: int) -> int:
             time.sleep(settings.kokkai_api_rate_limit)
             resp = client.get(vote_list_url)
             resp.raise_for_status()
-            resp.encoding = _detect_encoding(resp)
+            resp.encoding = detect_encoding(resp)
 
             soup = BeautifulSoup(resp.text, "lxml")
-            if not _health_check(soup):
+            if not health_check(soup):
                 logger.error("HTML structure changed - health check failed")
                 pipeline_run.status = "failed"
                 pipeline_run.error_message = "HTML structure health check failed"
-                pipeline_run.finished_at = datetime.utcnow()
+                pipeline_run.finished_at = datetime.now(timezone.utc)
                 db.commit()
                 return 0
 
@@ -70,34 +70,19 @@ def scrape_votes(db: Session, session_number: int) -> int:
         db.commit()
         pipeline_run.status = "completed"
         pipeline_run.records_processed = total_processed
-        pipeline_run.finished_at = datetime.utcnow()
+        pipeline_run.finished_at = datetime.now(timezone.utc)
         db.commit()
         logger.info(f"Completed: {total_processed} vote records for session {session_number}")
 
     except Exception as e:
         pipeline_run.status = "failed"
         pipeline_run.error_message = str(e)
-        pipeline_run.finished_at = datetime.utcnow()
+        pipeline_run.finished_at = datetime.now(timezone.utc)
         db.commit()
         logger.error(f"Sangiin scraper failed: {e}")
         raise
 
     return total_processed
-
-
-def _detect_encoding(resp: httpx.Response) -> str:
-    content_type = resp.headers.get("content-type", "")
-    if "euc-jp" in content_type.lower():
-        return "euc-jp"
-    if "shift_jis" in content_type.lower():
-        return "shift_jis"
-    return "utf-8"
-
-
-def _health_check(soup: BeautifulSoup) -> bool:
-    """HTML構造が期待通りかチェックする。"""
-    # テーブルまたはリンクが存在することを確認
-    return soup.find("table") is not None or soup.find("a") is not None
 
 
 def _extract_vote_links(soup: BeautifulSoup, base_url: str) -> list[str]:
@@ -122,7 +107,7 @@ def _scrape_vote_page(db: Session, client: httpx.Client, session_number: int, ur
     """個別の投票結果ページをスクレイピングする。"""
     resp = client.get(url)
     resp.raise_for_status()
-    resp.encoding = _detect_encoding(resp)
+    resp.encoding = detect_encoding(resp)
 
     soup = BeautifulSoup(resp.text, "lxml")
     body_text = soup.get_text()

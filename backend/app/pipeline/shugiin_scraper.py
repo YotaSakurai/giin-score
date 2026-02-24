@@ -5,7 +5,7 @@
 import logging
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import httpx
 from bs4 import BeautifulSoup
@@ -16,11 +16,11 @@ from app.models.bill import Bill, BillSponsor
 from app.models.pipeline import PipelineRun
 from app.models.session import DietSession
 from app.pipeline.member_master import normalize_name, find_or_create_member
+from app.pipeline.utils import USER_AGENT, detect_encoding, health_check
 
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.shugiin.go.jp"
-USER_AGENT = "GiinScore/0.1 (Data Pipeline)"
 
 # テーブルcaptionから法案種別へのマッピング
 CAPTION_TO_KIND = {
@@ -47,7 +47,7 @@ def scrape_bills_list(db: Session, session_number: int) -> int:
         pipeline_name="shugiin_bills_list",
         session_number=session_number,
         status="running",
-        started_at=datetime.utcnow(),
+        started_at=datetime.now(timezone.utc),
     )
     db.add(pipeline_run)
     db.commit()
@@ -63,14 +63,14 @@ def scrape_bills_list(db: Session, session_number: int) -> int:
             time.sleep(settings.kokkai_api_rate_limit)
             resp = client.get(list_url)
             resp.raise_for_status()
-            resp.encoding = _detect_encoding(resp)
+            resp.encoding = detect_encoding(resp)
 
             soup = BeautifulSoup(resp.text, "lxml")
-            if not _health_check(soup):
+            if not health_check(soup):
                 logger.error("HTML structure changed - health check failed")
                 pipeline_run.status = "failed"
                 pipeline_run.error_message = "HTML structure health check failed"
-                pipeline_run.finished_at = datetime.utcnow()
+                pipeline_run.finished_at = datetime.now(timezone.utc)
                 db.commit()
                 return 0
 
@@ -159,7 +159,7 @@ def scrape_bills_list(db: Session, session_number: int) -> int:
         db.commit()
         pipeline_run.status = "completed"
         pipeline_run.records_processed = total_processed
-        pipeline_run.finished_at = datetime.utcnow()
+        pipeline_run.finished_at = datetime.now(timezone.utc)
         db.commit()
         logger.info(
             f"Completed: {total_processed} bills from Shugiin list for session {session_number}"
@@ -168,7 +168,7 @@ def scrape_bills_list(db: Session, session_number: int) -> int:
     except Exception as e:
         pipeline_run.status = "failed"
         pipeline_run.error_message = str(e)
-        pipeline_run.finished_at = datetime.utcnow()
+        pipeline_run.finished_at = datetime.now(timezone.utc)
         db.commit()
         logger.error(f"Shugiin bills list scraper failed: {e}")
         raise
@@ -213,7 +213,7 @@ def scrape_bills(db: Session, session_number: int) -> int:
         pipeline_name="shugiin_bills",
         session_number=session_number,
         status="running",
-        started_at=datetime.utcnow(),
+        started_at=datetime.now(timezone.utc),
     )
     db.add(pipeline_run)
     db.commit()
@@ -228,14 +228,14 @@ def scrape_bills(db: Session, session_number: int) -> int:
             time.sleep(settings.kokkai_api_rate_limit)
             resp = client.get(list_url)
             resp.raise_for_status()
-            resp.encoding = _detect_encoding(resp)
+            resp.encoding = detect_encoding(resp)
 
             soup = BeautifulSoup(resp.text, "lxml")
-            if not _health_check(soup):
+            if not health_check(soup):
                 logger.error("HTML structure changed - health check failed")
                 pipeline_run.status = "failed"
                 pipeline_run.error_message = "HTML structure health check failed"
-                pipeline_run.finished_at = datetime.utcnow()
+                pipeline_run.finished_at = datetime.now(timezone.utc)
                 db.commit()
                 return 0
 
@@ -256,32 +256,19 @@ def scrape_bills(db: Session, session_number: int) -> int:
         db.commit()
         pipeline_run.status = "completed"
         pipeline_run.records_processed = total_processed
-        pipeline_run.finished_at = datetime.utcnow()
+        pipeline_run.finished_at = datetime.now(timezone.utc)
         db.commit()
         logger.info(f"Completed: {total_processed} bills for session {session_number}")
 
     except Exception as e:
         pipeline_run.status = "failed"
         pipeline_run.error_message = str(e)
-        pipeline_run.finished_at = datetime.utcnow()
+        pipeline_run.finished_at = datetime.now(timezone.utc)
         db.commit()
         logger.error(f"Shugiin scraper failed: {e}")
         raise
 
     return total_processed
-
-
-def _detect_encoding(resp: httpx.Response) -> str:
-    content_type = resp.headers.get("content-type", "")
-    if "euc-jp" in content_type.lower():
-        return "euc-jp"
-    if "shift_jis" in content_type.lower():
-        return "shift_jis"
-    return "utf-8"
-
-
-def _health_check(soup: BeautifulSoup) -> bool:
-    return soup.find("table") is not None or soup.find("a") is not None
 
 
 def _extract_bill_links(soup: BeautifulSoup) -> list[str]:
@@ -300,7 +287,7 @@ def _scrape_bill_detail(db: Session, client: httpx.Client, session_number: int, 
     """個別法案の詳細ページをスクレイピングする。"""
     resp = client.get(url)
     resp.raise_for_status()
-    resp.encoding = _detect_encoding(resp)
+    resp.encoding = detect_encoding(resp)
 
     soup = BeautifulSoup(resp.text, "lxml")
 

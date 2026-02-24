@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select, case
 from sqlalchemy.orm import Session, selectinload, aliased
@@ -9,6 +11,7 @@ from app.models.speech import Speech
 from app.models.vote import VoteRecord, VoteResult
 from app.schemas.common import PaginatedResponse
 from app.schemas.member import MemberWithScore, MemberDetail, ScoreDetail, ScoreSummary
+from app.schemas.speech import SpeechResponse
 from app.schemas.vote import VoteRecordResponse
 
 router = APIRouter(prefix="/members", tags=["members"])
@@ -25,11 +28,18 @@ SCORE_SORT_FIELDS = {
 
 @router.get("", response_model=PaginatedResponse[MemberWithScore])
 def list_members(
-    chamber: str | None = None,
+    chamber: Literal["representatives", "councillors"] | None = None,
     party: str | None = None,
     role_category: str | None = None,
     search: str | None = None,
-    sort_by: str = "name",
+    sort_by: Literal[
+        "name",
+        "total",
+        "legislative_activity",
+        "voting_behavior",
+        "policy_influence",
+        "transparency",
+    ] = "name",
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -177,6 +187,7 @@ def get_member_scores(member_id: int, db: Session = Depends(get_db)):
         db.execute(
             select(MemberScore)
             .where(MemberScore.member_id == member_id)
+            .options(selectinload(MemberScore.session))
             .order_by(MemberScore.session_id.desc())
         )
         .scalars()
@@ -208,7 +219,7 @@ def get_member_scores(member_id: int, db: Session = Depends(get_db)):
     return result
 
 
-@router.get("/{member_id}/speeches")
+@router.get("/{member_id}/speeches", response_model=PaginatedResponse[SpeechResponse])
 def get_member_speeches(
     member_id: int,
     page: int = Query(1, ge=1),
@@ -235,22 +246,24 @@ def get_member_speeches(
         .all()
     )
 
-    return {
-        "items": [
-            {
-                "id": s.id,
-                "meeting_name": s.meeting_name,
-                "speech_date": str(s.speech_date) if s.speech_date else None,
-                "speech_chars": s.speech_chars,
-                "speech_url": s.speech_url,
-            }
-            for s in speeches
-        ],
-        "total": total,
-        "page": page,
-        "per_page": per_page,
-        "pages": (total + per_page - 1) // per_page if per_page else 0,
-    }
+    items = [
+        SpeechResponse(
+            id=s.id,
+            meeting_name=s.meeting_name,
+            speech_date=str(s.speech_date) if s.speech_date else None,
+            speech_chars=s.speech_chars,
+            speech_url=s.speech_url,
+        )
+        for s in speeches
+    ]
+
+    return PaginatedResponse(
+        items=items,
+        total=total,
+        page=page,
+        per_page=per_page,
+        pages=(total + per_page - 1) // per_page if per_page else 0,
+    )
 
 
 @router.get("/{member_id}/votes", response_model=PaginatedResponse[VoteRecordResponse])
