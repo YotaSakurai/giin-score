@@ -163,9 +163,8 @@ def _compute_legislative_activity(
         )
         weight = _sponsor_weight(sp.sponsor_type, co_count)
 
-        # 成立率ボーナス
-        enacted = 1.0 if bill.result and "成立" in bill.result else 0.0
-        score = weight * (1.0 + enacted)
+        # LAS は発議の「量」のみ。成立の「質」は PIS で評価。
+        score = weight
         bill_score += score
 
         bills_sponsored.append({
@@ -174,7 +173,6 @@ def _compute_legislative_activity(
             "sponsor_type": sp.sponsor_type,
             "co_sponsors": co_count,
             "weight": weight,
-            "enacted": bool(enacted),
             "score": round(score, 2),
         })
 
@@ -258,12 +256,26 @@ def _compute_voting_behavior(
     votes_cast = sum(1 for r in records if r.vote != "absent")
     participation_rate = votes_cast / vote_opportunities * 100
 
+    # 投票内容の比率（将来の党議拘束分析の準備）
+    aye_count = sum(1 for r in records if r.vote == "aye")
+    nay_count = sum(1 for r in records if r.vote == "nay")
+    abstain_count = sum(1 for r in records if r.vote == "abstain")
+    absent_count = sum(1 for r in records if r.vote == "absent")
+    total_records = len(records)
+
+    aye_rate = (aye_count / total_records * 100) if total_records > 0 else 0.0
+    nay_rate = (nay_count / total_records * 100) if total_records > 0 else 0.0
+
     breakdown = {
         "votes_cast": votes_cast,
         "vote_opportunities": vote_opportunities,
         "participation_rate": round(participation_rate, 1),
-        "absent_count": sum(1 for r in records if r.vote == "absent"),
-        "abstain_count": sum(1 for r in records if r.vote == "abstain"),
+        "absent_count": absent_count,
+        "abstain_count": abstain_count,
+        "aye_count": aye_count,
+        "nay_count": nay_count,
+        "aye_rate": round(aye_rate, 1),
+        "nay_rate": round(nay_rate, 1),
     }
 
     return participation_rate, breakdown
@@ -310,22 +322,40 @@ def _compute_policy_influence(
 
 
 def _bill_kind_weight(title: str, bill_kind: str) -> float:
-    """法案の種類に基づく重みを返す。"""
-    title_lower = title.lower() if title else ""
-    if "改正" not in title_lower:
-        return 1.0  # 新規立法
-    if any(kw in title_lower for kw in ["一部改正", "軽微", "整備"]):
-        return 0.3  # 軽微改正
-    return 0.7  # 大規模改正
+    """法案の種類に基づく重みを返す。
+
+    閣法は重要度高（1.0）、衆法/参法は 0.8。
+    改正法案は種類に応じて減額。
+    """
+    title_str = title or ""
+    kind = bill_kind or ""
+
+    # 法案種別による基本ウェイト
+    if kind == "閣法":
+        base = 1.0
+    else:
+        # 衆法 / 参法 / その他
+        base = 0.8
+
+    # 改正法案の場合は減額
+    if "改正" not in title_str:
+        return base  # 新規立法
+    if any(kw in title_str for kw in ["一部改正", "軽微", "整備"]):
+        return base * 0.3  # 軽微改正
+    return base * 0.7  # 大規模改正
 
 
 def _compute_transparency(
     db: Session, member: Member, session: DietSession
 ) -> tuple[float, dict]:
-    """透明性スコア (TS) - MVP暫定版"""
-    # 委員会発言回数
-    committee_speeches = (
-        db.query(func.count(Speech.id))
+    """透明性スコア (TS) - 多様な委員会への参加率
+
+    発言した会議のユニーク数 / 全会議のユニーク数（会期内）で算出。
+    多くの種類の委員会に参加している議員ほど高スコア。
+    """
+    # この議員が発言した会議のユニーク数
+    member_meetings = (
+        db.query(func.count(func.distinct(Speech.meeting_name)))
         .filter(
             Speech.member_id == member.id,
             Speech.session_id == session.id,
@@ -333,22 +363,22 @@ def _compute_transparency(
         .scalar()
     ) or 0
 
-    # 全委員会開催数（全議員の発言がある会議のユニーク数）
-    committee_meetings = (
+    # 全会議のユニーク数（会期内の全議員）
+    total_meetings = (
         db.query(func.count(func.distinct(Speech.meeting_name)))
         .filter(Speech.session_id == session.id)
         .scalar()
     ) or 1  # ゼロ除算防止
 
-    disclosure_rate = committee_speeches / committee_meetings * 100
+    diversity_rate = member_meetings / total_meetings * 100
 
     breakdown = {
-        "committee_speeches": committee_speeches,
-        "committee_meetings": committee_meetings,
-        "disclosure_rate": round(disclosure_rate, 1),
+        "member_meetings": member_meetings,
+        "total_meetings": total_meetings,
+        "diversity_rate": round(diversity_rate, 1),
     }
 
-    return disclosure_rate, breakdown
+    return diversity_rate, breakdown
 
 
 def _normalize_group(
@@ -356,7 +386,11 @@ def _normalize_group(
     member_ids: list[int],
     normalized_scores: dict[int, dict],
 ):
-    """比較群内でパーセンタイルランク正規化する。"""
+    """比較群内でパーセンタイルランク正規化する。
+
+    同点の議員には平均ランク方式で同一パーセンタイルを付与。
+    最高値は100に到達する（rank / (n-1) * 100）。
+    """
     axes = ["legislative_activity", "voting_behavior", "policy_influence", "transparency"]
 
     for axis in axes:
@@ -367,10 +401,32 @@ def _normalize_group(
         sorted_values = sorted(values, key=lambda x: x[1])
         n = len(sorted_values)
 
-        for rank_idx, (mid, _) in enumerate(sorted_values):
+        if n == 1:
+            mid = sorted_values[0][0]
             if mid not in normalized_scores:
                 normalized_scores[mid] = {}
-            percentile = (rank_idx / n) * 100 if n > 1 else 50.0
+            normalized_scores[mid][axis] = 50.0
+            continue
+
+        # 同点グループに平均ランクを付与
+        rank_map: dict[int, float] = {}
+        i = 0
+        while i < n:
+            j = i
+            # 同じスコアの範囲を探す
+            while j < n and sorted_values[j][1] == sorted_values[i][1]:
+                j += 1
+            # i..j-1 が同点グループ。平均ランクを計算
+            avg_rank = sum(range(i, j)) / (j - i)
+            for k in range(i, j):
+                mid = sorted_values[k][0]
+                rank_map[mid] = avg_rank
+            i = j
+
+        for mid, avg_rank in rank_map.items():
+            if mid not in normalized_scores:
+                normalized_scores[mid] = {}
+            percentile = (avg_rank / (n - 1)) * 100
             normalized_scores[mid][axis] = round(percentile, 1)
 
 

@@ -30,16 +30,32 @@ class TestSponsorWeight:
 
 
 class TestBillKindWeight:
-    def test_new_legislation(self):
-        assert _bill_kind_weight("民法", "衆法") == 1.0
-        assert _bill_kind_weight("国民投票法", "衆法") == 1.0
+    def test_new_legislation_kakuhou(self):
+        # 閣法: base=1.0, 改正なし -> 1.0
+        assert _bill_kind_weight("民法", "閣法") == 1.0
+        assert _bill_kind_weight("国民投票法", "閣法") == 1.0
 
-    def test_minor_amendment(self):
+    def test_new_legislation_shuhou(self):
+        # 衆法: base=0.8, 改正なし -> 0.8
+        assert _bill_kind_weight("民法", "衆法") == 0.8
+        assert _bill_kind_weight("国民投票法", "参法") == 0.8
+
+    def test_minor_amendment_kakuhou(self):
+        # 閣法: base=1.0, 軽微改正 -> 1.0 * 0.3 = 0.3
         assert _bill_kind_weight("民法の一部改正", "閣法") == 0.3
         assert _bill_kind_weight("整備に関する法律", "閣法") == 0.3
 
-    def test_major_amendment(self):
-        assert _bill_kind_weight("刑法改正に関する法律", "衆法") == 0.7
+    def test_minor_amendment_shuhou(self):
+        # 衆法: base=0.8, 軽微改正 -> 0.8 * 0.3 = 0.24
+        assert _bill_kind_weight("民法の一部改正", "衆法") == pytest.approx(0.24)
+
+    def test_major_amendment_kakuhou(self):
+        # 閣法: base=1.0, 大規模改正 -> 1.0 * 0.7 = 0.7
+        assert _bill_kind_weight("刑法改正に関する法律", "閣法") == 0.7
+
+    def test_major_amendment_shuhou(self):
+        # 衆法: base=0.8, 大規模改正 -> 0.8 * 0.7 = 0.56
+        assert _bill_kind_weight("刑法改正に関する法律", "衆法") == pytest.approx(0.56)
 
 
 class TestComputeTotal:
@@ -117,10 +133,12 @@ class TestNormalization:
         normalized = {}
         _normalize_group(raw_scores, member_ids, normalized)
 
-        # member 1 has lowest LAS (rank 0/5 = 0.0)
+        # member 1 has lowest LAS (rank 0/(5-1) = 0.0)
         assert normalized[1]["legislative_activity"] == 0.0
-        # member 5 has highest LAS (rank 4/5 = 80.0)
-        assert normalized[5]["legislative_activity"] == 80.0
+        # member 5 has highest LAS (rank 4/(5-1) = 100.0)
+        assert normalized[5]["legislative_activity"] == 100.0
+        # member 3 has middle LAS (rank 2/(5-1) = 50.0)
+        assert normalized[3]["legislative_activity"] == 50.0
 
     def test_single_member_group(self):
         raw_scores = {
@@ -128,7 +146,7 @@ class TestNormalization:
         }
         normalized = {}
         _normalize_group(raw_scores, [1], normalized)
-        # Single member → 50.0 percentile
+        # Single member -> 50.0 percentile
         assert normalized[1]["legislative_activity"] == 50.0
 
     def test_tied_scores(self):
@@ -138,9 +156,27 @@ class TestNormalization:
         }
         normalized = {}
         _normalize_group(raw_scores, [1, 2], normalized)
-        # Both exist in normalized
+        # Both exist in normalized and have the same percentile (average rank)
         assert 1 in normalized
         assert 2 in normalized
+        # avg_rank = (0+1)/2 = 0.5, percentile = 0.5/(2-1)*100 = 50.0
+        assert normalized[1]["legislative_activity"] == 50.0
+        assert normalized[2]["legislative_activity"] == 50.0
+
+    def test_tied_scores_partial(self):
+        """一部同点のケース: 3人中2人が同点"""
+        raw_scores = {
+            1: {"legislative_activity": 10, "voting_behavior": 10, "policy_influence": 10, "transparency": 10},
+            2: {"legislative_activity": 10, "voting_behavior": 10, "policy_influence": 10, "transparency": 10},
+            3: {"legislative_activity": 20, "voting_behavior": 20, "policy_influence": 20, "transparency": 20},
+        }
+        normalized = {}
+        _normalize_group(raw_scores, [1, 2, 3], normalized)
+        # member 1 & 2: avg_rank = (0+1)/2 = 0.5, percentile = 0.5/(3-1)*100 = 25.0
+        assert normalized[1]["legislative_activity"] == 25.0
+        assert normalized[2]["legislative_activity"] == 25.0
+        # member 3: rank 2, percentile = 2/(3-1)*100 = 100.0
+        assert normalized[3]["legislative_activity"] == 100.0
 
     def test_empty_group(self):
         raw_scores = {}
