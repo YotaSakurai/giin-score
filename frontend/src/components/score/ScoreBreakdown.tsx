@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AXIS_LABELS } from "@/lib/types";
+import type { ScoreBreakdownData } from "@/lib/types";
 
 interface ScoreBreakdownProps {
-  breakdown: Record<string, unknown> | null;
+  breakdown: ScoreBreakdownData | null;
   scores: {
     legislative_activity: number;
     voting_behavior: number;
@@ -17,7 +18,7 @@ export function ScoreBreakdown({ breakdown, scores }: ScoreBreakdownProps) {
     { key: "voting_behavior", score: scores.voting_behavior },
     { key: "policy_influence", score: scores.policy_influence },
     { key: "transparency", score: scores.transparency },
-  ];
+  ] as const;
 
   return (
     <Card>

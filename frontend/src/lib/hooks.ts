@@ -1,0 +1,86 @@
+import useSWR from "swr";
+import { swrFetcher, buildQuery } from "./api";
+import type {
+  RankingEntry,
+  Stats,
+  MemberWithScore,
+  MemberDetail,
+  Bill,
+  BillDetail,
+  PaginatedResponse,
+  SpeechItem,
+  VoteRecord,
+} from "./types";
+
+// ---- ランキング ----
+export function useRanking(params?: {
+  chamber?: string;
+  party?: string;
+  session_number?: number;
+  sort_by?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const key = `/scores/ranking${buildQuery(params)}`;
+  return useSWR<{ items: RankingEntry[]; total: number }>(key, swrFetcher);
+}
+
+// ---- 統計 ----
+export function useStats(params?: {
+  chamber?: string;
+  session_number?: number;
+}) {
+  const key = `/scores/stats${buildQuery(params)}`;
+  return useSWR<Stats>(key, swrFetcher);
+}
+
+// ---- 議員一覧 ----
+export function useMembers(params?: {
+  chamber?: string;
+  party?: string;
+  role_category?: string;
+  search?: string;
+  sort_by?: string;
+  page?: number;
+  per_page?: number;
+}) {
+  const key = `/members${buildQuery(params)}`;
+  return useSWR<PaginatedResponse<MemberWithScore>>(key, swrFetcher);
+}
+
+// ---- 議員詳細 ----
+export function useMember(id: number) {
+  const key = `/members/${id}`;
+  return useSWR<MemberDetail>(key, swrFetcher);
+}
+
+// ---- 議員発言 ----
+export function useMemberSpeeches(id: number, page = 1, perPage = 10) {
+  const key = `/members/${id}/speeches${buildQuery({ page, per_page: perPage })}`;
+  return useSWR<PaginatedResponse<SpeechItem>>(key, swrFetcher);
+}
+
+// ---- 議員投票 ----
+export function useMemberVotes(id: number, page = 1, perPage = 10) {
+  const key = `/members/${id}/votes${buildQuery({ page, per_page: perPage })}`;
+  return useSWR<PaginatedResponse<VoteRecord>>(key, swrFetcher);
+}
+
+// ---- 法案一覧 ----
+export function useBills(params?: {
+  session_number?: number;
+  bill_kind?: string;
+  status?: string;
+  search?: string;
+  page?: number;
+  per_page?: number;
+}) {
+  const key = `/bills${buildQuery(params)}`;
+  return useSWR<PaginatedResponse<Bill>>(key, swrFetcher);
+}
+
+// ---- 法案詳細 ----
+export function useBill(id: number) {
+  const key = `/bills/${id}`;
+  return useSWR<BillDetail>(key, swrFetcher);
+}

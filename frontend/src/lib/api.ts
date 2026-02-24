@@ -24,6 +24,22 @@ async function fetchApi<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+/** SWR用のfetcher関数。キーはAPI_BASE相対パス文字列 */
+export async function swrFetcher<T>(path: string): Promise<T> {
+  return fetchApi<T>(path);
+}
+
+/** URLSearchParamsを組み立てるヘルパー */
+export function buildQuery(params?: Record<string, string | number | undefined>): string {
+  if (!params) return "";
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== "") query.set(k, String(v));
+  });
+  const qs = query.toString();
+  return qs ? `?${qs}` : "";
+}
+
 export async function getMembers(params?: {
   chamber?: string;
   party?: string;

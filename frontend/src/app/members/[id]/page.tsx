@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, use } from "react";
+import { useState, useMemo, use } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,46 +13,36 @@ import { ScoreRadarChart } from "@/components/score/ScoreRadarChart";
 import { ScoreCard } from "@/components/score/ScoreCard";
 import { ScoreBreakdown } from "@/components/score/ScoreBreakdown";
 import { CHAMBER_LABELS, AXIS_LABELS } from "@/lib/types";
-import type { MemberDetail, VoteRecord } from "@/lib/types";
-import { getMember, getMemberSpeeches, getMemberVotes } from "@/lib/api";
+import { VOTE_LABELS, VOTE_COLORS } from "@/lib/constants";
+import { useMember, useMemberSpeeches, useMemberVotes } from "@/lib/hooks";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-const VOTE_LABELS: Record<string, string> = {
-  aye: "賛成",
-  nay: "反対",
-  abstain: "棄権",
-  absent: "欠席",
-};
-
-const VOTE_COLORS: Record<string, string> = {
-  aye: "bg-emerald-100 text-emerald-800",
-  nay: "bg-red-100 text-red-800",
-  abstain: "bg-yellow-100 text-yellow-800",
-  absent: "bg-slate-100 text-slate-600",
-};
-
 export default function MemberDetailPage({ params }: PageProps) {
   const { id } = use(params);
   const memberId = Number(id);
 
-  const [member, setMember] = useState<MemberDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: member, error, isLoading, mutate } = useMember(memberId);
 
   // Speeches state
-  const [speeches, setSpeeches] = useState<Record<string, unknown>[]>([]);
   const [speechPage, setSpeechPage] = useState(1);
-  const [speechPages, setSpeechPages] = useState(0);
-  const [speechLoading, setSpeechLoading] = useState(false);
+  const {
+    data: speechData,
+    isLoading: speechLoading,
+  } = useMemberSpeeches(memberId, speechPage, 10);
+  const speeches = speechData?.items ?? [];
+  const speechPages = speechData?.pages ?? 0;
 
   // Votes state
-  const [votes, setVotes] = useState<VoteRecord[]>([]);
   const [votePage, setVotePage] = useState(1);
-  const [votePages, setVotePages] = useState(0);
-  const [voteLoading, setVoteLoading] = useState(false);
+  const {
+    data: voteData,
+    isLoading: voteLoading,
+  } = useMemberVotes(memberId, votePage, 10);
+  const votes = voteData?.items ?? [];
+  const votePages = voteData?.pages ?? 0;
 
   const [weights, setWeights] = useState({
     legislative_activity: 30,
@@ -60,57 +50,6 @@ export default function MemberDetailPage({ params }: PageProps) {
     policy_influence: 25,
     transparency: 20,
   });
-
-  const fetchMember = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getMember(memberId);
-      setMember(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "データの取得に失敗しました");
-    } finally {
-      setLoading(false);
-    }
-  }, [memberId]);
-
-  const fetchSpeeches = useCallback(async () => {
-    setSpeechLoading(true);
-    try {
-      const res = await getMemberSpeeches(memberId, speechPage, 10);
-      setSpeeches(res.items);
-      setSpeechPages(res.pages);
-    } catch {
-      // silently fail for tab data
-    } finally {
-      setSpeechLoading(false);
-    }
-  }, [memberId, speechPage]);
-
-  const fetchVotes = useCallback(async () => {
-    setVoteLoading(true);
-    try {
-      const res = await getMemberVotes(memberId, votePage, 10);
-      setVotes(res.items);
-      setVotePages(res.pages);
-    } catch {
-      // silently fail for tab data
-    } finally {
-      setVoteLoading(false);
-    }
-  }, [memberId, votePage]);
-
-  useEffect(() => {
-    fetchMember();
-  }, [fetchMember]);
-
-  useEffect(() => {
-    fetchSpeeches();
-  }, [fetchSpeeches]);
-
-  useEffect(() => {
-    fetchVotes();
-  }, [fetchVotes]);
 
   const latestScore = member?.scores?.[0] ?? null;
 
@@ -128,14 +67,14 @@ export default function MemberDetailPage({ params }: PageProps) {
 
   const customGrade = customTotal >= 80 ? "A" : customTotal >= 60 ? "B" : customTotal >= 40 ? "C" : customTotal >= 20 ? "D" : "F";
 
-  if (loading) return <div className="mx-auto max-w-7xl px-4 py-8"><LoadingSpinner /></div>;
-  if (error) return <div className="mx-auto max-w-7xl px-4 py-8"><ErrorMessage message={error} onRetry={fetchMember} /></div>;
+  if (isLoading) return <div className="mx-auto max-w-7xl px-4 py-8"><LoadingSpinner /></div>;
+  if (error) return <div className="mx-auto max-w-7xl px-4 py-8"><ErrorMessage message={error instanceof Error ? error.message : "データの取得に失敗しました"} onRetry={() => mutate()} /></div>;
   if (!member) return <div className="mx-auto max-w-7xl px-4 py-8">議員が見つかりません</div>;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       {/* パンくず */}
-      <nav className="text-sm text-slate-500 mb-6">
+      <nav aria-label="パンくずリスト" className="text-sm text-slate-500 mb-6">
         <Link href="/members" className="hover:text-blue-600">議員一覧</Link>
         <span className="mx-2">/</span>
         <span className="text-slate-800">{member.name}</span>
@@ -207,7 +146,7 @@ export default function MemberDetailPage({ params }: PageProps) {
           {/* スコア内訳 */}
           <div className="mb-8">
             <ScoreBreakdown
-              breakdown={latestScore.breakdown as Record<string, unknown>}
+              breakdown={latestScore.breakdown}
               scores={{
                 legislative_activity: latestScore.legislative_activity,
                 voting_behavior: latestScore.voting_behavior,
@@ -244,20 +183,20 @@ export default function MemberDetailPage({ params }: PageProps) {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b text-left text-xs text-slate-500">
-                        <th className="p-2">日付</th>
-                        <th className="p-2">会議名</th>
-                        <th className="p-2 text-right">文字数</th>
+                        <th scope="col" className="p-2">日付</th>
+                        <th scope="col" className="p-2">会議名</th>
+                        <th scope="col" className="p-2 text-right">文字数</th>
                       </tr>
                     </thead>
                     <tbody>
                       {speeches.map((s, i) => (
                         <tr key={i} className="border-b hover:bg-slate-50">
                           <td className="p-2 text-sm text-slate-600">
-                            {(s.speech_date as string) ?? "-"}
+                            {s.speech_date ?? "-"}
                           </td>
-                          <td className="p-2 text-sm">{(s.meeting_name as string) ?? "-"}</td>
+                          <td className="p-2 text-sm">{s.meeting_name ?? "-"}</td>
                           <td className="p-2 text-sm text-right text-slate-600">
-                            {((s.speech_chars as number) ?? 0).toLocaleString()}字
+                            {(s.speech_chars ?? 0).toLocaleString()}字
                           </td>
                         </tr>
                       ))}
@@ -282,8 +221,8 @@ export default function MemberDetailPage({ params }: PageProps) {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b text-left text-xs text-slate-500">
-                        <th className="p-2">法案名</th>
-                        <th className="p-2 text-center">投票</th>
+                        <th scope="col" className="p-2">法案名</th>
+                        <th scope="col" className="p-2 text-center">投票</th>
                       </tr>
                     </thead>
                     <tbody>

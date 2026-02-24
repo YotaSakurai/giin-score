@@ -9,6 +9,37 @@ export interface Member {
   role_category: string | null;
 }
 
+export interface LegislativeActivityBreakdown {
+  bill_score: number;
+  committee_score: number;
+  speech_count: number;
+  avg_speech_chars: number;
+}
+
+export interface VotingBehaviorBreakdown {
+  votes_cast: number;
+  vote_opportunities: number;
+  participation_rate: number;
+}
+
+export interface PolicyInfluenceBreakdown {
+  enacted_count: number;
+  enacted_score: number;
+}
+
+export interface TransparencyBreakdown {
+  committee_speeches: number;
+  committee_meetings: number;
+  disclosure_rate: number;
+}
+
+export interface ScoreBreakdownData {
+  legislative_activity: LegislativeActivityBreakdown;
+  voting_behavior: VotingBehaviorBreakdown;
+  policy_influence: PolicyInfluenceBreakdown;
+  transparency: TransparencyBreakdown;
+}
+
 export interface Score {
   id: number;
   member_id: number;
@@ -23,7 +54,15 @@ export interface Score {
   transparency: number;
   total: number;
   grade: string;
-  breakdown: Record<string, unknown> | null;
+  breakdown: ScoreBreakdownData | null;
+}
+
+export interface SpeechItem {
+  id: number;
+  speech_date: string | null;
+  meeting_name: string | null;
+  speech_chars: number;
+  speech_url: string | null;
 }
 
 export interface MemberWithScore extends Member {

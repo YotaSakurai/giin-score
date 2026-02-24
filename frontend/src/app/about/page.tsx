@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+
+export const metadata: Metadata = {
+  title: "スコア算出方法",
+  description:
+    "GiinScoreのスコアリング手法・4軸スコア・正規化方法・データソース・限界について説明します。",
+};
 
 export default function AboutPage() {
   return (
@@ -144,9 +151,9 @@ export default function AboutPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-slate-500">
-                  <th className="pb-2">データ</th>
-                  <th className="pb-2">ソース</th>
-                  <th className="pb-2">取得方法</th>
+                  <th scope="col" className="pb-2">データ</th>
+                  <th scope="col" className="pb-2">ソース</th>
+                  <th scope="col" className="pb-2">取得方法</th>
                 </tr>
               </thead>
               <tbody className="text-slate-600">

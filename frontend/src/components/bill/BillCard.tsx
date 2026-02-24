@@ -2,21 +2,14 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Bill } from "@/lib/types";
+import { STATUS_COLORS } from "@/lib/constants";
 
 interface BillCardProps {
   bill: Bill;
 }
 
-const statusColors: Record<string, string> = {
-  成立: "bg-emerald-100 text-emerald-800",
-  否決: "bg-red-100 text-red-800",
-  審議中: "bg-yellow-100 text-yellow-800",
-  廃案: "bg-slate-100 text-slate-600",
-  継続: "bg-blue-100 text-blue-800",
-};
-
 export function BillCard({ bill }: BillCardProps) {
-  const statusClass = statusColors[bill.status ?? ""] ?? "bg-slate-100 text-slate-600";
+  const statusClass = STATUS_COLORS[bill.status ?? ""] ?? "bg-slate-100 text-slate-600";
 
   return (
     <Link href={`/bills/${bill.id}`}>
