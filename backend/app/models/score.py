@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, Float, String, ForeignKey, JSON, UniqueConstraint
+from sqlalchemy import JSON, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -6,13 +6,15 @@ from app.database import Base
 
 class MemberScore(Base):
     __tablename__ = "member_scores"
-    __table_args__ = (
-        UniqueConstraint("member_id", "session_id", name="uq_member_session_score"),
-    )
+    __table_args__ = (UniqueConstraint("member_id", "session_id", name="uq_member_session_score"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    member_id: Mapped[int] = mapped_column(Integer, ForeignKey("members.id"), nullable=False, index=True)
-    session_id: Mapped[int] = mapped_column(Integer, ForeignKey("diet_sessions.id"), nullable=False, index=True)
+    member_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("members.id"), nullable=False, index=True
+    )
+    session_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("diet_sessions.id"), nullable=False, index=True
+    )
 
     # Raw scores
     legislative_activity_raw: Mapped[float] = mapped_column(Float, default=0.0)

@@ -24,12 +24,10 @@ jobs:
         run: pip install ".[dev]" ruff
 
       - name: Lint (ruff check)
-        run: ruff check backend/
-        working-directory: .
+        run: ruff check .
 
       - name: Format check (ruff format)
-        run: ruff format --check backend/
-        working-directory: .
+        run: ruff format --check .
 
       - name: Run tests
         run: pytest app/tests/ -v

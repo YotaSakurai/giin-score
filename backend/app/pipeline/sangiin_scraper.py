@@ -2,10 +2,11 @@
 
 参議院Webサイトの投票結果ページから個別議員の投票記録を取得する。
 """
+
 import logging
 import re
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 from bs4 import BeautifulSoup
@@ -13,11 +14,10 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models.bill import Bill
-from app.models.member import Member
 from app.models.pipeline import PipelineRun
 from app.models.session import DietSession
 from app.models.vote import VoteRecord, VoteResult
-from app.pipeline.member_master import normalize_name, find_or_create_member
+from app.pipeline.member_master import find_or_create_member, normalize_name
 from app.pipeline.utils import USER_AGENT, detect_encoding, health_check
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ def scrape_votes(db: Session, session_number: int) -> int:
         pipeline_name="sangiin_votes",
         session_number=session_number,
         status="running",
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
     )
     db.add(pipeline_run)
     db.commit()
@@ -41,7 +41,9 @@ def scrape_votes(db: Session, session_number: int) -> int:
     try:
         vote_list_url = f"{BASE_URL}/japanese/touhyoulist/{session_number}/vote_ind.htm"
 
-        with httpx.Client(timeout=30.0, headers={"User-Agent": USER_AGENT}, follow_redirects=True) as client:
+        with httpx.Client(
+            timeout=30.0, headers={"User-Agent": USER_AGENT}, follow_redirects=True
+        ) as client:
             time.sleep(settings.kokkai_api_rate_limit)
             resp = client.get(vote_list_url)
             resp.raise_for_status()
@@ -52,7 +54,7 @@ def scrape_votes(db: Session, session_number: int) -> int:
                 logger.error("HTML structure changed - health check failed")
                 pipeline_run.status = "failed"
                 pipeline_run.error_message = "HTML structure health check failed"
-                pipeline_run.finished_at = datetime.now(timezone.utc)
+                pipeline_run.finished_at = datetime.now(UTC)
                 db.commit()
                 return 0
 
@@ -70,14 +72,14 @@ def scrape_votes(db: Session, session_number: int) -> int:
         db.commit()
         pipeline_run.status = "completed"
         pipeline_run.records_processed = total_processed
-        pipeline_run.finished_at = datetime.now(timezone.utc)
+        pipeline_run.finished_at = datetime.now(UTC)
         db.commit()
         logger.info(f"Completed: {total_processed} vote records for session {session_number}")
 
     except Exception as e:
         pipeline_run.status = "failed"
         pipeline_run.error_message = str(e)
-        pipeline_run.finished_at = datetime.now(timezone.utc)
+        pipeline_run.finished_at = datetime.now(UTC)
         db.commit()
         logger.error(f"Sangiin scraper failed: {e}")
         raise
@@ -141,10 +143,14 @@ def _scrape_vote_page(db: Session, client: httpx.Client, session_number: int, ur
         return 0
 
     # タイトル部分一致で法案を検索
-    bill = db.query(Bill).filter(
-        Bill.session_id == diet_session.id,
-        Bill.title.contains(bill_title[:30]),
-    ).first()
+    bill = (
+        db.query(Bill)
+        .filter(
+            Bill.session_id == diet_session.id,
+            Bill.title.contains(bill_title[:30]),
+        )
+        .first()
+    )
 
     # 結果を判定
     result_text = None
@@ -158,9 +164,7 @@ def _scrape_vote_page(db: Session, client: httpx.Client, session_number: int, ur
         return 0
 
     # 既存VoteResultチェック
-    existing = db.query(VoteResult).filter_by(
-        bill_id=bill.id, chamber="councillors"
-    ).first()
+    existing = db.query(VoteResult).filter_by(bill_id=bill.id, chamber="councillors").first()
     if existing:
         return 0
 

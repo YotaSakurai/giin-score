@@ -2,6 +2,7 @@
 
 議員スコアのソート・フィルタリングを提供する。
 """
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 

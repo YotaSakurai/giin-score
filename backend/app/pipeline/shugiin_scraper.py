@@ -2,10 +2,11 @@
 
 衆議院Webサイトから法案一覧・法案詳細・提出者情報を取得する。
 """
+
 import logging
 import re
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 from bs4 import BeautifulSoup
@@ -15,7 +16,7 @@ from app.config import settings
 from app.models.bill import Bill, BillSponsor
 from app.models.pipeline import PipelineRun
 from app.models.session import DietSession
-from app.pipeline.member_master import normalize_name, find_or_create_member
+from app.pipeline.member_master import find_or_create_member, normalize_name
 from app.pipeline.utils import USER_AGENT, detect_encoding, health_check
 
 logger = logging.getLogger(__name__)
@@ -47,7 +48,7 @@ def scrape_bills_list(db: Session, session_number: int) -> int:
         pipeline_name="shugiin_bills_list",
         session_number=session_number,
         status="running",
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
     )
     db.add(pipeline_run)
     db.commit()
@@ -70,18 +71,14 @@ def scrape_bills_list(db: Session, session_number: int) -> int:
                 logger.error("HTML structure changed - health check failed")
                 pipeline_run.status = "failed"
                 pipeline_run.error_message = "HTML structure health check failed"
-                pipeline_run.finished_at = datetime.now(timezone.utc)
+                pipeline_run.finished_at = datetime.now(UTC)
                 db.commit()
                 return 0
 
             # 会期を取得または作成
-            diet_session = db.query(DietSession).filter_by(
-                session_number=session_number
-            ).first()
+            diet_session = db.query(DietSession).filter_by(session_number=session_number).first()
             if not diet_session:
-                diet_session = DietSession(
-                    session_number=session_number, kind="通常"
-                )
+                diet_session = DietSession(session_number=session_number, kind="通常")
                 db.add(diet_session)
                 db.flush()
 
@@ -159,7 +156,7 @@ def scrape_bills_list(db: Session, session_number: int) -> int:
         db.commit()
         pipeline_run.status = "completed"
         pipeline_run.records_processed = total_processed
-        pipeline_run.finished_at = datetime.now(timezone.utc)
+        pipeline_run.finished_at = datetime.now(UTC)
         db.commit()
         logger.info(
             f"Completed: {total_processed} bills from Shugiin list for session {session_number}"
@@ -168,7 +165,7 @@ def scrape_bills_list(db: Session, session_number: int) -> int:
     except Exception as e:
         pipeline_run.status = "failed"
         pipeline_run.error_message = str(e)
-        pipeline_run.finished_at = datetime.now(timezone.utc)
+        pipeline_run.finished_at = datetime.now(UTC)
         db.commit()
         logger.error(f"Shugiin bills list scraper failed: {e}")
         raise
@@ -213,7 +210,7 @@ def scrape_bills(db: Session, session_number: int) -> int:
         pipeline_name="shugiin_bills",
         session_number=session_number,
         status="running",
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
     )
     db.add(pipeline_run)
     db.commit()
@@ -224,7 +221,9 @@ def scrape_bills(db: Session, session_number: int) -> int:
         # 議案一覧ページ
         list_url = f"{BASE_URL}/internet/itdb_gian.nsf/html/gian/kaiji{session_number}.htm"
 
-        with httpx.Client(timeout=30.0, headers={"User-Agent": USER_AGENT}, follow_redirects=True) as client:
+        with httpx.Client(
+            timeout=30.0, headers={"User-Agent": USER_AGENT}, follow_redirects=True
+        ) as client:
             time.sleep(settings.kokkai_api_rate_limit)
             resp = client.get(list_url)
             resp.raise_for_status()
@@ -235,7 +234,7 @@ def scrape_bills(db: Session, session_number: int) -> int:
                 logger.error("HTML structure changed - health check failed")
                 pipeline_run.status = "failed"
                 pipeline_run.error_message = "HTML structure health check failed"
-                pipeline_run.finished_at = datetime.now(timezone.utc)
+                pipeline_run.finished_at = datetime.now(UTC)
                 db.commit()
                 return 0
 
@@ -256,14 +255,14 @@ def scrape_bills(db: Session, session_number: int) -> int:
         db.commit()
         pipeline_run.status = "completed"
         pipeline_run.records_processed = total_processed
-        pipeline_run.finished_at = datetime.now(timezone.utc)
+        pipeline_run.finished_at = datetime.now(UTC)
         db.commit()
         logger.info(f"Completed: {total_processed} bills for session {session_number}")
 
     except Exception as e:
         pipeline_run.status = "failed"
         pipeline_run.error_message = str(e)
-        pipeline_run.finished_at = datetime.now(timezone.utc)
+        pipeline_run.finished_at = datetime.now(UTC)
         db.commit()
         logger.error(f"Shugiin scraper failed: {e}")
         raise
@@ -329,11 +328,7 @@ def _scrape_bill_detail(db: Session, client: httpx.Client, session_number: int, 
             )
             sponsor_type = "primary" if i == 0 else "co-sponsor"
 
-            existing = (
-                db.query(BillSponsor)
-                .filter_by(bill_id=bill.id, member_id=member.id)
-                .first()
-            )
+            existing = db.query(BillSponsor).filter_by(bill_id=bill.id, member_id=member.id).first()
             if not existing:
                 sponsor = BillSponsor(
                     bill_id=bill.id,

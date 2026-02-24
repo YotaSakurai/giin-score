@@ -1,13 +1,14 @@
 """スコアリングエンジンの単体テスト"""
+
 import pytest
 
 from app.services.scoring import (
-    _sponsor_weight,
-    _bill_kind_weight,
-    compute_total,
-    compute_grade,
-    _normalize_group,
     DEFAULT_WEIGHTS,
+    _bill_kind_weight,
+    _normalize_group,
+    _sponsor_weight,
+    compute_grade,
+    compute_total,
 )
 
 
@@ -123,11 +124,36 @@ class TestComputeGrade:
 class TestNormalization:
     def test_percentile_rank_basic(self):
         raw_scores = {
-            1: {"legislative_activity": 10, "voting_behavior": 50, "policy_influence": 30, "transparency": 20},
-            2: {"legislative_activity": 20, "voting_behavior": 40, "policy_influence": 60, "transparency": 40},
-            3: {"legislative_activity": 30, "voting_behavior": 30, "policy_influence": 90, "transparency": 60},
-            4: {"legislative_activity": 40, "voting_behavior": 20, "policy_influence": 20, "transparency": 80},
-            5: {"legislative_activity": 50, "voting_behavior": 10, "policy_influence": 10, "transparency": 100},
+            1: {
+                "legislative_activity": 10,
+                "voting_behavior": 50,
+                "policy_influence": 30,
+                "transparency": 20,
+            },
+            2: {
+                "legislative_activity": 20,
+                "voting_behavior": 40,
+                "policy_influence": 60,
+                "transparency": 40,
+            },
+            3: {
+                "legislative_activity": 30,
+                "voting_behavior": 30,
+                "policy_influence": 90,
+                "transparency": 60,
+            },
+            4: {
+                "legislative_activity": 40,
+                "voting_behavior": 20,
+                "policy_influence": 20,
+                "transparency": 80,
+            },
+            5: {
+                "legislative_activity": 50,
+                "voting_behavior": 10,
+                "policy_influence": 10,
+                "transparency": 100,
+            },
         }
         member_ids = [1, 2, 3, 4, 5]
         normalized = {}
@@ -142,7 +168,12 @@ class TestNormalization:
 
     def test_single_member_group(self):
         raw_scores = {
-            1: {"legislative_activity": 50, "voting_behavior": 50, "policy_influence": 50, "transparency": 50},
+            1: {
+                "legislative_activity": 50,
+                "voting_behavior": 50,
+                "policy_influence": 50,
+                "transparency": 50,
+            },
         }
         normalized = {}
         _normalize_group(raw_scores, [1], normalized)
@@ -151,8 +182,18 @@ class TestNormalization:
 
     def test_tied_scores(self):
         raw_scores = {
-            1: {"legislative_activity": 10, "voting_behavior": 10, "policy_influence": 10, "transparency": 10},
-            2: {"legislative_activity": 10, "voting_behavior": 10, "policy_influence": 10, "transparency": 10},
+            1: {
+                "legislative_activity": 10,
+                "voting_behavior": 10,
+                "policy_influence": 10,
+                "transparency": 10,
+            },
+            2: {
+                "legislative_activity": 10,
+                "voting_behavior": 10,
+                "policy_influence": 10,
+                "transparency": 10,
+            },
         }
         normalized = {}
         _normalize_group(raw_scores, [1, 2], normalized)
@@ -166,9 +207,24 @@ class TestNormalization:
     def test_tied_scores_partial(self):
         """一部同点のケース: 3人中2人が同点"""
         raw_scores = {
-            1: {"legislative_activity": 10, "voting_behavior": 10, "policy_influence": 10, "transparency": 10},
-            2: {"legislative_activity": 10, "voting_behavior": 10, "policy_influence": 10, "transparency": 10},
-            3: {"legislative_activity": 20, "voting_behavior": 20, "policy_influence": 20, "transparency": 20},
+            1: {
+                "legislative_activity": 10,
+                "voting_behavior": 10,
+                "policy_influence": 10,
+                "transparency": 10,
+            },
+            2: {
+                "legislative_activity": 10,
+                "voting_behavior": 10,
+                "policy_influence": 10,
+                "transparency": 10,
+            },
+            3: {
+                "legislative_activity": 20,
+                "voting_behavior": 20,
+                "policy_influence": 20,
+                "transparency": 20,
+            },
         }
         normalized = {}
         _normalize_group(raw_scores, [1, 2, 3], normalized)

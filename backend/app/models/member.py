@@ -1,5 +1,5 @@
 import sqlalchemy as sa
-from sqlalchemy import Integer, String, JSON
+from sqlalchemy import JSON, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -7,14 +7,14 @@ from app.database import Base
 
 class Member(Base):
     __tablename__ = "members"
-    __table_args__ = (
-        sa.UniqueConstraint("name", "chamber", name="uq_members_name_chamber"),
-    )
+    __table_args__ = (sa.UniqueConstraint("name", "chamber", name="uq_members_name_chamber"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     name_reading: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    chamber: Mapped[str] = mapped_column(String(20), nullable=False, index=True)  # representatives/councillors
+    chamber: Mapped[str] = mapped_column(
+        String(20), nullable=False, index=True
+    )  # representatives/councillors
     party: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     faction: Mapped[str | None] = mapped_column(String(100), nullable=True)
     district: Mapped[str | None] = mapped_column(String(200), nullable=True)

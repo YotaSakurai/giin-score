@@ -32,11 +32,7 @@ def _resolve_session_id(db: Session, session_number: int | None) -> int | None:
     # スコアが存在する最新の会期を取得
     latest_scored = db.execute(
         select(DietSession.id)
-        .where(
-            DietSession.id.in_(
-                select(MemberScore.session_id).distinct()
-            )
-        )
+        .where(DietSession.id.in_(select(MemberScore.session_id).distinct()))
         .order_by(DietSession.session_number.desc())
         .limit(1)
     ).scalar_one_or_none()

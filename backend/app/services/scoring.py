@@ -3,10 +3,11 @@
 4軸スコア (立法活動/投票行動/政策影響力/透明性) を算出し、
 パーセンタイルランクで正規化する。
 """
+
 import logging
 from collections import defaultdict
 
-from sqlalchemy import func, select
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.bill import Bill, BillSponsor
@@ -75,9 +76,7 @@ def compute_scores_for_session(db: Session, session_number: int) -> int:
 
         # upsert
         existing = (
-            db.query(MemberScore)
-            .filter_by(member_id=mid, session_id=diet_session.id)
-            .first()
+            db.query(MemberScore).filter_by(member_id=mid, session_id=diet_session.id).first()
         )
         if existing:
             existing.legislative_activity_raw = raw["legislative_activity"]
@@ -157,9 +156,7 @@ def _compute_legislative_activity(
         bill = sp.bill
         # 共同発議者数を取得
         co_count = (
-            db.query(func.count(BillSponsor.id))
-            .filter(BillSponsor.bill_id == bill.id)
-            .scalar()
+            db.query(func.count(BillSponsor.id)).filter(BillSponsor.bill_id == bill.id).scalar()
         )
         weight = _sponsor_weight(sp.sponsor_type, co_count)
 
@@ -167,14 +164,16 @@ def _compute_legislative_activity(
         score = weight
         bill_score += score
 
-        bills_sponsored.append({
-            "bill_id": bill.id,
-            "title": bill.title,
-            "sponsor_type": sp.sponsor_type,
-            "co_sponsors": co_count,
-            "weight": weight,
-            "score": round(score, 2),
-        })
+        bills_sponsored.append(
+            {
+                "bill_id": bill.id,
+                "title": bill.title,
+                "sponsor_type": sp.sponsor_type,
+                "co_sponsors": co_count,
+                "weight": weight,
+                "score": round(score, 2),
+            }
+        )
 
     # 委員会質疑
     speeches = (
@@ -189,7 +188,9 @@ def _compute_legislative_activity(
     total_chars = sum(s.speech_chars for s in speeches)
     avg_chars = total_chars / speech_count if speech_count > 0 else 0
 
-    density_factor = min(avg_chars / SPEECH_DENSITY_BASELINE, DENSITY_CAP) if speech_count > 0 else 0
+    density_factor = (
+        min(avg_chars / SPEECH_DENSITY_BASELINE, DENSITY_CAP) if speech_count > 0 else 0
+    )
     committee_score = speech_count * density_factor
 
     las_raw = bill_score + committee_score
@@ -303,11 +304,13 @@ def _compute_policy_influence(
         bill = sp.bill
         kind_weight = _bill_kind_weight(bill.title, bill.bill_kind)
         enacted_score += kind_weight
-        enacted_bills.append({
-            "bill_id": bill.id,
-            "title": bill.title,
-            "kind_weight": kind_weight,
-        })
+        enacted_bills.append(
+            {
+                "bill_id": bill.id,
+                "title": bill.title,
+                "kind_weight": kind_weight,
+            }
+        )
 
     # MVP段階では質問主意書は未実装（データソース追加後に対応）
     pis_raw = enacted_score
@@ -345,9 +348,7 @@ def _bill_kind_weight(title: str, bill_kind: str) -> float:
     return base * 0.7  # 大規模改正
 
 
-def _compute_transparency(
-    db: Session, member: Member, session: DietSession
-) -> tuple[float, dict]:
+def _compute_transparency(db: Session, member: Member, session: DietSession) -> tuple[float, dict]:
     """透明性スコア (TS) - 多様な委員会への参加率
 
     発言した会議のユニーク数 / 全会議のユニーク数（会期内）で算出。
@@ -430,9 +431,7 @@ def _normalize_group(
             normalized_scores[mid][axis] = round(percentile, 1)
 
 
-def compute_total(
-    normalized: dict, weights: dict | None = None
-) -> float:
+def compute_total(normalized: dict, weights: dict | None = None) -> float:
     """正規化スコアから総合スコアを算出する。"""
     w = weights or DEFAULT_WEIGHTS
     total = (

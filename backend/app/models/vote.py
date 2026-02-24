@@ -1,5 +1,5 @@
 import sqlalchemy as sa
-from sqlalchemy import Integer, String, ForeignKey
+from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -9,7 +9,9 @@ class VoteResult(Base):
     __tablename__ = "vote_results"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    bill_id: Mapped[int] = mapped_column(Integer, ForeignKey("bills.id"), nullable=False, index=True)
+    bill_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("bills.id"), nullable=False, index=True
+    )
     chamber: Mapped[str] = mapped_column(String(20), nullable=False)  # representatives/councillors
     ayes: Mapped[int] = mapped_column(Integer, default=0)
     nays: Mapped[int] = mapped_column(Integer, default=0)
@@ -26,8 +28,12 @@ class VoteRecord(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    vote_result_id: Mapped[int] = mapped_column(Integer, ForeignKey("vote_results.id"), nullable=False, index=True)
-    member_id: Mapped[int] = mapped_column(Integer, ForeignKey("members.id"), nullable=False, index=True)
+    vote_result_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("vote_results.id"), nullable=False, index=True
+    )
+    member_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("members.id"), nullable=False, index=True
+    )
     vote: Mapped[str] = mapped_column(String(10), nullable=False)  # aye/nay/abstain/absent
 
     vote_result = relationship("VoteResult", back_populates="records")

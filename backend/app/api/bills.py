@@ -5,8 +5,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.database import get_db
 from app.models.bill import Bill, BillSponsor
 from app.models.session import DietSession
-from app.models.vote import VoteResult
-from app.schemas.bill import BillResponse, BillDetail, SponsorInfo, VoteResultSummary
+from app.schemas.bill import BillDetail, BillResponse, SponsorInfo, VoteResultSummary
 from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/bills", tags=["bills"])
@@ -44,7 +43,9 @@ def list_bills(
 
     total = db.execute(count_query).scalar_one()
     offset = (page - 1) * per_page
-    bills = db.execute(query.order_by(Bill.id.desc()).offset(offset).limit(per_page)).scalars().all()
+    bills = (
+        db.execute(query.order_by(Bill.id.desc()).offset(offset).limit(per_page)).scalars().all()
+    )
 
     return PaginatedResponse(
         items=[BillResponse.model_validate(b) for b in bills],

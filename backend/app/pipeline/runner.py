@@ -8,6 +8,7 @@
   python -m app.pipeline.runner --pipeline votes --session 213
   python -m app.pipeline.runner --pipeline scoring --session 213
 """
+
 import argparse
 import logging
 import sys

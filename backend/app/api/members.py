@@ -1,8 +1,8 @@
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select, case
-from sqlalchemy.orm import Session, selectinload, aliased
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session, aliased, selectinload
 
 from app.database import get_db
 from app.models.member import Member
@@ -10,7 +10,7 @@ from app.models.score import MemberScore
 from app.models.speech import Speech
 from app.models.vote import VoteRecord, VoteResult
 from app.schemas.common import PaginatedResponse
-from app.schemas.member import MemberWithScore, MemberDetail, ScoreDetail, ScoreSummary
+from app.schemas.member import MemberDetail, MemberWithScore, ScoreDetail, ScoreSummary
 from app.schemas.speech import SpeechResponse
 from app.schemas.vote import VoteRecordResponse
 
