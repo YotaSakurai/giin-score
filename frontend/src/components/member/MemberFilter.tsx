@@ -7,9 +7,11 @@ interface MemberFilterProps {
   search: string;
   chamber: string;
   party: string;
+  district?: string;
   onSearchChange: (v: string) => void;
   onChamberChange: (v: string) => void;
   onPartyChange: (v: string) => void;
+  onDistrictChange?: (v: string) => void;
 }
 
 const PARTIES = [
@@ -17,9 +19,11 @@ const PARTIES = [
   "国民民主党", "日本共産党", "れいわ新選組", "社会民主党", "無所属",
 ];
 
-export function MemberFilter({ search, chamber, party, onSearchChange, onChamberChange, onPartyChange }: MemberFilterProps) {
+export function MemberFilter({
+  search, chamber, party, district = "", onSearchChange, onChamberChange, onPartyChange, onDistrictChange,
+}: MemberFilterProps) {
   return (
-    <div className="flex flex-col sm:flex-row gap-3 mb-6">
+    <div className="flex flex-col sm:flex-row gap-3 mb-6 flex-wrap">
       <Input
         placeholder="議員名で検索..."
         value={search}
@@ -47,6 +51,14 @@ export function MemberFilter({ search, chamber, party, onSearchChange, onChamber
           ))}
         </SelectContent>
       </Select>
+      {onDistrictChange && (
+        <Input
+          placeholder="選挙区で検索..."
+          value={district}
+          onChange={(e) => onDistrictChange(e.target.value)}
+          className="sm:max-w-[200px]"
+        />
+      )}
     </div>
   );
 }

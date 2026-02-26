@@ -32,6 +32,7 @@ def list_members(
     party: str | None = None,
     role_category: str | None = None,
     search: str | None = None,
+    district: str | None = None,
     sort_by: Literal[
         "name",
         "total",
@@ -81,6 +82,9 @@ def list_members(
     if role_category:
         query = query.where(Member.role_category == role_category)
         count_query = count_query.where(Member.role_category == role_category)
+    if district:
+        query = query.where(Member.district.ilike(f"%{district}%"))
+        count_query = count_query.where(Member.district.ilike(f"%{district}%"))
     if search:
         query = query.where(Member.name.ilike(f"%{search}%"))
         count_query = count_query.where(Member.name.ilike(f"%{search}%"))
@@ -130,6 +134,24 @@ def list_members(
         per_page=per_page,
         pages=(total + per_page - 1) // per_page if per_page else 0,
     )
+
+
+@router.get("/districts", response_model=list[str])
+def get_districts(
+    chamber: Literal["representatives", "councillors"] | None = None,
+    db: Session = Depends(get_db),
+):
+    """データベースに存在する選挙区名一覧を返す。"""
+    query = (
+        select(Member.district)
+        .where(Member.district.isnot(None))
+        .distinct()
+        .order_by(Member.district)
+    )
+    if chamber:
+        query = query.where(Member.chamber == chamber)
+    districts = db.execute(query).scalars().all()
+    return [d for d in districts if d]
 
 
 @router.get("/{member_id}", response_model=MemberDetail)

@@ -81,6 +81,14 @@ def run_smartnews(db, session_number: int):
     logger.info(f"Loaded {count} bills from CSV")
 
 
+def run_profiles(db, session_number: int):
+    from app.pipeline.member_profile_scraper import scrape_member_profiles
+
+    logger.info("=== Scraping member profiles (district, reading) ===")
+    count = scrape_member_profiles(db)
+    logger.info(f"Updated {count} member profiles")
+
+
 def run_all(db, session_number: int):
     """全パイプラインを順番に実行する。"""
     logger.info(f"=== Running ALL pipelines for session {session_number} ===")
@@ -101,6 +109,7 @@ PIPELINES = {
     "shugiin": run_shugiin,
     "scoring": run_scoring,
     "smartnews": run_smartnews,
+    "profiles": run_profiles,
 }
 
 

@@ -41,6 +41,7 @@ export function useMembers(params?: {
   party?: string;
   role_category?: string;
   search?: string;
+  district?: string;
   sort_by?: string;
   page?: number;
   per_page?: number;

@@ -14,6 +14,7 @@ import { ScoreHistoryChart } from "@/components/score/ScoreHistoryChart";
 import { ScoreCard } from "@/components/score/ScoreCard";
 import { ScoreBreakdown } from "@/components/score/ScoreBreakdown";
 import { ShareButton } from "@/components/ShareButton";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { CHAMBER_LABELS, AXIS_LABELS } from "@/lib/types";
 import { VOTE_LABELS, VOTE_COLORS } from "@/lib/constants";
 import { useMember, useMemberSpeeches, useMemberVotes } from "@/lib/hooks";
@@ -97,6 +98,7 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-slate-800">{member.name}</h1>
+              <FavoriteButton memberId={member.id} />
               <ShareButton title={shareTitle} url={shareUrl} />
             </div>
             {member.name_reading && <p className="text-sm text-slate-500">{member.name_reading}</p>}

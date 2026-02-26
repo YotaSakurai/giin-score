@@ -16,6 +16,7 @@ export default function MembersContent() {
   const search = searchParams.get("search") || "";
   const chamber = searchParams.get("chamber") || "all";
   const party = searchParams.get("party") || "all";
+  const district = searchParams.get("district") || "";
   const page = Number(searchParams.get("page")) || 1;
   const perPage = 20;
 
@@ -23,6 +24,7 @@ export default function MembersContent() {
     search: search || undefined,
     chamber: chamber === "all" ? undefined : chamber,
     party: party === "all" ? undefined : party,
+    district: district || undefined,
     page,
     per_page: perPage,
   });
@@ -59,6 +61,10 @@ export default function MembersContent() {
     (v: string) => updateParams({ party: v, page: undefined }),
     [updateParams],
   );
+  const setDistrict = useCallback(
+    (v: string) => updateParams({ district: v, page: undefined }),
+    [updateParams],
+  );
   const setPage = useCallback(
     (p: number) => updateParams({ page: p === 1 ? undefined : String(p) }),
     [updateParams],
@@ -71,9 +77,11 @@ export default function MembersContent() {
         search={search}
         chamber={chamber}
         party={party}
+        district={district}
         onSearchChange={setSearch}
         onChamberChange={setChamber}
         onPartyChange={setParty}
+        onDistrictChange={setDistrict}
       />
       <p className="text-sm text-slate-500 mb-4">{total}名の議員</p>
 

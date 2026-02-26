@@ -10,6 +10,7 @@ const navItems = [
   { href: "/members", label: "議員一覧" },
   { href: "/parties", label: "政党別" },
   { href: "/compare", label: "比較" },
+  { href: "/favorites", label: "お気に入り" },
   { href: "/bills", label: "法案一覧" },
   { href: "/about", label: "スコアについて" },
 ];
