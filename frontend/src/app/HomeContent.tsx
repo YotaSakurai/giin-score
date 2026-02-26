@@ -1,20 +1,74 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
 import { CHAMBER_LABELS, GRADE_COLORS } from "@/lib/types";
 import { useRanking, useStats } from "@/lib/hooks";
+import { ShareButton } from "@/components/ShareButton";
+
+const COMPARE_STORAGE_KEY = "giin-score-compare-ids";
+const MAX_COMPARE = 4;
+
+function getStoredCompareIds(): number[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(COMPARE_STORAGE_KEY);
+    if (!stored) return [];
+    return JSON.parse(stored) as number[];
+  } catch {
+    return [];
+  }
+}
+
+function setStoredCompareIds(ids: number[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(COMPARE_STORAGE_KEY, JSON.stringify(ids));
+}
 
 export default function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const chamber = searchParams.get("chamber") || "all";
+
+  const [compareIds, setCompareIds] = useState<number[]>([]);
+
+  // クライアント側でのみlocalStorageから読み込み
+  useEffect(() => {
+    setCompareIds(getStoredCompareIds());
+  }, []);
+
+  const toggleCompare = useCallback((memberId: number) => {
+    setCompareIds((prev) => {
+      let next: number[];
+      if (prev.includes(memberId)) {
+        next = prev.filter((id) => id !== memberId);
+      } else {
+        if (prev.length >= MAX_COMPARE) return prev;
+        next = [...prev, memberId];
+      }
+      setStoredCompareIds(next);
+      return next;
+    });
+  }, []);
+
+  const clearCompare = useCallback(() => {
+    setCompareIds([]);
+    setStoredCompareIds([]);
+  }, []);
+
+  const goToCompare = useCallback(() => {
+    if (compareIds.length >= 2) {
+      // 遷移後にlocalStorageをクリアしない（比較ページでも参照可能にするため）
+      router.push(`/compare?ids=${compareIds.join(",")}`);
+    }
+  }, [compareIds, router]);
 
   const chamberParam = chamber === "all" ? undefined : chamber;
 
@@ -66,7 +120,12 @@ export default function HomeContent() {
 
       {/* ヘッダー */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-800 mb-2">議員活動ランキング</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <h1 className="text-2xl font-bold text-slate-800">議員活動ランキング</h1>
+          <ShareButton
+            title="議員活動ランキング | GiinScore - 国会議員の活動スコアを可視化"
+          />
+        </div>
         <p className="text-sm text-slate-500">国会における議員の活動スコアランキング</p>
       </div>
 
@@ -135,6 +194,7 @@ export default function HomeContent() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b bg-slate-50 text-left text-xs text-slate-500">
+                    <th scope="col" className="p-3 w-10 text-center">比較</th>
                     <th scope="col" className="p-3 w-12">#</th>
                     <th scope="col" className="p-3">議員名</th>
                     <th scope="col" className="p-3 hidden sm:table-cell">政党</th>
@@ -150,8 +210,31 @@ export default function HomeContent() {
                 <tbody>
                   {ranking.map((entry) => {
                     const gradeColor = GRADE_COLORS[entry.score.grade] || "bg-gray-300";
+                    const isSelected = compareIds.includes(entry.member.id);
+                    const isDisabled = !isSelected && compareIds.length >= MAX_COMPARE;
                     return (
                       <tr key={entry.member.id} className="border-b hover:bg-slate-50 transition-colors">
+                        <td className="p-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => toggleCompare(entry.member.id)}
+                            disabled={isDisabled}
+                            className={`inline-flex h-5 w-5 items-center justify-center rounded border transition-colors ${
+                              isSelected
+                                ? "bg-blue-600 border-blue-600 text-white"
+                                : isDisabled
+                                  ? "border-slate-200 bg-slate-50 cursor-not-allowed"
+                                  : "border-slate-300 hover:border-blue-400"
+                            }`}
+                            aria-label={`${entry.member.name}を比較に${isSelected ? "解除" : "追加"}`}
+                          >
+                            {isSelected && (
+                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </button>
+                        </td>
                         <td className="p-3 text-sm font-medium text-slate-500">{entry.rank}</td>
                         <td className="p-3">
                           <Link href={`/members/${entry.member.id}`} className="text-sm font-medium text-blue-600 hover:underline">
@@ -179,7 +262,7 @@ export default function HomeContent() {
                   })}
                   {ranking.length === 0 && (
                     <tr>
-                      <td colSpan={10} className="p-8 text-center text-sm text-slate-500">
+                      <td colSpan={11} className="p-8 text-center text-sm text-slate-500">
                         スコアデータがまだありません
                       </td>
                     </tr>
@@ -189,6 +272,43 @@ export default function HomeContent() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* フローティング比較ボタン */}
+      {compareIds.length >= 1 && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2">
+          {compareIds.length >= 1 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearCompare}
+              className="bg-white shadow-lg"
+            >
+              クリア
+            </Button>
+          )}
+          <Button
+            onClick={goToCompare}
+            disabled={compareIds.length < 2}
+            className="shadow-lg"
+            size="lg"
+          >
+            <svg
+              className="h-4 w-4 mr-1"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+            比較する ({compareIds.length}/{MAX_COMPARE})
+          </Button>
+        </div>
       )}
     </div>
   );
