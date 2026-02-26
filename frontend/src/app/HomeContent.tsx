@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,12 +37,7 @@ export default function HomeContent() {
   const searchParams = useSearchParams();
   const chamber = searchParams.get("chamber") || "all";
 
-  const [compareIds, setCompareIds] = useState<number[]>([]);
-
-  // クライアント側でのみlocalStorageから読み込み
-  useEffect(() => {
-    setCompareIds(getStoredCompareIds());
-  }, []);
+  const [compareIds, setCompareIds] = useState<number[]>(() => getStoredCompareIds());
 
   const toggleCompare = useCallback((memberId: number) => {
     setCompareIds((prev) => {

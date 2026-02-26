@@ -279,7 +279,7 @@ export default function CompareContent() {
                       <td className="p-3 text-sm font-medium text-slate-700">
                         {AXIS_LABELS[axis]}
                       </td>
-                      {memberScores.map((ms, idx) => {
+                      {memberScores.map((ms) => {
                         const value = ms.score?.[axis] ?? null;
                         const isMax =
                           value !== null &&
