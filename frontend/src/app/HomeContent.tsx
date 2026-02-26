@@ -192,7 +192,66 @@ export default function HomeContent() {
       ) : error ? (
         <ErrorMessage message={error instanceof Error ? error.message : "データの取得に失敗しました"} onRetry={handleRetry} />
       ) : (
-        <Card>
+        <>
+        {/* モバイルカードビュー */}
+        <div className="sm:hidden space-y-3">
+          {ranking.map((entry) => {
+            const gradeColor = GRADE_COLORS[entry.score.grade] || "bg-gray-300";
+            const isSelected = compareIds.includes(entry.member.id);
+            const isDisabled = !isSelected && compareIds.length >= MAX_COMPARE;
+            return (
+              <Card key={entry.member.id} className="relative">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-bold text-slate-400 w-8 text-right">{entry.rank}</span>
+                    <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white text-sm font-bold ${gradeColor}`}>
+                      {entry.score.grade}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <Link href={`/members/${entry.member.id}`} className="text-sm font-bold text-blue-600 hover:underline">
+                        {entry.member.name}
+                      </Link>
+                      <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                        <span>{entry.member.party ?? "無所属"}</span>
+                        <span>{CHAMBER_LABELS[entry.member.chamber]}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold">{entry.score.total.toFixed(1)}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleCompare(entry.member.id)}
+                      disabled={isDisabled}
+                      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded border transition-colors ${
+                        isSelected
+                          ? "bg-blue-600 border-blue-600 text-white"
+                          : isDisabled
+                            ? "border-slate-200 bg-slate-50 cursor-not-allowed"
+                            : "border-slate-300"
+                      }`}
+                      aria-label={`${entry.member.name}を比較に${isSelected ? "解除" : "追加"}`}
+                    >
+                      {isSelected && (
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+          {ranking.length === 0 && (
+            <p className="p-8 text-center text-sm text-slate-500">
+              スコアデータがまだありません
+            </p>
+          )}
+        </div>
+
+        {/* デスクトップテーブルビュー */}
+        <Card className="hidden sm:block">
           <CardHeader>
             <CardTitle className="text-base">TOP {ranking.length}</CardTitle>
           </CardHeader>
@@ -204,7 +263,7 @@ export default function HomeContent() {
                     <th scope="col" className="p-3 w-10 text-center">比較</th>
                     <th scope="col" className="p-3 w-12">#</th>
                     <th scope="col" className="p-3">議員名</th>
-                    <th scope="col" className="p-3 hidden sm:table-cell">政党</th>
+                    <th scope="col" className="p-3">政党</th>
                     <th scope="col" className="p-3 hidden md:table-cell">院</th>
                     <th scope="col" className="p-3 text-center">グレード</th>
                     <th scope="col" className="p-3 text-right">スコア</th>
@@ -248,7 +307,7 @@ export default function HomeContent() {
                             {entry.member.name}
                           </Link>
                         </td>
-                        <td className="p-3 hidden sm:table-cell text-sm text-slate-600">{entry.member.party ?? "無所属"}</td>
+                        <td className="p-3 text-sm text-slate-600">{entry.member.party ?? "無所属"}</td>
                         <td className="p-3 hidden md:table-cell">
                           <Badge variant="outline" className="text-xs">
                             {CHAMBER_LABELS[entry.member.chamber]}
@@ -279,6 +338,7 @@ export default function HomeContent() {
             </div>
           </CardContent>
         </Card>
+        </>
       )}
 
       {/* フローティング比較ボタン */}
