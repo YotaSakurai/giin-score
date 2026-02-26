@@ -238,7 +238,7 @@ def scrape_bills(db: Session, session_number: int) -> int:
                 db.commit()
                 return 0
 
-            bill_links = _extract_bill_links(soup)
+            bill_links = _extract_bill_links(soup, list_url)
             logger.info(f"Found {len(bill_links)} bill pages for session {session_number}")
 
             for link in bill_links:
@@ -270,15 +270,21 @@ def scrape_bills(db: Session, session_number: int) -> int:
     return total_processed
 
 
-def _extract_bill_links(soup: BeautifulSoup) -> list[str]:
+def _extract_bill_links(soup: BeautifulSoup, page_url: str) -> list[str]:
+    """法案詳細ページ（本文 honbun）へのリンクを抽出する。"""
+    from urllib.parse import urljoin
+
     links = []
+    seen = set()
     for a_tag in soup.find_all("a", href=True):
         href = a_tag["href"]
-        if "gian_honbun" in href or "gian" in href:
-            if href.startswith("http"):
-                links.append(href)
-            elif href.startswith("/"):
-                links.append(f"{BASE_URL}{href}")
+        link_text = a_tag.get_text(strip=True)
+        # 「本文」リンクのみ抽出（経過ページは不要）
+        if "honbun" in href or link_text == "本文":
+            full_url = urljoin(page_url, href)
+            if full_url not in seen:
+                seen.add(full_url)
+                links.append(full_url)
     return links
 
 
