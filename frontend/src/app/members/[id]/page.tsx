@@ -3,6 +3,10 @@ import { getMember } from "@/lib/api";
 import MemberDetailContent from "./MemberDetailContent";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://giinscore.jp";
+const CHAMBER_LABELS: Record<string, string> = {
+  representatives: "衆議院",
+  councillors: "参議院",
+};
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -48,6 +52,46 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default function MemberDetailPage({ params }: PageProps) {
-  return <MemberDetailContent params={params} />;
+export default async function MemberDetailPage({ params }: PageProps) {
+  const { id } = await params;
+  let jsonLd = null;
+
+  try {
+    const member = await getMember(Number(id));
+    const latestScore = member.scores?.[0] ?? null;
+
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name: member.name,
+      url: `${siteUrl}/members/${id}`,
+      description: latestScore
+        ? `${member.name}（${member.party ?? "無所属"}・${CHAMBER_LABELS[member.chamber] ?? member.chamber}）の国会活動スコア: ${latestScore.total.toFixed(1)}点`
+        : `${member.name}の国会活動スコア`,
+      affiliation: member.party
+        ? {
+            "@type": "Organization",
+            name: member.party,
+          }
+        : undefined,
+      memberOf: {
+        "@type": "Organization",
+        name: CHAMBER_LABELS[member.chamber] ?? member.chamber,
+      },
+    };
+  } catch {
+    // JSON-LDなしで表示
+  }
+
+  return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      <MemberDetailContent params={params} />
+    </>
+  );
 }

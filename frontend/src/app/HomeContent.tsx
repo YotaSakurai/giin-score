@@ -161,6 +161,38 @@ export default function HomeContent() {
         </div>
       )}
 
+      {/* TOP3 ハイライト */}
+      {ranking.length >= 3 && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          {ranking.slice(0, 3).map((entry, idx) => {
+            const colors = ["border-yellow-400 bg-yellow-50", "border-slate-300 bg-slate-50", "border-amber-600 bg-amber-50"];
+            const medals = ["🥇", "🥈", "🥉"];
+            const gradeColor = GRADE_COLORS[entry.score.grade] || "bg-gray-300";
+            return (
+              <Card key={entry.member.id} className={`border-2 ${colors[idx]}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{medals[idx]}</span>
+                    <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white text-sm font-bold ${gradeColor}`}>
+                      {entry.score.grade}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <Link href={`/members/${entry.member.id}`} className="text-sm font-bold text-blue-600 hover:underline truncate block">
+                        {entry.member.name}
+                      </Link>
+                      <p className="text-xs text-slate-500 truncate">{entry.member.party ?? "無所属"}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold">{entry.score.total.toFixed(1)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
       {/* フィルタ */}
       <div className="flex items-center gap-4 mb-6">
         <Select value={chamber} onValueChange={setChamber}>

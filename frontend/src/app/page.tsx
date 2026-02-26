@@ -20,10 +20,29 @@ export const metadata: Metadata = {
   },
 };
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://giinscore.jp";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "GiinScore",
+  url: siteUrl,
+  description: "国会の公開データに基づく政治家の活動量を可視化するダッシュボード",
+  applicationCategory: "GovernmentApplication",
+  operatingSystem: "Web",
+  inLanguage: "ja",
+};
+
 export default function HomePage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-8"><LoadingSpinner /></div>}>
-      <HomeContent />
-    </Suspense>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-8"><LoadingSpinner /></div>}>
+        <HomeContent />
+      </Suspense>
+    </>
   );
 }
