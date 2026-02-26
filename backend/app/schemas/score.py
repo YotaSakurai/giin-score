@@ -51,3 +51,22 @@ class StatsResponse(BaseModel):
     distribution: list[ScoreDistribution]
     chamber: str | None = None
     session_number: int | None = None
+
+
+class PartyStatsEntry(BaseModel):
+    party: str
+    member_count: int
+    average_score: float
+    median_score: float
+    max_score: float
+    min_score: float
+    average_legislative_activity: float
+    average_voting_behavior: float
+    average_policy_influence: float
+    average_transparency: float
+
+
+class PartyStatsResponse(BaseModel):
+    items: list[PartyStatsEntry]
+    chamber: str | None = None
+    session_number: int | None = None

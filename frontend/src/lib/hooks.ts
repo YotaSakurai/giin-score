@@ -10,6 +10,7 @@ import type {
   PaginatedResponse,
   SpeechItem,
   VoteRecord,
+  PartyStatsResponse,
 } from "./types";
 
 // ---- ランキング ----
@@ -83,4 +84,19 @@ export function useBills(params?: {
 export function useBill(id: number) {
   const key = `/bills/${id}`;
   return useSWR<BillDetail>(key, swrFetcher);
+}
+
+// ---- 党派別統計 ----
+export function usePartyStats(params?: {
+  chamber?: string;
+  session_number?: number;
+}) {
+  const key = `/scores/by-party${buildQuery(params)}`;
+  return useSWR<PartyStatsResponse>(key, swrFetcher);
+}
+
+// ---- 政党一覧 ----
+export function useParties(chamber?: string) {
+  const key = `/scores/parties${buildQuery({ chamber })}`;
+  return useSWR<string[]>(key, swrFetcher);
 }

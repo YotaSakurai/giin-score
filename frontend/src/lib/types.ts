@@ -161,6 +161,25 @@ export interface DietSession {
   end_date: string | null;
 }
 
+export interface PartyStatsEntry {
+  party: string;
+  member_count: number;
+  average_score: number;
+  median_score: number;
+  max_score: number;
+  min_score: number;
+  average_legislative_activity: number;
+  average_voting_behavior: number;
+  average_policy_influence: number;
+  average_transparency: number;
+}
+
+export interface PartyStatsResponse {
+  items: PartyStatsEntry[];
+  chamber: string | null;
+  session_number: number | null;
+}
+
 export const CHAMBER_LABELS: Record<string, string> = {
   representatives: "衆議院",
   councillors: "参議院",

@@ -1,0 +1,70 @@
+name: Pipeline (scheduled)
+
+on:
+  schedule:
+    # 毎週月曜 AM 3:00 JST (日曜 18:00 UTC)
+    - cron: "0 18 * * 0"
+  workflow_dispatch:
+    inputs:
+      session_number:
+        description: "会期番号 (例: 213)"
+        required: false
+        type: string
+      pipeline:
+        description: "パイプライン名 (all/kokkai_speeches/sangiin_votes/shugiin_bills/member_master/scoring)"
+        required: false
+        default: "all"
+        type: string
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: giin
+          POSTGRES_PASSWORD: giin
+          POSTGRES_DB: giin_score
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install ".[dev]"
+
+      - name: Run Alembic migrations
+        run: alembic upgrade head
+        env:
+          DATABASE_URL: postgresql://giin:giin@localhost:5432/giin_score
+
+      - name: Run pipeline
+        run: |
+          SESSION="${{ github.event.inputs.session_number }}"
+          PIPELINE="${{ github.event.inputs.pipeline || 'all' }}"
+          if [ -z "$SESSION" ]; then
+            python -m app.pipeline.runner --pipeline "$PIPELINE"
+          else
+            python -m app.pipeline.runner --pipeline "$PIPELINE" --session "$SESSION"
+          fi
+        env:
+          DATABASE_URL: postgresql://giin:giin@localhost:5432/giin_score
+        timeout-minutes: 60

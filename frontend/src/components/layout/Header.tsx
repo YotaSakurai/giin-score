@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 const navItems = [
   { href: "/", label: "ランキング" },
   { href: "/members", label: "議員一覧" },
+  { href: "/parties", label: "政党別" },
   { href: "/compare", label: "比較" },
   { href: "/bills", label: "法案一覧" },
   { href: "/about", label: "スコアについて" },
