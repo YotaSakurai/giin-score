@@ -376,16 +376,14 @@ export default function HomeContent() {
       {/* フローティング比較ボタン */}
       {compareIds.length >= 1 && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2">
-          {compareIds.length >= 1 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearCompare}
-              className="bg-white shadow-lg"
-            >
-              クリア
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearCompare}
+            className="bg-white shadow-lg"
+          >
+            クリア
+          </Button>
           <Button
             onClick={goToCompare}
             disabled={compareIds.length < 2}

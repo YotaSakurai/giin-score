@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     kokkai_api_base_url: str = "https://kokkai.ndl.go.jp/api"
     data_dir: str = "/data"
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 settings = Settings()

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useMemo } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { swrFetcher } from "@/lib/api";
@@ -13,45 +13,30 @@ import { LoadingSpinner } from "@/components/ui/loading";
 import { getFavorites, setFavorites } from "@/lib/favorites";
 import { FavoriteButton } from "@/components/FavoriteButton";
 
-function useFavoriteMember(id: number | null) {
-  return useSWR<MemberDetail>(
-    id !== null ? `/members/${id}` : null,
-    swrFetcher,
+/** 複数IDの議員データを一括取得するカスタムフック */
+function useFavoriteMembers(ids: number[]) {
+  // SWRキーをIDリストから安定的に生成
+  const key = ids.length > 0 ? `/favorites-batch?ids=${ids.join(",")}` : null;
+
+  const { data, isLoading } = useSWR<MemberDetail[]>(
+    key,
+    async () => {
+      const results = await Promise.all(
+        ids.map((id) => swrFetcher<MemberDetail>(`/members/${id}`).catch(() => null)),
+      );
+      return results.filter((r): r is MemberDetail => r !== null);
+    },
+    { revalidateOnFocus: false },
   );
+
+  return { members: data ?? [], isLoading };
 }
 
 export default function FavoritesContent() {
   const [favoriteIds, setFavoriteIds] = useState<number[]>(() => getFavorites());
 
-  // 最大20名分を取得
-  const ids = favoriteIds.slice(0, 20);
-  const results = [
-    useFavoriteMember(ids[0] ?? null),
-    useFavoriteMember(ids[1] ?? null),
-    useFavoriteMember(ids[2] ?? null),
-    useFavoriteMember(ids[3] ?? null),
-    useFavoriteMember(ids[4] ?? null),
-    useFavoriteMember(ids[5] ?? null),
-    useFavoriteMember(ids[6] ?? null),
-    useFavoriteMember(ids[7] ?? null),
-    useFavoriteMember(ids[8] ?? null),
-    useFavoriteMember(ids[9] ?? null),
-    useFavoriteMember(ids[10] ?? null),
-    useFavoriteMember(ids[11] ?? null),
-    useFavoriteMember(ids[12] ?? null),
-    useFavoriteMember(ids[13] ?? null),
-    useFavoriteMember(ids[14] ?? null),
-    useFavoriteMember(ids[15] ?? null),
-    useFavoriteMember(ids[16] ?? null),
-    useFavoriteMember(ids[17] ?? null),
-    useFavoriteMember(ids[18] ?? null),
-    useFavoriteMember(ids[19] ?? null),
-  ].slice(0, ids.length);
-
-  const isLoading = results.some((r) => r.isLoading);
-  const members = results
-    .map((r) => r.data)
-    .filter((d): d is MemberDetail => d !== undefined);
+  const ids = useMemo(() => favoriteIds.slice(0, 20), [favoriteIds]);
+  const { members, isLoading } = useFavoriteMembers(ids);
 
   const handleRemove = useCallback((memberId: number) => {
     const next = favoriteIds.filter((id) => id !== memberId);
