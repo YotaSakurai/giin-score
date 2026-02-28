@@ -5,10 +5,10 @@
 ## 技術スタック
 
 - **Frontend**: Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS v4 + shadcn/ui + Recharts + SWR
-- **Backend**: Python (FastAPI) + SQLAlchemy + Alembic
+- **Backend**: Python 3.12 (FastAPI) + SQLAlchemy + Alembic
 - **DB**: PostgreSQL 16
 - **コンテナ**: Docker Compose
-- **CI**: GitHub Actions（ruff lint/format, pytest, ESLint, tsc, Vitest）
+- **CI/CD**: GitHub Actions（ruff lint/format, pytest, ESLint, tsc, build, Vitest）+ 週次パイプライン自動実行
 
 ## セットアップ
 
@@ -16,7 +16,7 @@
 
 - Docker & Docker Compose
 - Node.js 20+
-- Python 3.11+
+- Python 3.12+
 
 ### 1. クローン & 環境変数
 
@@ -48,9 +48,12 @@ http://localhost:3000 でダッシュボードが開きます。
 
 | URL | 内容 |
 |-----|------|
-| `/` | ランキングTOP100 + 概要統計（5指標）+ 院フィルタ |
-| `/members` | 議員カード一覧（検索・フィルタ・ソート） |
-| `/members/[id]` | 議員詳細: レーダーチャート + スコア内訳 + 重みスライダー |
+| `/` | ランキングTOP100 + TOP3ハイライト + 概要統計 + 院フィルタ + CSVエクスポート |
+| `/members` | 議員一覧（名前検索・政党・院・選挙区フィルタ） |
+| `/members/[id]` | 議員詳細: レーダーチャート + スコア時系列グラフ + 重みスライダー + お気に入り + シェア |
+| `/parties` | 政党別統計（棒グラフ + 詳細テーブル + 院フィルタ） |
+| `/compare` | 議員比較（最大4名のレーダーチャート重ね合わせ + 比較テーブル） |
+| `/favorites` | お気に入り議員一覧（localStorageベース） |
 | `/bills` | 法案一覧（種別・状態フィルタ） |
 | `/bills/[id]` | 法案詳細 + 賛否グラフ |
 | `/about` | スコア算出方法・データソース・限界 |
@@ -62,7 +65,8 @@ http://localhost:3000 でダッシュボードが開きます。
 ```
 GET /api/v1/health                  ヘルスチェック（DB接続確認含む）
 
-GET /api/v1/members                 議員一覧（検索・フィルタ・ソート・ページネーション）
+GET /api/v1/members                 議員一覧（検索・政党・院・選挙区フィルタ・ソート・ページネーション）
+GET /api/v1/members/districts       選挙区一覧
 GET /api/v1/members/{id}            議員詳細
 GET /api/v1/members/{id}/scores     スコア履歴
 GET /api/v1/members/{id}/speeches   発言一覧（ページネーション）
@@ -73,6 +77,9 @@ GET /api/v1/bills/{id}              法案詳細（発議者・投票結果含�
 
 GET /api/v1/scores/ranking          ランキング（院・政党・会期フィルタ）
 GET /api/v1/scores/stats            統計情報（平均・中央値・グレード分布）
+GET /api/v1/scores/by-party         政党別スコア統計
+GET /api/v1/scores/parties          政党名一覧（動的取得）
+GET /api/v1/scores/export/csv       ランキングCSVエクスポート
 
 GET /api/v1/sessions                会期一覧
 ```
@@ -92,6 +99,7 @@ docker compose exec backend python -m app.pipeline.runner --pipeline votes --ses
 docker compose exec backend python -m app.pipeline.runner --pipeline shugiin --session 213
 docker compose exec backend python -m app.pipeline.runner --pipeline scoring --session 213
 docker compose exec backend python -m app.pipeline.runner --pipeline smartnews --session 213
+docker compose exec backend python -m app.pipeline.runner --pipeline profiles  # 選挙区・読み仮名取得
 ```
 
 ### データソース
@@ -102,7 +110,24 @@ docker compose exec backend python -m app.pipeline.runner --pipeline smartnews -
 | bills | [衆議院サイト](https://www.shugiin.go.jp/) | 法案一覧 |
 | shugiin | [衆議院サイト](https://www.shugiin.go.jp/) | 法案詳細 |
 | votes | [参議院サイト](https://www.sangiin.go.jp/) | 投票記録 |
+| profiles | 衆議院/参議院公式サイト | 選挙区・読み仮名 |
 | smartnews | CSVファイル | SmartNews法案データ |
+
+### 自動実行
+
+GitHub Actionsで週次（毎週月曜 AM 3:00 JST）に自動パイプライン実行が設定されています。
+手動実行も `workflow_dispatch` でトリガーできます。
+
+## 主な機能
+
+- **ランキング**: TOP100表示、モバイルカードビュー対応、CSVエクスポート
+- **政党別統計**: 政党ごとの平均スコア・各軸別比較を棒グラフ+テーブルで表示
+- **議員比較**: 最大4名をレーダーチャートで重ね合わせ比較
+- **スコア時系列**: 会期ごとのスコア推移を折れ線グラフで表示
+- **お気に入り**: ★ボタンで議員をブックマーク（localStorage）
+- **選挙区検索**: 都道府県名で地元の議員を検索
+- **ソーシャルシェア**: X/LINE/Facebookへのシェアボタン
+- **SEO**: JSON-LD構造化データ、動的sitemap、OGPメタデータ
 
 ## テスト
 
