@@ -29,7 +29,7 @@ export function BillVoteResult({ voteResults }: BillVoteResultProps) {
             <CardHeader>
               <CardTitle className="text-base">
                 {CHAMBER_LABELS[vr.chamber] ?? vr.chamber}
-                {vr.result && <span className="ml-2 text-sm font-normal text-slate-500">({vr.result})</span>}
+                {vr.result && <span className="ml-2 text-sm font-normal text-muted-foreground">({vr.result})</span>}
               </CardTitle>
             </CardHeader>
             <CardContent>

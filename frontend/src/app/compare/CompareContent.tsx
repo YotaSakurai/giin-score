@@ -61,15 +61,15 @@ export default function CompareContent() {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-800 mb-2">議員比較</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-foreground mb-2">議員比較</h1>
+          <p className="text-sm text-muted-foreground">
             議員を選択して活動スコアを比較できます
           </p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <svg
-              className="h-16 w-16 text-slate-300 mb-4"
+              className="h-16 w-16 text-muted-foreground/50 mb-4"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -81,10 +81,10 @@ export default function CompareContent() {
                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
               />
             </svg>
-            <p className="text-slate-600 font-medium mb-2">
+            <p className="text-muted-foreground font-medium mb-2">
               比較する議員が選択されていません
             </p>
-            <p className="text-sm text-slate-500 mb-6">
+            <p className="text-sm text-muted-foreground mb-6">
               ランキングページから議員を選択してください
             </p>
             <Button asChild>
@@ -128,8 +128,8 @@ export default function CompareContent() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 mb-2">議員比較</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-foreground mb-2">議員比較</h1>
+          <p className="text-sm text-muted-foreground">
             {members.map((m) => m.name).join(" / ")} の活動スコアを比較
           </p>
         </div>
@@ -152,7 +152,7 @@ export default function CompareContent() {
                   className="inline-block h-3 w-3 rounded-full"
                   style={{ backgroundColor: COMPARE_COLORS[idx].stroke }}
                 />
-                <span className="text-sm text-slate-700">{ms.member.name}</span>
+                <span className="text-sm text-foreground/80">{ms.member.name}</span>
               </div>
             ))}
           </div>
@@ -178,7 +178,7 @@ export default function CompareContent() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b bg-slate-50 text-left text-xs text-slate-500">
+                <tr className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
                   <th scope="col" className="p-3 min-w-[120px]">項目</th>
                   {memberScores.map((ms, idx) => (
                     <th
@@ -207,18 +207,18 @@ export default function CompareContent() {
               <tbody>
                 {/* 基本情報 */}
                 <tr className="border-b">
-                  <td className="p-3 text-sm font-medium text-slate-700">政党</td>
+                  <td className="p-3 text-sm font-medium text-foreground/80">政党</td>
                   {memberScores.map((ms) => (
                     <td
                       key={ms.member.id}
-                      className="p-3 text-center text-sm text-slate-600"
+                      className="p-3 text-center text-sm text-muted-foreground"
                     >
                       {ms.member.party ?? "無所属"}
                     </td>
                   ))}
                 </tr>
                 <tr className="border-b">
-                  <td className="p-3 text-sm font-medium text-slate-700">院</td>
+                  <td className="p-3 text-sm font-medium text-foreground/80">院</td>
                   {memberScores.map((ms) => (
                     <td key={ms.member.id} className="p-3 text-center">
                       <Badge variant="outline" className="text-xs">
@@ -229,8 +229,8 @@ export default function CompareContent() {
                 </tr>
 
                 {/* グレード */}
-                <tr className="border-b bg-slate-50/50">
-                  <td className="p-3 text-sm font-medium text-slate-700">
+                <tr className="border-b bg-muted/50/50">
+                  <td className="p-3 text-sm font-medium text-foreground/80">
                     グレード
                   </td>
                   {memberScores.map((ms) => (
@@ -242,15 +242,15 @@ export default function CompareContent() {
                           {ms.score.grade}
                         </span>
                       ) : (
-                        <span className="text-sm text-slate-400">-</span>
+                        <span className="text-sm text-muted-foreground/70">-</span>
                       )}
                     </td>
                   ))}
                 </tr>
 
                 {/* 総合スコア */}
-                <tr className="border-b bg-slate-50/50">
-                  <td className="p-3 text-sm font-bold text-slate-800">
+                <tr className="border-b bg-muted/50/50">
+                  <td className="p-3 text-sm font-bold text-foreground">
                     総合スコア
                   </td>
                   {memberScores.map((ms) => (
@@ -276,7 +276,7 @@ export default function CompareContent() {
 
                   return (
                     <tr key={axis} className="border-b">
-                      <td className="p-3 text-sm font-medium text-slate-700">
+                      <td className="p-3 text-sm font-medium text-foreground/80">
                         {AXIS_LABELS[axis]}
                       </td>
                       {memberScores.map((ms) => {
@@ -289,7 +289,7 @@ export default function CompareContent() {
                         return (
                           <td
                             key={ms.member.id}
-                            className={`p-3 text-center text-sm ${isMax ? "font-bold text-blue-600" : "text-slate-600"}`}
+                            className={`p-3 text-center text-sm ${isMax ? "font-bold text-blue-600" : "text-muted-foreground"}`}
                           >
                             {value !== null ? value.toFixed(1) : "-"}
                             {isMax && (

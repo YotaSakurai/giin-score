@@ -59,7 +59,7 @@ export function ShareButton({ title, url }: ShareButtonProps) {
         variant="ghost"
         size="icon-sm"
         asChild
-        className="text-slate-500 hover:text-black hover:bg-slate-100"
+        className="text-muted-foreground hover:text-foreground hover:bg-muted"
         aria-label="Xでシェア"
       >
         <a href={xShareUrl} target="_blank" rel="noopener noreferrer">
@@ -70,7 +70,7 @@ export function ShareButton({ title, url }: ShareButtonProps) {
         variant="ghost"
         size="icon-sm"
         asChild
-        className="text-slate-500 hover:text-[#00B900] hover:bg-green-50"
+        className="text-muted-foreground hover:text-[#00B900] hover:bg-green-50 dark:hover:bg-green-950/30"
         aria-label="LINEでシェア"
       >
         <a href={lineShareUrl} target="_blank" rel="noopener noreferrer">
@@ -81,7 +81,7 @@ export function ShareButton({ title, url }: ShareButtonProps) {
         variant="ghost"
         size="icon-sm"
         asChild
-        className="text-slate-500 hover:text-[#1877F2] hover:bg-blue-50"
+        className="text-muted-foreground hover:text-[#1877F2] hover:bg-blue-50 dark:hover:bg-blue-950/30"
         aria-label="Facebookでシェア"
       >
         <a href={fbShareUrl} target="_blank" rel="noopener noreferrer">

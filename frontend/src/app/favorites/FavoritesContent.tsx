@@ -53,21 +53,21 @@ export default function FavoritesContent() {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-800 mb-2">お気に入り</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-foreground mb-2">お気に入り</h1>
+          <p className="text-sm text-muted-foreground">
             お気に入り登録した議員のスコアを一覧で確認できます
           </p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <svg className="h-16 w-16 text-slate-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-16 w-16 text-muted-foreground/50 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                 d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
-            <p className="text-slate-600 font-medium mb-2">
+            <p className="text-muted-foreground font-medium mb-2">
               お気に入りの議員がまだ登録されていません
             </p>
-            <p className="text-sm text-slate-500 mb-6">
+            <p className="text-sm text-muted-foreground mb-6">
               議員詳細ページの★ボタンからお気に入りに追加できます
             </p>
             <Button asChild>
@@ -83,8 +83,8 @@ export default function FavoritesContent() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 mb-2">お気に入り</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-foreground mb-2">お気に入り</h1>
+          <p className="text-sm text-muted-foreground">
             {favoriteIds.length}名の議員をウォッチ中
           </p>
         </div>
@@ -114,7 +114,7 @@ export default function FavoritesContent() {
                         <Badge variant="outline" className="text-xs">
                           {CHAMBER_LABELS[member.chamber]}
                         </Badge>
-                        <span className="text-xs text-slate-500">{member.party ?? "無所属"}</span>
+                        <span className="text-xs text-muted-foreground">{member.party ?? "無所属"}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
@@ -122,7 +122,7 @@ export default function FavoritesContent() {
                       <button
                         type="button"
                         onClick={() => handleRemove(member.id)}
-                        className="text-slate-300 hover:text-red-400 transition-colors"
+                        className="text-muted-foreground/50 hover:text-red-400 transition-colors"
                         aria-label="お気に入りから削除"
                       >
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -140,9 +140,9 @@ export default function FavoritesContent() {
                       </span>
                       <div>
                         <p className="text-lg font-bold">{latestScore.total.toFixed(1)}</p>
-                        <p className="text-xs text-slate-500">総合スコア</p>
+                        <p className="text-xs text-muted-foreground">総合スコア</p>
                       </div>
-                      <div className="ml-auto grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-500">
+                      <div className="ml-auto grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         <span>立法 {latestScore.legislative_activity.toFixed(0)}</span>
                         <span>投票 {latestScore.voting_behavior.toFixed(0)}</span>
                         <span>影響 {latestScore.policy_influence.toFixed(0)}</span>
@@ -150,7 +150,7 @@ export default function FavoritesContent() {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-slate-400">スコアデータなし</p>
+                    <p className="text-sm text-muted-foreground/70">スコアデータなし</p>
                   )}
                 </CardContent>
               </Card>

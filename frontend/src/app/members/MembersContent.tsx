@@ -72,7 +72,7 @@ export default function MembersContent() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6">議員一覧</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">議員一覧</h1>
       <MemberFilter
         search={search}
         chamber={chamber}
@@ -83,7 +83,7 @@ export default function MembersContent() {
         onPartyChange={setParty}
         onDistrictChange={setDistrict}
       />
-      <p className="text-sm text-slate-500 mb-4">{total}名の議員</p>
+      <p className="text-sm text-muted-foreground mb-4">{total}名の議員</p>
 
       {isLoading ? (
         <LoadingSpinner />

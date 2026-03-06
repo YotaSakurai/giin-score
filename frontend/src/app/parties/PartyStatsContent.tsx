@@ -46,10 +46,10 @@ export default function PartyStatsContent() {
       {/* ヘッダー */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-2xl font-bold text-slate-800">政党別統計</h1>
+          <h1 className="text-2xl font-bold text-foreground">政党別統計</h1>
           <ShareButton title="政党別統計 | GiinScore" />
         </div>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted-foreground">
           政党ごとの議員活動スコア平均・分布を比較
         </p>
       </div>
@@ -96,7 +96,7 @@ export default function PartyStatsContent() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b bg-slate-50 text-left text-xs text-slate-500">
+                    <tr className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
                       <th scope="col" className="p-3">#</th>
                       <th scope="col" className="p-3">政党</th>
                       <th scope="col" className="p-3 text-right">議員数</th>
@@ -120,12 +120,12 @@ export default function PartyStatsContent() {
                   </thead>
                   <tbody>
                     {items.map((entry, idx) => (
-                      <tr key={entry.party} className="border-b hover:bg-slate-50 transition-colors">
-                        <td className="p-3 text-sm font-medium text-slate-500">{idx + 1}</td>
-                        <td className="p-3 text-sm font-medium text-slate-800">{entry.party}</td>
-                        <td className="p-3 text-right text-sm text-slate-600">{entry.member_count}</td>
+                      <tr key={entry.party} className="border-b hover:bg-muted/50 transition-colors">
+                        <td className="p-3 text-sm font-medium text-muted-foreground">{idx + 1}</td>
+                        <td className="p-3 text-sm font-medium text-foreground">{entry.party}</td>
+                        <td className="p-3 text-right text-sm text-muted-foreground">{entry.member_count}</td>
                         <td className="p-3 text-right text-sm font-bold">{entry.average_score.toFixed(1)}</td>
-                        <td className="p-3 text-right text-sm text-slate-600 hidden sm:table-cell">
+                        <td className="p-3 text-right text-sm text-muted-foreground hidden sm:table-cell">
                           {entry.median_score.toFixed(1)}
                         </td>
                         <td className="p-3 text-right text-sm text-emerald-600 hidden md:table-cell">
@@ -134,23 +134,23 @@ export default function PartyStatsContent() {
                         <td className="p-3 text-right text-sm text-red-500 hidden md:table-cell">
                           {entry.min_score.toFixed(1)}
                         </td>
-                        <td className="p-3 text-right text-xs text-slate-600 hidden lg:table-cell">
+                        <td className="p-3 text-right text-xs text-muted-foreground hidden lg:table-cell">
                           {entry.average_legislative_activity.toFixed(1)}
                         </td>
-                        <td className="p-3 text-right text-xs text-slate-600 hidden lg:table-cell">
+                        <td className="p-3 text-right text-xs text-muted-foreground hidden lg:table-cell">
                           {entry.average_voting_behavior.toFixed(1)}
                         </td>
-                        <td className="p-3 text-right text-xs text-slate-600 hidden lg:table-cell">
+                        <td className="p-3 text-right text-xs text-muted-foreground hidden lg:table-cell">
                           {entry.average_policy_influence.toFixed(1)}
                         </td>
-                        <td className="p-3 text-right text-xs text-slate-600 hidden lg:table-cell">
+                        <td className="p-3 text-right text-xs text-muted-foreground hidden lg:table-cell">
                           {entry.average_transparency.toFixed(1)}
                         </td>
                       </tr>
                     ))}
                     {items.length === 0 && (
                       <tr>
-                        <td colSpan={11} className="p-8 text-center text-sm text-slate-500">
+                        <td colSpan={11} className="p-8 text-center text-sm text-muted-foreground">
                           データがまだありません
                         </td>
                       </tr>

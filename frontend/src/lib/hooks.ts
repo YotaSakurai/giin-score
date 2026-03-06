@@ -10,6 +10,7 @@ import type {
   PaginatedResponse,
   SpeechItem,
   VoteRecord,
+  VotePattern,
   PartyStatsResponse,
 } from "./types";
 
@@ -66,6 +67,12 @@ export function useMemberSpeeches(id: number, page = 1, perPage = 10) {
 export function useMemberVotes(id: number, page = 1, perPage = 10) {
   const key = `/members/${id}/votes${buildQuery({ page, per_page: perPage })}`;
   return useSWR<PaginatedResponse<VoteRecord>>(key, swrFetcher);
+}
+
+// ---- 投票パターン ----
+export function useVotePattern(id: number) {
+  const key = `/members/${id}/vote-pattern`;
+  return useSWR<VotePattern>(key, swrFetcher);
 }
 
 // ---- 法案一覧 ----

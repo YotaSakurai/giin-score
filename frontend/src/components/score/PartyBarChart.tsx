@@ -19,7 +19,7 @@ interface PartyBarChartProps {
 export function PartyBarChart({ items }: PartyBarChartProps) {
   if (items.length === 0) {
     return (
-      <p className="text-center text-sm text-slate-500 py-8">
+      <p className="text-center text-sm text-muted-foreground py-8">
         データがありません
       </p>
     );

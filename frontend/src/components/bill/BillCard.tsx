@@ -9,14 +9,14 @@ interface BillCardProps {
 }
 
 export function BillCard({ bill }: BillCardProps) {
-  const statusClass = STATUS_COLORS[bill.status ?? ""] ?? "bg-slate-100 text-slate-600";
+  const statusClass = STATUS_COLORS[bill.status ?? ""] ?? "bg-muted text-muted-foreground";
 
   return (
     <Link href={`/bills/${bill.id}`}>
       <Card className="hover:shadow-md transition-shadow cursor-pointer">
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-medium text-slate-800 text-sm leading-tight flex-1">
+            <h3 className="font-medium text-foreground text-sm leading-tight flex-1">
               {bill.title}
             </h3>
             {bill.status && (
@@ -28,7 +28,7 @@ export function BillCard({ bill }: BillCardProps) {
           <div className="flex gap-2 mt-2">
             <Badge variant="outline" className="text-xs">{bill.bill_kind}</Badge>
             {bill.bill_number && (
-              <span className="text-xs text-slate-500">第{bill.bill_number}号</span>
+              <span className="text-xs text-muted-foreground">第{bill.bill_number}号</span>
             )}
           </div>
         </CardContent>

@@ -17,9 +17,9 @@ export function ScoreCard({ total, grade, label }: ScoreCardProps) {
           {grade}
         </div>
         <div>
-          {label && <p className="text-xs text-slate-500">{label}</p>}
-          <p className="text-2xl font-bold text-slate-800">{total.toFixed(1)}</p>
-          <p className="text-xs text-slate-500">/ 100</p>
+          {label && <p className="text-xs text-muted-foreground">{label}</p>}
+          <p className="text-2xl font-bold text-foreground">{total.toFixed(1)}</p>
+          <p className="text-xs text-muted-foreground">/ 100</p>
         </div>
       </CardContent>
     </Card>

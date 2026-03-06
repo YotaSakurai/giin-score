@@ -11,21 +11,21 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-slate-800 mb-2">スコア算出方法</h1>
-      <p className="text-sm text-slate-500 mb-8">GiinScoreのスコアリング手法と、その限界について説明します</p>
+      <h1 className="text-2xl font-bold text-foreground mb-2">スコア算出方法</h1>
+      <p className="text-sm text-muted-foreground mb-8">GiinScoreのスコアリング手法と、その限界について説明します</p>
 
       {/* 免責表示 */}
-      <div className="mb-8 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
-        <p className="text-sm text-amber-800 font-medium mb-1">重要な注意事項</p>
-        <p className="text-xs text-amber-700">
+      <div className="mb-8 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-4 py-3">
+        <p className="text-sm text-amber-800 dark:text-amber-200 font-medium mb-1">重要な注意事項</p>
+        <p className="text-xs text-amber-700 dark:text-amber-300">
           本スコアは国会の公開データに基づく活動量の可視化であり、政治家の能力・人格・政策の正しさを評価するものではありません。
           スコアはあくまで「何をどれだけやったか」という量的指標であり、政策の質や正当性を評価するものではありません。
         </p>
       </div>
 
       {/* 4軸スコア説明 */}
-      <h2 className="text-xl font-bold text-slate-800 mb-4">4軸スコア</h2>
-      <p className="text-sm text-slate-600 mb-6">
+      <h2 className="text-xl font-bold text-foreground mb-4">4軸スコア</h2>
+      <p className="text-sm text-muted-foreground mb-6">
         GiinScoreは、イデオロギーフリーの設計原則に基づき、以下の4つの軸で議員の活動を定量化します。
         政策の「方向性」ではなく「行動量」を計測します。
       </p>
@@ -35,7 +35,7 @@ export default function AboutPage() {
           <CardHeader>
             <CardTitle className="text-base">1. 立法活動スコア (LAS) - デフォルト重み: 30%</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-slate-600 space-y-2">
+          <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>法案の発議と委員会での質疑活動を計測します。</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>法案発議数（筆頭発議者: 1.0, 共同5名以下: 0.5, 6-20名: 0.3, 21名超: 0.1）× (1 + 成立率)</li>
@@ -48,7 +48,7 @@ export default function AboutPage() {
           <CardHeader>
             <CardTitle className="text-base">2. 投票行動スコア (VBS) - デフォルト重み: 25%</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-slate-600 space-y-2">
+          <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>投票への参加率を計測します。</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>投票参加率 = 投票参加数 / 投票機会総数 × 100</li>
@@ -63,7 +63,7 @@ export default function AboutPage() {
           <CardHeader>
             <CardTitle className="text-base">3. 政策影響力スコア (PIS) - デフォルト重み: 25%</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-slate-600 space-y-2">
+          <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>発議した法案の成立度合いを計測します。</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>成立法案への貢献（新規立法: 1.0, 大規模改正: 0.7, 軽微改正: 0.3）</li>
@@ -76,7 +76,7 @@ export default function AboutPage() {
           <CardHeader>
             <CardTitle className="text-base">4. 透明性スコア (TS) - デフォルト重み: 20%</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-slate-600 space-y-2">
+          <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>公開活動への参加度を計測します。</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>MVP段階: 委員会発言回数 / 全委員会開催数 × 100</li>
@@ -89,9 +89,9 @@ export default function AboutPage() {
       <Separator className="my-8" />
 
       {/* 正規化とグレード */}
-      <h2 className="text-xl font-bold text-slate-800 mb-4">正規化手法</h2>
+      <h2 className="text-xl font-bold text-foreground mb-4">正規化手法</h2>
       <Card className="mb-8">
-        <CardContent className="p-6 text-sm text-slate-600 space-y-2">
+        <CardContent className="p-6 text-sm text-muted-foreground space-y-2">
           <p><strong>パーセンタイルランク方式</strong>を採用しています。</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>比較群: 同一会期 × 同一院（衆/参） × 同一role_category</li>
@@ -100,11 +100,11 @@ export default function AboutPage() {
             <li>パーセンタイル = (自分より低い人数 / 比較群総数) × 100</li>
           </ul>
           <p className="mt-4"><strong>総合スコア</strong> = LAS×0.30 + VBS×0.25 + PIS×0.25 + TS×0.20</p>
-          <p className="text-xs text-slate-500 mt-2">※ 重みはユーザーがスライダーで自由に変更できます</p>
+          <p className="text-xs text-muted-foreground mt-2">※ 重みはユーザーがスライダーで自由に変更できます</p>
         </CardContent>
       </Card>
 
-      <h2 className="text-xl font-bold text-slate-800 mb-4">グレード</h2>
+      <h2 className="text-xl font-bold text-foreground mb-4">グレード</h2>
       <div className="grid grid-cols-5 gap-2 mb-8">
         {[
           { grade: "A", range: "80-100", color: "bg-emerald-500" },
@@ -118,7 +118,7 @@ export default function AboutPage() {
               <div className={`mx-auto h-10 w-10 rounded-full ${color} flex items-center justify-center text-white font-bold mb-2`}>
                 {grade}
               </div>
-              <p className="text-xs text-slate-600">{range}</p>
+              <p className="text-xs text-muted-foreground">{range}</p>
             </CardContent>
           </Card>
         ))}
@@ -127,9 +127,9 @@ export default function AboutPage() {
       <Separator className="my-8" />
 
       {/* デフォルト重みの根拠 */}
-      <h2 className="text-xl font-bold text-slate-800 mb-4">デフォルト重みの根拠</h2>
+      <h2 className="text-xl font-bold text-foreground mb-4">デフォルト重みの根拠</h2>
       <Card className="mb-8">
-        <CardContent className="p-6 text-sm text-slate-600 space-y-2">
+        <CardContent className="p-6 text-sm text-muted-foreground space-y-2">
           <p>デフォルトの重み配分（LAS 30%, VBS 25%, PIS 25%, TS 20%）は以下の考え方に基づいています:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li><strong>立法活動 (30%)</strong>: 議員の本来的職務である立法に最大の重みを付与</li>
@@ -144,19 +144,19 @@ export default function AboutPage() {
       <Separator className="my-8" />
 
       {/* データソース */}
-      <h2 className="text-xl font-bold text-slate-800 mb-4">データソース</h2>
+      <h2 className="text-xl font-bold text-foreground mb-4">データソース</h2>
       <Card className="mb-8">
         <CardContent className="p-6">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left text-slate-500">
+                <tr className="border-b text-left text-muted-foreground">
                   <th scope="col" className="pb-2">データ</th>
                   <th scope="col" className="pb-2">ソース</th>
                   <th scope="col" className="pb-2">取得方法</th>
                 </tr>
               </thead>
-              <tbody className="text-slate-600">
+              <tbody className="text-muted-foreground">
                 <tr className="border-b">
                   <td className="py-2">発言記録</td>
                   <td>国会会議録API (kokkai.ndl.go.jp)</td>
@@ -186,9 +186,9 @@ export default function AboutPage() {
       <Separator className="my-8" />
 
       {/* 限界 */}
-      <h2 className="text-xl font-bold text-slate-800 mb-4">スコアの限界</h2>
+      <h2 className="text-xl font-bold text-foreground mb-4">スコアの限界</h2>
       <Card>
-        <CardContent className="p-6 text-sm text-slate-600 space-y-2">
+        <CardContent className="p-6 text-sm text-muted-foreground space-y-2">
           <ul className="list-disc pl-5 space-y-2">
             <li>量的指標のみを計測しており、政策の質・妥当性・影響力の深さは評価できません</li>
             <li>議員の活動は国会内に限らず、地元活動・政党内活動・外交活動等は含まれません</li>

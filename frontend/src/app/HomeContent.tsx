@@ -108,8 +108,8 @@ export default function HomeContent() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       {/* 免責表示 */}
-      <div className="mb-6 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
-        <p className="text-xs text-amber-800">
+      <div className="mb-6 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-4 py-3">
+        <p className="text-xs text-amber-800 dark:text-amber-200">
           本スコアは国会の公開データに基づく活動量の可視化であり、政治家の能力・人格・政策の正しさを評価するものではありません。
         </p>
       </div>
@@ -117,12 +117,12 @@ export default function HomeContent() {
       {/* ヘッダー */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-2xl font-bold text-slate-800">議員活動ランキング</h1>
+          <h1 className="text-2xl font-bold text-foreground">議員活動ランキング</h1>
           <ShareButton
             title="議員活動ランキング | GiinScore - 国会議員の活動スコアを可視化"
           />
         </div>
-        <p className="text-sm text-slate-500">国会における議員の活動スコアランキング</p>
+        <p className="text-sm text-muted-foreground">国会における議員の活動スコアランキング</p>
       </div>
 
       {/* 統計概要 */}
@@ -130,32 +130,32 @@ export default function HomeContent() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-slate-800">{stats.total_members}</p>
-              <p className="text-xs text-slate-500">対象議員数</p>
+              <p className="text-2xl font-bold text-foreground">{stats.total_members}</p>
+              <p className="text-xs text-muted-foreground">対象議員数</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-blue-600">{stats.average_score.toFixed(1)}</p>
-              <p className="text-xs text-slate-500">平均スコア</p>
+              <p className="text-xs text-muted-foreground">平均スコア</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-slate-700">{stats.median_score.toFixed(1)}</p>
-              <p className="text-xs text-slate-500">中央値</p>
+              <p className="text-2xl font-bold text-foreground">{stats.median_score.toFixed(1)}</p>
+              <p className="text-xs text-muted-foreground">中央値</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-emerald-600">{stats.max_score.toFixed(1)}</p>
-              <p className="text-xs text-slate-500">最高スコア</p>
+              <p className="text-xs text-muted-foreground">最高スコア</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-red-500">{stats.min_score.toFixed(1)}</p>
-              <p className="text-xs text-slate-500">最低スコア</p>
+              <p className="text-xs text-muted-foreground">最低スコア</p>
             </CardContent>
           </Card>
         </div>
@@ -165,7 +165,7 @@ export default function HomeContent() {
       {ranking.length >= 3 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           {ranking.slice(0, 3).map((entry, idx) => {
-            const colors = ["border-yellow-400 bg-yellow-50", "border-slate-300 bg-slate-50", "border-amber-600 bg-amber-50"];
+            const colors = ["border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30", "border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50", "border-amber-600 bg-amber-50 dark:bg-amber-950/30"];
             const medals = ["🥇", "🥈", "🥉"];
             const gradeColor = GRADE_COLORS[entry.score.grade] || "bg-gray-300";
             return (
@@ -180,7 +180,7 @@ export default function HomeContent() {
                       <Link href={`/members/${entry.member.id}`} className="text-sm font-bold text-blue-600 hover:underline truncate block">
                         {entry.member.name}
                       </Link>
-                      <p className="text-xs text-slate-500 truncate">{entry.member.party ?? "無所属"}</p>
+                      <p className="text-xs text-muted-foreground truncate">{entry.member.party ?? "無所属"}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-xl font-bold">{entry.score.total.toFixed(1)}</p>
@@ -235,7 +235,7 @@ export default function HomeContent() {
               <Card key={entry.member.id} className="relative">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-lg font-bold text-slate-400 w-8 text-right">{entry.rank}</span>
+                    <span className="text-lg font-bold text-muted-foreground w-8 text-right">{entry.rank}</span>
                     <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white text-sm font-bold ${gradeColor}`}>
                       {entry.score.grade}
                     </span>
@@ -243,7 +243,7 @@ export default function HomeContent() {
                       <Link href={`/members/${entry.member.id}`} className="text-sm font-bold text-blue-600 hover:underline">
                         {entry.member.name}
                       </Link>
-                      <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                         <span>{entry.member.party ?? "無所属"}</span>
                         <span>{CHAMBER_LABELS[entry.member.chamber]}</span>
                       </div>
@@ -259,8 +259,8 @@ export default function HomeContent() {
                         isSelected
                           ? "bg-blue-600 border-blue-600 text-white"
                           : isDisabled
-                            ? "border-slate-200 bg-slate-50 cursor-not-allowed"
-                            : "border-slate-300"
+                            ? "border-muted bg-muted/50 cursor-not-allowed"
+                            : "border-border"
                       }`}
                       aria-label={`${entry.member.name}を比較に${isSelected ? "解除" : "追加"}`}
                     >
@@ -276,7 +276,7 @@ export default function HomeContent() {
             );
           })}
           {ranking.length === 0 && (
-            <p className="p-8 text-center text-sm text-slate-500">
+            <p className="p-8 text-center text-sm text-muted-foreground">
               スコアデータがまだありません
             </p>
           )}
@@ -291,7 +291,7 @@ export default function HomeContent() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b bg-slate-50 text-left text-xs text-slate-500">
+                  <tr className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
                     <th scope="col" className="p-3 w-10 text-center">比較</th>
                     <th scope="col" className="p-3 w-12">#</th>
                     <th scope="col" className="p-3">議員名</th>
@@ -311,7 +311,7 @@ export default function HomeContent() {
                     const isSelected = compareIds.includes(entry.member.id);
                     const isDisabled = !isSelected && compareIds.length >= MAX_COMPARE;
                     return (
-                      <tr key={entry.member.id} className="border-b hover:bg-slate-50 transition-colors">
+                      <tr key={entry.member.id} className="border-b hover:bg-muted/50 transition-colors">
                         <td className="p-3 text-center">
                           <button
                             type="button"
@@ -321,7 +321,7 @@ export default function HomeContent() {
                               isSelected
                                 ? "bg-blue-600 border-blue-600 text-white"
                                 : isDisabled
-                                  ? "border-slate-200 bg-slate-50 cursor-not-allowed"
+                                  ? "border-muted bg-muted/50 cursor-not-allowed"
                                   : "border-slate-300 hover:border-blue-400"
                             }`}
                             aria-label={`${entry.member.name}を比較に${isSelected ? "解除" : "追加"}`}
@@ -333,13 +333,13 @@ export default function HomeContent() {
                             )}
                           </button>
                         </td>
-                        <td className="p-3 text-sm font-medium text-slate-500">{entry.rank}</td>
+                        <td className="p-3 text-sm font-medium text-muted-foreground">{entry.rank}</td>
                         <td className="p-3">
                           <Link href={`/members/${entry.member.id}`} className="text-sm font-medium text-blue-600 hover:underline">
                             {entry.member.name}
                           </Link>
                         </td>
-                        <td className="p-3 text-sm text-slate-600">{entry.member.party ?? "無所属"}</td>
+                        <td className="p-3 text-sm text-muted-foreground">{entry.member.party ?? "無所属"}</td>
                         <td className="p-3 hidden md:table-cell">
                           <Badge variant="outline" className="text-xs">
                             {CHAMBER_LABELS[entry.member.chamber]}
@@ -351,16 +351,16 @@ export default function HomeContent() {
                           </span>
                         </td>
                         <td className="p-3 text-right text-sm font-bold">{entry.score.total.toFixed(1)}</td>
-                        <td className="p-3 hidden lg:table-cell text-right text-xs text-slate-600">{entry.score.legislative_activity.toFixed(0)}</td>
-                        <td className="p-3 hidden lg:table-cell text-right text-xs text-slate-600">{entry.score.voting_behavior.toFixed(0)}</td>
-                        <td className="p-3 hidden lg:table-cell text-right text-xs text-slate-600">{entry.score.policy_influence.toFixed(0)}</td>
-                        <td className="p-3 hidden lg:table-cell text-right text-xs text-slate-600">{entry.score.transparency.toFixed(0)}</td>
+                        <td className="p-3 hidden lg:table-cell text-right text-xs text-muted-foreground">{entry.score.legislative_activity.toFixed(0)}</td>
+                        <td className="p-3 hidden lg:table-cell text-right text-xs text-muted-foreground">{entry.score.voting_behavior.toFixed(0)}</td>
+                        <td className="p-3 hidden lg:table-cell text-right text-xs text-muted-foreground">{entry.score.policy_influence.toFixed(0)}</td>
+                        <td className="p-3 hidden lg:table-cell text-right text-xs text-muted-foreground">{entry.score.transparency.toFixed(0)}</td>
                       </tr>
                     );
                   })}
                   {ranking.length === 0 && (
                     <tr>
-                      <td colSpan={11} className="p-8 text-center text-sm text-slate-500">
+                      <td colSpan={11} className="p-8 text-center text-sm text-muted-foreground">
                         スコアデータがまだありません
                       </td>
                     </tr>
@@ -380,7 +380,7 @@ export default function HomeContent() {
             variant="outline"
             size="sm"
             onClick={clearCompare}
-            className="bg-white shadow-lg"
+            className="bg-background shadow-lg"
           >
             クリア
           </Button>

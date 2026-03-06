@@ -24,15 +24,15 @@ export default function BillDetailPage({ params }: PageProps) {
   if (error) return <div className="mx-auto max-w-7xl px-4 py-8"><ErrorMessage message={error instanceof Error ? error.message : "データの取得に失敗しました"} onRetry={() => mutate()} /></div>;
   if (!bill) return <div className="mx-auto max-w-7xl px-4 py-8">法案が見つかりません</div>;
 
-  const statusClass = STATUS_COLORS[bill.status ?? ""] ?? "bg-slate-100 text-slate-600";
+  const statusClass = STATUS_COLORS[bill.status ?? ""] ?? "bg-muted text-muted-foreground";
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       {/* パンくず */}
-      <nav aria-label="パンくずリスト" className="text-sm text-slate-500 mb-6">
-        <Link href="/bills" className="hover:text-blue-600">法案一覧</Link>
+      <nav aria-label="パンくずリスト" className="text-sm text-muted-foreground mb-6">
+        <Link href="/bills" className="hover:text-primary">法案一覧</Link>
         <span className="mx-2">/</span>
-        <span className="text-slate-800">法案詳細</span>
+        <span className="text-foreground">法案詳細</span>
       </nav>
 
       {/* 法案情報 */}
@@ -48,19 +48,19 @@ export default function BillDetailPage({ params }: PageProps) {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <p className="text-slate-500">種別</p>
+              <p className="text-muted-foreground">種別</p>
               <p className="font-medium">{bill.bill_kind}</p>
             </div>
             <div>
-              <p className="text-slate-500">番号</p>
+              <p className="text-muted-foreground">番号</p>
               <p className="font-medium">{bill.bill_number ? `第${bill.bill_number}号` : "-"}</p>
             </div>
             <div>
-              <p className="text-slate-500">提出者種別</p>
+              <p className="text-muted-foreground">提出者種別</p>
               <p className="font-medium">{bill.proposer_type === "cabinet" ? "内閣" : "議員"}</p>
             </div>
             <div>
-              <p className="text-slate-500">結果</p>
+              <p className="text-muted-foreground">結果</p>
               <p className="font-medium">{bill.result ?? "未定"}</p>
             </div>
           </div>
@@ -91,7 +91,7 @@ export default function BillDetailPage({ params }: PageProps) {
       {/* 投票結果 */}
       {bill.vote_results.length > 0 && (
         <>
-          <h2 className="text-lg font-bold text-slate-800 mb-4">投票結果</h2>
+          <h2 className="text-lg font-bold text-foreground mb-4">投票結果</h2>
           <BillVoteResult voteResults={bill.vote_results} />
         </>
       )}

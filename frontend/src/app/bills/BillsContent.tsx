@@ -67,7 +67,7 @@ export default function BillsContent() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6">法案一覧</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">法案一覧</h1>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <Input
@@ -102,7 +102,7 @@ export default function BillsContent() {
         </Select>
       </div>
 
-      <p className="text-sm text-slate-500 mb-4">{total}件の法案</p>
+      <p className="text-sm text-muted-foreground mb-4">{total}件の法案</p>
 
       {isLoading ? (
         <LoadingSpinner />

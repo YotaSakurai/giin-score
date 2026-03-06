@@ -39,7 +39,7 @@ export function Pagination({ page, pages, onPageChange }: PaginationProps) {
       </Button>
       {getPageNumbers().map((p, i) =>
         p === "..." ? (
-          <span key={`ellipsis-${i}`} className="px-2 text-sm text-slate-400">
+          <span key={`ellipsis-${i}`} className="px-2 text-sm text-muted-foreground/70">
             ...
           </span>
         ) : (

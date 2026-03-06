@@ -12,7 +12,7 @@ from app.models.vote import VoteRecord, VoteResult
 from app.schemas.common import PaginatedResponse
 from app.schemas.member import MemberDetail, MemberWithScore, ScoreDetail, ScoreSummary
 from app.schemas.speech import SpeechResponse
-from app.schemas.vote import VoteRecordResponse
+from app.schemas.vote import DissentDetail, VotePatternResponse, VoteRecordResponse
 
 router = APIRouter(prefix="/members", tags=["members"])
 
@@ -337,4 +337,114 @@ def get_member_votes(
         page=page,
         per_page=per_page,
         pages=(total + per_page - 1) // per_page if per_page else 0,
+    )
+
+
+@router.get("/{member_id}/vote-pattern", response_model=VotePatternResponse)
+def get_vote_pattern(member_id: int, db: Session = Depends(get_db)):
+    """議員の投票パターン分析（造反率）を返す。"""
+    member = db.get(Member, member_id)
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    # この議員の全投票記録を取得
+    records = (
+        db.execute(
+            select(VoteRecord)
+            .where(VoteRecord.member_id == member_id)
+            .options(
+                selectinload(VoteRecord.vote_result).selectinload(VoteResult.records),
+                selectinload(VoteRecord.vote_result).selectinload(VoteResult.bill),
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    if not records:
+        return VotePatternResponse(
+            member_id=member_id,
+            total_votes=0,
+            party_majority_votes=0,
+            dissent_votes=0,
+            dissent_rate=0.0,
+            absent_count=0,
+            participation_rate=0.0,
+            dissent_details=[],
+        )
+
+    # 同じ政党の議員のIDを取得
+    party_member_ids: set[int] = set()
+    if member.party:
+        party_members = (
+            db.execute(
+                select(Member.id).where(
+                    Member.party == member.party, Member.chamber == member.chamber
+                )
+            )
+            .scalars()
+            .all()
+        )
+        party_member_ids = set(party_members)
+
+    total_votes = 0
+    absent_count = 0
+    dissent_votes = 0
+    party_majority_votes = 0
+    dissent_details: list[DissentDetail] = []
+
+    for record in records:
+        if record.vote == "absent":
+            absent_count += 1
+            continue
+
+        total_votes += 1
+
+        if not party_member_ids or not record.vote_result:
+            continue
+
+        # 同じ投票案件での同党議員の投票を集計
+        party_votes = {"aye": 0, "nay": 0}
+        for other_record in record.vote_result.records:
+            if other_record.member_id in party_member_ids and other_record.member_id != member_id:
+                if other_record.vote in party_votes:
+                    party_votes[other_record.vote] += 1
+
+        # 党の多数派を決定
+        if party_votes["aye"] + party_votes["nay"] == 0:
+            continue
+
+        party_majority = "aye" if party_votes["aye"] >= party_votes["nay"] else "nay"
+        party_majority_votes += 1
+
+        if record.vote in ("aye", "nay") and record.vote != party_majority:
+            dissent_votes += 1
+            bill_title = None
+            if record.vote_result.bill:
+                bill_title = record.vote_result.bill.title
+            dissent_details.append(
+                DissentDetail(
+                    bill_title=bill_title,
+                    member_vote=record.vote,
+                    party_majority_vote=party_majority,
+                )
+            )
+
+    all_opportunities = total_votes + absent_count
+    dissent_rate = (
+        round(dissent_votes / party_majority_votes * 100, 1) if party_majority_votes > 0 else 0.0
+    )
+    participation_rate = (
+        round(total_votes / all_opportunities * 100, 1) if all_opportunities > 0 else 0.0
+    )
+
+    return VotePatternResponse(
+        member_id=member_id,
+        total_votes=total_votes,
+        party_majority_votes=party_majority_votes,
+        dissent_votes=dissent_votes,
+        dissent_rate=dissent_rate,
+        absent_count=absent_count,
+        participation_rate=participation_rate,
+        dissent_details=dissent_details[:10],
     )

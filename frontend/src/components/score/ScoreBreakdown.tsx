@@ -31,19 +31,19 @@ export function ScoreBreakdown({ breakdown, scores }: ScoreBreakdownProps) {
           return (
             <div key={key}>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-slate-700">
+                <span className="text-sm font-medium text-foreground/80">
                   {AXIS_LABELS[key]}
                 </span>
-                <span className="text-sm font-bold text-slate-800">{score.toFixed(1)}</span>
+                <span className="text-sm font-bold text-foreground">{score.toFixed(1)}</span>
               </div>
-              <div className="h-2 w-full rounded-full bg-slate-100">
+              <div className="h-2 w-full rounded-full bg-muted">
                 <div
                   className="h-2 rounded-full bg-blue-500 transition-all"
                   style={{ width: `${Math.min(score, 100)}%` }}
                 />
               </div>
               {detail && (
-                <div className="mt-1 text-xs text-slate-500 space-x-3">
+                <div className="mt-1 text-xs text-muted-foreground space-x-3">
                   {Object.entries(detail).map(([k, v]) => {
                     if (Array.isArray(v)) return null;
                     return (

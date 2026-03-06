@@ -161,6 +161,23 @@ export interface DietSession {
   end_date: string | null;
 }
 
+export interface DissentDetail {
+  bill_title: string | null;
+  member_vote: string;
+  party_majority_vote: string;
+}
+
+export interface VotePattern {
+  member_id: number;
+  total_votes: number;
+  party_majority_votes: number;
+  dissent_votes: number;
+  dissent_rate: number;
+  absent_count: number;
+  participation_rate: number;
+  dissent_details: DissentDetail[];
+}
+
 export interface PartyStatsEntry {
   party: string;
   member_count: number;

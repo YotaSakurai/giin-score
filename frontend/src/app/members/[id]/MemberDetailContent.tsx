@@ -86,25 +86,25 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       {/* パンくず */}
-      <nav aria-label="パンくずリスト" className="text-sm text-slate-500 mb-6">
-        <Link href="/members" className="hover:text-blue-600">議員一覧</Link>
+      <nav aria-label="パンくずリスト" className="text-sm text-muted-foreground mb-6">
+        <Link href="/members" className="hover:text-primary">議員一覧</Link>
         <span className="mx-2">/</span>
-        <span className="text-slate-800">{member.name}</span>
+        <span className="text-foreground">{member.name}</span>
       </nav>
 
       {/* 議員情報ヘッダー */}
       <div className="flex flex-col md:flex-row gap-6 mb-8">
         <div className="flex items-start gap-4 flex-1">
-          <div className="h-20 w-20 rounded-full bg-slate-200 flex items-center justify-center text-2xl font-bold text-slate-500">
+          <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground">
             {member.name.charAt(0)}
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-slate-800">{member.name}</h1>
+              <h1 className="text-2xl font-bold text-foreground">{member.name}</h1>
               <FavoriteButton memberId={member.id} />
               <ShareButton title={shareTitle} url={shareUrl} />
             </div>
-            {member.name_reading && <p className="text-sm text-slate-500">{member.name_reading}</p>}
+            {member.name_reading && <p className="text-sm text-muted-foreground">{member.name_reading}</p>}
             <div className="flex gap-2 mt-2">
               <Badge variant="outline">{CHAMBER_LABELS[member.chamber]}</Badge>
               <Badge variant="secondary">{member.party ?? "無所属"}</Badge>
@@ -139,12 +139,12 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="text-base">スコアの重みカスタマイズ</CardTitle>
-              <p className="text-xs text-slate-500">各軸の重みを調整して、あなた独自の評価基準でスコアを算出できます</p>
+              <p className="text-xs text-muted-foreground">各軸の重みを調整して、あなた独自の評価基準でスコアを算出できます</p>
             </CardHeader>
             <CardContent className="space-y-4">
               {(Object.keys(weights) as Array<keyof typeof weights>).map((key) => (
                 <div key={key} className="flex items-center gap-4">
-                  <span className="text-sm text-slate-700 w-24">{AXIS_LABELS[key]}</span>
+                  <span className="text-sm text-foreground/80 w-24">{AXIS_LABELS[key]}</span>
                   <Slider
                     value={[weights[key]]}
                     onValueChange={([v]) => setWeights((prev) => ({ ...prev, [key]: v }))}
@@ -153,7 +153,7 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                     step={5}
                     className="flex-1"
                   />
-                  <span className="text-sm font-mono text-slate-600 w-12 text-right">{weights[key]}%</span>
+                  <span className="text-sm font-mono text-muted-foreground w-12 text-right">{weights[key]}%</span>
                 </div>
               ))}
             </CardContent>
@@ -186,7 +186,7 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
         </>
       ) : (
         <Card className="mb-8">
-          <CardContent className="p-6 text-center text-sm text-slate-500">
+          <CardContent className="p-6 text-center text-sm text-muted-foreground">
             スコアデータがまだ計算されていません
           </CardContent>
         </Card>
@@ -206,12 +206,12 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
               {speechLoading ? (
                 <LoadingSpinner />
               ) : speeches.length === 0 ? (
-                <p className="text-sm text-slate-500 text-center py-4">発言データがありません</p>
+                <p className="text-sm text-muted-foreground text-center py-4">発言データがありません</p>
               ) : (
                 <>
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b text-left text-xs text-slate-500">
+                      <tr className="border-b text-left text-xs text-muted-foreground">
                         <th scope="col" className="p-2">日付</th>
                         <th scope="col" className="p-2">会議名</th>
                         <th scope="col" className="p-2 text-right">文字数</th>
@@ -219,12 +219,12 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                     </thead>
                     <tbody>
                       {speeches.map((s, i) => (
-                        <tr key={i} className="border-b hover:bg-slate-50">
-                          <td className="p-2 text-sm text-slate-600">
+                        <tr key={i} className="border-b hover:bg-muted/50">
+                          <td className="p-2 text-sm text-muted-foreground">
                             {s.speech_date ?? "-"}
                           </td>
                           <td className="p-2 text-sm">{s.meeting_name ?? "-"}</td>
-                          <td className="p-2 text-sm text-right text-slate-600">
+                          <td className="p-2 text-sm text-right text-muted-foreground">
                             {(s.speech_chars ?? 0).toLocaleString()}字
                           </td>
                         </tr>
@@ -244,22 +244,22 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
               {voteLoading ? (
                 <LoadingSpinner />
               ) : votes.length === 0 ? (
-                <p className="text-sm text-slate-500 text-center py-4">投票データがありません</p>
+                <p className="text-sm text-muted-foreground text-center py-4">投票データがありません</p>
               ) : (
                 <>
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b text-left text-xs text-slate-500">
+                      <tr className="border-b text-left text-xs text-muted-foreground">
                         <th scope="col" className="p-2">法案名</th>
                         <th scope="col" className="p-2 text-center">投票</th>
                       </tr>
                     </thead>
                     <tbody>
                       {votes.map((v) => (
-                        <tr key={v.id} className="border-b hover:bg-slate-50">
+                        <tr key={v.id} className="border-b hover:bg-muted/50">
                           <td className="p-2 text-sm">{v.bill_title ?? "-"}</td>
                           <td className="p-2 text-center">
-                            <Badge className={VOTE_COLORS[v.vote] ?? "bg-slate-100"}>
+                            <Badge className={VOTE_COLORS[v.vote] ?? "bg-muted"}>
                               {VOTE_LABELS[v.vote] ?? v.vote}
                             </Badge>
                           </td>
@@ -280,38 +280,38 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
               {!votePattern ? (
                 <LoadingSpinner />
               ) : votePattern.total_votes === 0 ? (
-                <p className="text-sm text-slate-500 text-center py-4">投票パターンデータがありません</p>
+                <p className="text-sm text-muted-foreground text-center py-4">投票パターンデータがありません</p>
               ) : (
                 <div className="space-y-6">
                   {/* サマリーカード */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="rounded-lg border p-4 text-center">
-                      <p className="text-xs text-slate-500">投票参加率</p>
+                      <p className="text-xs text-muted-foreground">投票参加率</p>
                       <p className="text-2xl font-bold text-blue-600">{votePattern.participation_rate}%</p>
-                      <p className="text-xs text-slate-400">{votePattern.total_votes}/{votePattern.total_votes + votePattern.absent_count}回</p>
+                      <p className="text-xs text-muted-foreground/70">{votePattern.total_votes}/{votePattern.total_votes + votePattern.absent_count}回</p>
                     </div>
                     <div className="rounded-lg border p-4 text-center">
-                      <p className="text-xs text-slate-500">造反率</p>
+                      <p className="text-xs text-muted-foreground">造反率</p>
                       <p className="text-2xl font-bold text-orange-600">{votePattern.dissent_rate}%</p>
-                      <p className="text-xs text-slate-400">{votePattern.dissent_votes}/{votePattern.party_majority_votes}回</p>
+                      <p className="text-xs text-muted-foreground/70">{votePattern.dissent_votes}/{votePattern.party_majority_votes}回</p>
                     </div>
                     <div className="rounded-lg border p-4 text-center">
-                      <p className="text-xs text-slate-500">投票回数</p>
-                      <p className="text-2xl font-bold text-slate-700">{votePattern.total_votes}</p>
+                      <p className="text-xs text-muted-foreground">投票回数</p>
+                      <p className="text-2xl font-bold text-foreground/80">{votePattern.total_votes}</p>
                     </div>
                     <div className="rounded-lg border p-4 text-center">
-                      <p className="text-xs text-slate-500">欠席回数</p>
-                      <p className="text-2xl font-bold text-slate-400">{votePattern.absent_count}</p>
+                      <p className="text-xs text-muted-foreground">欠席回数</p>
+                      <p className="text-2xl font-bold text-muted-foreground/70">{votePattern.absent_count}</p>
                     </div>
                   </div>
 
                   {/* 造反詳細 */}
                   {votePattern.dissent_details.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-700 mb-3">造反投票の詳細</h3>
+                      <h3 className="text-sm font-semibold text-foreground/80 mb-3">造反投票の詳細</h3>
                       <table className="w-full">
                         <thead>
-                          <tr className="border-b text-left text-xs text-slate-500">
+                          <tr className="border-b text-left text-xs text-muted-foreground">
                             <th scope="col" className="p-2">法案名</th>
                             <th scope="col" className="p-2 text-center">本人の投票</th>
                             <th scope="col" className="p-2 text-center">党の多数派</th>
@@ -319,15 +319,15 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                         </thead>
                         <tbody>
                           {votePattern.dissent_details.map((d, i) => (
-                            <tr key={i} className="border-b hover:bg-slate-50">
+                            <tr key={i} className="border-b hover:bg-muted/50">
                               <td className="p-2 text-sm">{d.bill_title ?? "-"}</td>
                               <td className="p-2 text-center">
-                                <Badge className={VOTE_COLORS[d.member_vote] ?? "bg-slate-100"}>
+                                <Badge className={VOTE_COLORS[d.member_vote] ?? "bg-muted"}>
                                   {VOTE_LABELS[d.member_vote] ?? d.member_vote}
                                 </Badge>
                               </td>
                               <td className="p-2 text-center">
-                                <Badge className={VOTE_COLORS[d.party_majority_vote] ?? "bg-slate-100"}>
+                                <Badge className={VOTE_COLORS[d.party_majority_vote] ?? "bg-muted"}>
                                   {VOTE_LABELS[d.party_majority_vote] ?? d.party_majority_vote}
                                 </Badge>
                               </td>

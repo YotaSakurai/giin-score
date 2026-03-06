@@ -8,7 +8,7 @@ interface BillListProps {
 export function BillList({ bills }: BillListProps) {
   if (bills.length === 0) {
     return (
-      <div className="text-center py-12 text-slate-500">
+      <div className="text-center py-12 text-muted-foreground">
         該当する法案が見つかりません
       </div>
     );

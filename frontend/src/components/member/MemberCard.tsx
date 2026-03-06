@@ -18,8 +18,8 @@ export function MemberCard({ member }: MemberCardProps) {
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-2">
             <div>
-              <h3 className="font-bold text-slate-800">{member.name}</h3>
-              <p className="text-xs text-slate-500">{member.party ?? "無所属"}</p>
+              <h3 className="font-bold text-foreground">{member.name}</h3>
+              <p className="text-xs text-muted-foreground">{member.party ?? "無所属"}</p>
             </div>
             {score && (
               <div className={`flex h-10 w-10 items-center justify-center rounded-full text-white font-bold text-sm ${gradeColor}`}>
@@ -46,17 +46,17 @@ export function MemberCard({ member }: MemberCardProps) {
                 { label: "透明", value: score.transparency },
               ].map(({ label, value }) => (
                 <div key={label} className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 w-8">{label}</span>
-                  <div className="flex-1 h-1.5 rounded-full bg-slate-100">
+                  <span className="text-xs text-muted-foreground w-8">{label}</span>
+                  <div className="flex-1 h-1.5 rounded-full bg-muted">
                     <div
                       className="h-1.5 rounded-full bg-blue-500"
                       style={{ width: `${Math.min(value, 100)}%` }}
                     />
                   </div>
-                  <span className="text-xs text-slate-600 w-8 text-right">{value.toFixed(0)}</span>
+                  <span className="text-xs text-muted-foreground w-8 text-right">{value.toFixed(0)}</span>
                 </div>
               ))}
-              <p className="text-right text-sm font-bold text-slate-700 mt-1">
+              <p className="text-right text-sm font-bold text-foreground mt-1">
                 総合: {score.total.toFixed(1)}
               </p>
             </div>
