@@ -1,3 +1,4 @@
+import { memo } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,7 @@ interface MemberCardProps {
   member: MemberWithScore;
 }
 
-export function MemberCard({ member }: MemberCardProps) {
+export const MemberCard = memo(function MemberCard({ member }: MemberCardProps) {
   const score = member.latest_score;
   const gradeColor = score ? GRADE_COLORS[score.grade] : "bg-gray-300";
 
@@ -65,4 +66,4 @@ export function MemberCard({ member }: MemberCardProps) {
       </Card>
     </Link>
   );
-}
+});

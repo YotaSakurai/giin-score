@@ -1,11 +1,31 @@
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api import bills, members, scores, sessions
 from app.config import settings
 from app.database import get_db
+
+
+class CacheControlMiddleware(BaseHTTPMiddleware):
+    """GETリクエストに対してCache-Controlヘッダーを追加する。"""
+
+    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        response: Response = await call_next(request)
+        if request.method == "GET" and response.status_code == 200:
+            path = request.url.path
+            if "/export/" in path:
+                # CSVエクスポートはキャッシュしない
+                pass
+            elif "/health" in path:
+                pass
+            else:
+                response.headers["Cache-Control"] = (
+                    "public, max-age=300, stale-while-revalidate=600"
+                )
+        return response
 
 app = FastAPI(
     title="GiinScore API",
@@ -13,6 +33,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
+app.add_middleware(CacheControlMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins.split(","),

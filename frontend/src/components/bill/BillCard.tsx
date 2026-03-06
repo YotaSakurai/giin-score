@@ -1,3 +1,4 @@
+import { memo } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,7 @@ interface BillCardProps {
   bill: Bill;
 }
 
-export function BillCard({ bill }: BillCardProps) {
+export const BillCard = memo(function BillCard({ bill }: BillCardProps) {
   const statusClass = STATUS_COLORS[bill.status ?? ""] ?? "bg-muted text-muted-foreground";
 
   return (
@@ -35,4 +36,4 @@ export function BillCard({ bill }: BillCardProps) {
       </Card>
     </Link>
   );
-}
+});
