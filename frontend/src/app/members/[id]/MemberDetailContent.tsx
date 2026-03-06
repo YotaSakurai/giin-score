@@ -17,7 +17,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { CHAMBER_LABELS, AXIS_LABELS } from "@/lib/types";
 import { VOTE_LABELS, VOTE_COLORS } from "@/lib/constants";
-import { useMember, useMemberSpeeches, useMemberVotes } from "@/lib/hooks";
+import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern } from "@/lib/hooks";
 
 interface MemberDetailContentProps {
   params: Promise<{ id: string }>;
@@ -46,6 +46,9 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
   } = useMemberVotes(memberId, votePage, 10);
   const votes = voteData?.items ?? [];
   const votePages = voteData?.pages ?? 0;
+
+  // Vote pattern
+  const { data: votePattern } = useVotePattern(memberId);
 
   const [weights, setWeights] = useState({
     legislative_activity: 30,
@@ -194,6 +197,7 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
         <TabsList>
           <TabsTrigger value="speeches">発言履歴</TabsTrigger>
           <TabsTrigger value="votes">投票記録</TabsTrigger>
+          <TabsTrigger value="vote-pattern">投票パターン</TabsTrigger>
         </TabsList>
 
         <TabsContent value="speeches">
@@ -265,6 +269,75 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                   </table>
                   <Pagination page={votePage} pages={votePages} onPageChange={setVotePage} />
                 </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="vote-pattern">
+          <Card>
+            <CardContent className="p-4">
+              {!votePattern ? (
+                <LoadingSpinner />
+              ) : votePattern.total_votes === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-4">投票パターンデータがありません</p>
+              ) : (
+                <div className="space-y-6">
+                  {/* サマリーカード */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="rounded-lg border p-4 text-center">
+                      <p className="text-xs text-slate-500">投票参加率</p>
+                      <p className="text-2xl font-bold text-blue-600">{votePattern.participation_rate}%</p>
+                      <p className="text-xs text-slate-400">{votePattern.total_votes}/{votePattern.total_votes + votePattern.absent_count}回</p>
+                    </div>
+                    <div className="rounded-lg border p-4 text-center">
+                      <p className="text-xs text-slate-500">造反率</p>
+                      <p className="text-2xl font-bold text-orange-600">{votePattern.dissent_rate}%</p>
+                      <p className="text-xs text-slate-400">{votePattern.dissent_votes}/{votePattern.party_majority_votes}回</p>
+                    </div>
+                    <div className="rounded-lg border p-4 text-center">
+                      <p className="text-xs text-slate-500">投票回数</p>
+                      <p className="text-2xl font-bold text-slate-700">{votePattern.total_votes}</p>
+                    </div>
+                    <div className="rounded-lg border p-4 text-center">
+                      <p className="text-xs text-slate-500">欠席回数</p>
+                      <p className="text-2xl font-bold text-slate-400">{votePattern.absent_count}</p>
+                    </div>
+                  </div>
+
+                  {/* 造反詳細 */}
+                  {votePattern.dissent_details.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-700 mb-3">造反投票の詳細</h3>
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b text-left text-xs text-slate-500">
+                            <th scope="col" className="p-2">法案名</th>
+                            <th scope="col" className="p-2 text-center">本人の投票</th>
+                            <th scope="col" className="p-2 text-center">党の多数派</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {votePattern.dissent_details.map((d, i) => (
+                            <tr key={i} className="border-b hover:bg-slate-50">
+                              <td className="p-2 text-sm">{d.bill_title ?? "-"}</td>
+                              <td className="p-2 text-center">
+                                <Badge className={VOTE_COLORS[d.member_vote] ?? "bg-slate-100"}>
+                                  {VOTE_LABELS[d.member_vote] ?? d.member_vote}
+                                </Badge>
+                              </td>
+                              <td className="p-2 text-center">
+                                <Badge className={VOTE_COLORS[d.party_majority_vote] ?? "bg-slate-100"}>
+                                  {VOTE_LABELS[d.party_majority_vote] ?? d.party_majority_vote}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>
