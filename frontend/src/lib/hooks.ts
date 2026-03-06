@@ -103,6 +103,25 @@ export function usePartyStats(params?: {
   return useSWR<PartyStatsResponse>(key, swrFetcher);
 }
 
+// ---- データ品質 ----
+export function useDataQuality() {
+  return useSWR<{
+    total_members: number;
+    total_sessions: number;
+    sessions: {
+      session_number: number;
+      session_kind: string;
+      member_count: number;
+      scored_member_count: number;
+      speech_count: number;
+      speakers_count: number;
+      bill_count: number;
+      vote_result_count: number;
+      vote_record_count: number;
+    }[];
+  }>("/data-quality", swrFetcher);
+}
+
 // ---- 政党一覧 ----
 export function useParties(chamber?: string) {
   const key = `/scores/parties${buildQuery({ chamber })}`;
