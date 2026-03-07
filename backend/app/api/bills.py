@@ -11,7 +11,7 @@ from app.schemas.common import PaginatedResponse
 router = APIRouter(prefix="/bills", tags=["bills"])
 
 
-@router.get("", response_model=PaginatedResponse[BillResponse])
+@router.get("", response_model=PaginatedResponse[BillResponse], summary="法案一覧取得")
 def list_bills(
     session_number: int | None = None,
     bill_kind: str | None = None,
@@ -21,6 +21,7 @@ def list_bills(
     per_page: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
+    """法案一覧を返す。会期・種別・状態・タイトル検索でフィルタリング可能。"""
     query = select(Bill)
     count_query = select(func.count(Bill.id))
 
@@ -56,8 +57,9 @@ def list_bills(
     )
 
 
-@router.get("/{bill_id}", response_model=BillDetail)
+@router.get("/{bill_id}", response_model=BillDetail, summary="法案詳細取得")
 def get_bill(bill_id: int, db: Session = Depends(get_db)):
+    """指定IDの法案の詳細（提出者・投票結果含む）を返す。"""
     bill = db.execute(
         select(Bill)
         .where(Bill.id == bill_id)

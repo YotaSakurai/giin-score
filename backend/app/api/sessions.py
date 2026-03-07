@@ -9,8 +9,9 @@ from app.schemas.session import SessionResponse
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 
-@router.get("", response_model=list[SessionResponse])
+@router.get("", response_model=list[SessionResponse], summary="会期一覧取得")
 def list_sessions(db: Session = Depends(get_db)):
+    """登録されている国会会期一覧を降順で返す。"""
     sessions = (
         db.execute(select(DietSession).order_by(DietSession.session_number.desc())).scalars().all()
     )

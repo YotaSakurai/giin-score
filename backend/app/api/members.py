@@ -26,7 +26,7 @@ SCORE_SORT_FIELDS = {
 }
 
 
-@router.get("", response_model=PaginatedResponse[MemberWithScore])
+@router.get("", response_model=PaginatedResponse[MemberWithScore], summary="議員一覧取得")
 def list_members(
     chamber: Literal["representatives", "councillors"] | None = None,
     party: str | None = None,
@@ -45,6 +45,10 @@ def list_members(
     per_page: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
+    """議員一覧を最新スコア付きで返す。
+
+    院・政党・選挙区・名前でフィルタリングし、スコア各軸でソート可能。
+    """
     # 最新スコアのサブクエリ
     latest_score_sq = (
         select(
@@ -136,7 +140,7 @@ def list_members(
     )
 
 
-@router.get("/districts", response_model=list[str])
+@router.get("/districts", response_model=list[str], summary="選挙区一覧取得")
 def get_districts(
     chamber: Literal["representatives", "councillors"] | None = None,
     db: Session = Depends(get_db),
@@ -154,8 +158,9 @@ def get_districts(
     return [d for d in districts if d]
 
 
-@router.get("/{member_id}", response_model=MemberDetail)
+@router.get("/{member_id}", response_model=MemberDetail, summary="議員詳細取得")
 def get_member(member_id: int, db: Session = Depends(get_db)):
+    """指定IDの議員詳細（プロフィール・全会期スコア）を返す。"""
     member = db.execute(
         select(Member).where(Member.id == member_id).options(selectinload(Member.scores))
     ).scalar_one_or_none()
@@ -199,8 +204,9 @@ def get_member(member_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/{member_id}/scores", response_model=list[ScoreDetail])
+@router.get("/{member_id}/scores", response_model=list[ScoreDetail], summary="議員スコア履歴取得")
 def get_member_scores(member_id: int, db: Session = Depends(get_db)):
+    """指定議員の全会期スコア履歴を降順で返す。"""
     member = db.get(Member, member_id)
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
@@ -241,13 +247,18 @@ def get_member_scores(member_id: int, db: Session = Depends(get_db)):
     return result
 
 
-@router.get("/{member_id}/speeches", response_model=PaginatedResponse[SpeechResponse])
+@router.get(
+    "/{member_id}/speeches",
+    response_model=PaginatedResponse[SpeechResponse],
+    summary="議員発言一覧取得",
+)
 def get_member_speeches(
     member_id: int,
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
+    """指定議員の国会発言一覧をページングで返す。"""
     member = db.get(Member, member_id)
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
@@ -288,13 +299,18 @@ def get_member_speeches(
     )
 
 
-@router.get("/{member_id}/votes", response_model=PaginatedResponse[VoteRecordResponse])
+@router.get(
+    "/{member_id}/votes",
+    response_model=PaginatedResponse[VoteRecordResponse],
+    summary="議員投票記録取得",
+)
 def get_member_votes(
     member_id: int,
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
+    """指定議員の投票記録をページングで返す。"""
     member = db.get(Member, member_id)
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
@@ -340,7 +356,11 @@ def get_member_votes(
     )
 
 
-@router.get("/{member_id}/vote-pattern", response_model=VotePatternResponse)
+@router.get(
+    "/{member_id}/vote-pattern",
+    response_model=VotePatternResponse,
+    summary="投票パターン分析",
+)
 def get_vote_pattern(member_id: int, db: Session = Depends(get_db)):
     """議員の投票パターン分析（造反率）を返す。"""
     member = db.get(Member, member_id)

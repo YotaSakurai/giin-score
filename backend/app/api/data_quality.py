@@ -32,7 +32,7 @@ class DataQualityResponse(BaseModel):
     sessions: list[SessionDataQuality]
 
 
-@router.get("", response_model=DataQualityResponse)
+@router.get("", response_model=DataQualityResponse, summary="データ品質概要取得")
 def get_data_quality(db: Session = Depends(get_db)):
     """会期ごとのデータ充足状況を返す。"""
     total_members = db.execute(

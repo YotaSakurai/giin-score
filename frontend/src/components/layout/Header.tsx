@@ -14,6 +14,7 @@ const navItems = [
   { href: "/favorites", label: "お気に入り" },
   { href: "/bills", label: "法案一覧" },
   { href: "/about", label: "スコアについて" },
+  { href: "/api-docs", label: "API" },
 ];
 
 export function Header() {

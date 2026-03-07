@@ -53,7 +53,7 @@ RANKING_SORT_FIELDS = {
 }
 
 
-@router.get("/ranking", response_model=RankingResponse)
+@router.get("/ranking", response_model=RankingResponse, summary="スコアランキング取得")
 def get_ranking(
     chamber: Literal["representatives", "councillors"] | None = None,
     party: str | None = None,
@@ -70,6 +70,11 @@ def get_ranking(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
+    """議員スコアのランキングを返す。
+
+    院・政党・会期でフィルタリングし、指定軸でソートした結果をページングで返す。
+    未指定時はスコアが存在する最新会期のデータを使用する。
+    """
     base_query = select(MemberScore)
 
     session_id = _resolve_session_id(db, session_number)
@@ -119,12 +124,16 @@ def get_ranking(
     )
 
 
-@router.get("/stats", response_model=StatsResponse)
+@router.get("/stats", response_model=StatsResponse, summary="スコア統計取得")
 def get_stats(
     chamber: Literal["representatives", "councillors"] | None = None,
     session_number: int | None = None,
     db: Session = Depends(get_db),
 ):
+    """スコアの統計情報（平均・中央値・分布）を返す。
+
+    グレード別（A〜F）の人数分布も含む。
+    """
     query = select(MemberScore)
 
     session_id = _resolve_session_id(db, session_number)
@@ -171,7 +180,7 @@ def get_stats(
     )
 
 
-@router.get("/by-party", response_model=PartyStatsResponse)
+@router.get("/by-party", response_model=PartyStatsResponse, summary="政党別統計取得")
 def get_party_stats(
     chamber: Literal["representatives", "councillors"] | None = None,
     session_number: int | None = None,
@@ -223,7 +232,7 @@ def get_party_stats(
     return PartyStatsResponse(items=items, chamber=chamber, session_number=session_number)
 
 
-@router.get("/export/csv")
+@router.get("/export/csv", summary="ランキングCSVエクスポート")
 def export_ranking_csv(
     chamber: Literal["representatives", "councillors"] | None = None,
     party: str | None = None,
@@ -295,7 +304,7 @@ def export_ranking_csv(
     )
 
 
-@router.get("/parties", response_model=list[str])
+@router.get("/parties", response_model=list[str], summary="政党一覧取得")
 def get_parties(
     chamber: Literal["representatives", "councillors"] | None = None,
     db: Session = Depends(get_db),

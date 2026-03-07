@@ -1,5 +1,8 @@
 from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -7,6 +10,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.api import bills, data_quality, members, scores, sessions
 from app.config import settings
 from app.database import get_db
+
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 
 
 class CacheControlMiddleware(BaseHTTPMiddleware):
@@ -27,11 +32,66 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
                 )
         return response
 
+API_DESCRIPTION = """
+# GiinScore API
+
+国会の公開データに基づく議員活動スコアリングAPIです。
+
+## 概要
+
+- **議員情報** – 議員プロフィール・スコア詳細・発言履歴・投票記録
+- **スコア** – ランキング・統計・政党別比較・CSVエクスポート
+- **法案** – 法案一覧・詳細・投票結果
+- **会期** – 国会会期情報
+- **データ品質** – 会期ごとのデータ充足状況
+
+## スコアリング
+
+4軸スコア（0-100、パーセンタイルランク正規化）:
+- **立法活動 (LAS)** – 法案発議・委員会質疑
+- **投票行動 (VBS)** – 投票参加率
+- **政策影響力 (PIS)** – 成立法案への貢献
+- **透明性 (TS)** – 公開活動参加度
+
+総合スコア = LAS×0.30 + VBS×0.25 + PIS×0.25 + TS×0.20
+
+## レート制限
+
+APIリクエストは **60リクエスト/分** に制限されています。
+`X-RateLimit-Limit`, `X-RateLimit-Remaining` ヘッダーで残り回数を確認できます。
+"""
+
 app = FastAPI(
     title="GiinScore API",
-    description="政治家活動スコアリングダッシュボード API",
-    version="0.1.0",
+    description=API_DESCRIPTION,
+    version="1.0.0",
+    openapi_tags=[
+        {
+            "name": "members",
+            "description": "議員の情報・スコア・発言・投票に関するエンドポイント",
+        },
+        {
+            "name": "scores",
+            "description": "スコアランキング・統計・政党別比較・CSV出力",
+        },
+        {
+            "name": "bills",
+            "description": "法案の一覧・詳細・投票結果",
+        },
+        {
+            "name": "sessions",
+            "description": "国会会期の一覧",
+        },
+        {
+            "name": "data-quality",
+            "description": "会期ごとのデータ充足状況",
+        },
+    ],
+    license_info={"name": "MIT"},
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(CacheControlMiddleware)
 app.add_middleware(
