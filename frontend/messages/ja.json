@@ -1,0 +1,63 @@
+{
+  "nav": {
+    "ranking": "ランキング",
+    "members": "議員一覧",
+    "parties": "政党別",
+    "compare": "比較",
+    "favorites": "お気に入り",
+    "bills": "法案一覧",
+    "about": "スコアについて",
+    "api": "API",
+    "openMenu": "メニューを開く"
+  },
+  "common": {
+    "siteName": "GiinScore",
+    "siteDescription": "国会の公開データに基づく政治家の活動量を可視化するダッシュボード",
+    "loading": "読み込み中...",
+    "error": "エラーが発生しました",
+    "retry": "再試行",
+    "noData": "データがありません",
+    "search": "検索",
+    "filter": "フィルタ",
+    "all": "すべて",
+    "score": "スコア",
+    "rank": "順位",
+    "grade": "グレード",
+    "party": "政党",
+    "chamber": "院",
+    "representatives": "衆議院",
+    "councillors": "参議院",
+    "district": "選挙区",
+    "page": "ページ",
+    "prev": "前へ",
+    "next": "次へ"
+  },
+  "home": {
+    "title": "政治家活動スコアリングダッシュボード",
+    "subtitle": "国会の公開データに基づき、議員の活動量を4つの軸で可視化します",
+    "disclaimer": "本スコアは国会の公開データに基づく活動量の可視化であり、政治家の能力・人格・政策の正しさを評価するものではありません。",
+    "top3Title": "注目の議員 TOP3",
+    "rankingTitle": "スコアランキング",
+    "statsTitle": "スコア分布",
+    "totalMembers": "対象議員数",
+    "average": "平均",
+    "median": "中央値",
+    "gradeDistribution": "グレード分布",
+    "viewAll": "すべて見る",
+    "viewDetail": "詳細を見る"
+  },
+  "footer": {
+    "description": "国会の公開データに基づく政治家の活動量を可視化するダッシュボード",
+    "disclaimer": "本サイトのスコアは公開データに基づく活動量の可視化であり、政治家の能力や政策の正しさを評価するものではありません。",
+    "dataSource": "データソース",
+    "kokkai": "国会会議録検索システム",
+    "copyright": "© {year} GiinScore. MITライセンスで公開"
+  },
+  "score": {
+    "legislativeActivity": "立法活動",
+    "votingBehavior": "投票行動",
+    "policyInfluence": "政策影響力",
+    "transparency": "透明性",
+    "total": "総合スコア"
+  }
+}

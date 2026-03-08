@@ -1,0 +1,63 @@
+{
+  "nav": {
+    "ranking": "Ranking",
+    "members": "Members",
+    "parties": "Parties",
+    "compare": "Compare",
+    "favorites": "Favorites",
+    "bills": "Bills",
+    "about": "About",
+    "api": "API",
+    "openMenu": "Open menu"
+  },
+  "common": {
+    "siteName": "GiinScore",
+    "siteDescription": "A dashboard that visualizes Japanese legislators' activity based on public Diet data",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "noData": "No data available",
+    "search": "Search",
+    "filter": "Filter",
+    "all": "All",
+    "score": "Score",
+    "rank": "Rank",
+    "grade": "Grade",
+    "party": "Party",
+    "chamber": "Chamber",
+    "representatives": "House of Representatives",
+    "councillors": "House of Councillors",
+    "district": "District",
+    "page": "Page",
+    "prev": "Previous",
+    "next": "Next"
+  },
+  "home": {
+    "title": "Legislator Activity Scoring Dashboard",
+    "subtitle": "Visualizing legislators' activity through 4 axes based on public Diet data",
+    "disclaimer": "These scores visualize activity levels based on public Diet data. They do not evaluate politicians' abilities, character, or policy correctness.",
+    "top3Title": "Top 3 Legislators",
+    "rankingTitle": "Score Ranking",
+    "statsTitle": "Score Distribution",
+    "totalMembers": "Total Members",
+    "average": "Average",
+    "median": "Median",
+    "gradeDistribution": "Grade Distribution",
+    "viewAll": "View all",
+    "viewDetail": "View details"
+  },
+  "footer": {
+    "description": "A dashboard visualizing Japanese legislators' activity based on public Diet data",
+    "disclaimer": "Scores on this site visualize activity levels based on public data. They do not evaluate politicians' abilities or policy correctness.",
+    "dataSource": "Data Source",
+    "kokkai": "National Diet Library Minutes Search System",
+    "copyright": "© {year} GiinScore. Released under MIT License"
+  },
+  "score": {
+    "legislativeActivity": "Legislative Activity",
+    "votingBehavior": "Voting Behavior",
+    "policyInfluence": "Policy Influence",
+    "transparency": "Transparency",
+    "total": "Overall Score"
+  }
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState, useMemo } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import useSWR from "swr";
 import { swrFetcher } from "@/lib/api";
 import type { MemberDetail } from "@/lib/types";

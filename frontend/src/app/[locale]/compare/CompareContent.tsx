@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import useSWR from "swr";
 import { swrFetcher } from "@/lib/api";
 import type { MemberDetail } from "@/lib/types";

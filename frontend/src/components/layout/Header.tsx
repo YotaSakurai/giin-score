@@ -1,24 +1,27 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 
-const navItems = [
-  { href: "/", label: "ランキング" },
-  { href: "/members", label: "議員一覧" },
-  { href: "/parties", label: "政党別" },
-  { href: "/compare", label: "比較" },
-  { href: "/favorites", label: "お気に入り" },
-  { href: "/bills", label: "法案一覧" },
-  { href: "/about", label: "スコアについて" },
-  { href: "/api-docs", label: "API" },
-];
+const navKeys = [
+  { href: "/", key: "ranking" },
+  { href: "/members", key: "members" },
+  { href: "/parties", key: "parties" },
+  { href: "/compare", key: "compare" },
+  { href: "/favorites", key: "favorites" },
+  { href: "/bills", key: "bills" },
+  { href: "/about", key: "about" },
+  { href: "/api-docs", key: "api" },
+] as const;
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("nav");
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
@@ -28,23 +31,25 @@ export function Header() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
-          {navItems.map((item) => (
+          {navKeys.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              {item.label}
+              {t(item.key)}
             </Link>
           ))}
+          <LocaleSwitcher />
           <ThemeToggle />
         </nav>
 
         <div className="flex items-center gap-2 md:hidden">
+          <LocaleSwitcher />
           <ThemeToggle />
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" aria-label="メニューを開く">
+              <Button variant="ghost" size="sm" aria-label={t("openMenu")}>
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
@@ -52,14 +57,14 @@ export function Header() {
             </SheetTrigger>
             <SheetContent side="right" className="w-64">
               <nav className="flex flex-col gap-4 mt-8">
-                {navItems.map((item) => (
+                {navKeys.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
                     className="text-base font-medium text-foreground/80 hover:text-primary"
                     onClick={() => setOpen(false)}
                   >
-                    {item.label}
+                    {t(item.key)}
                   </Link>
                 ))}
               </nav>
