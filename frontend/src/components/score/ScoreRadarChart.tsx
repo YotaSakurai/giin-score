@@ -7,14 +7,16 @@ interface ScoreRadarChartProps {
   voting_behavior: number;
   policy_influence: number;
   transparency: number;
+  question_quality: number;
 }
 
-export function ScoreRadarChart({ legislative_activity, voting_behavior, policy_influence, transparency }: ScoreRadarChartProps) {
+export function ScoreRadarChart({ legislative_activity, voting_behavior, policy_influence, transparency, question_quality }: ScoreRadarChartProps) {
   const data = [
     { axis: "立法活動", value: legislative_activity },
     { axis: "投票行動", value: voting_behavior },
     { axis: "政策影響力", value: policy_influence },
     { axis: "透明性", value: transparency },
+    { axis: "質問品質", value: question_quality },
   ];
 
   return (

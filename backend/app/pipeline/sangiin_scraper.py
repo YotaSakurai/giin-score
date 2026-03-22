@@ -138,26 +138,24 @@ def _scrape_vote_page_new(db: Session, soup: BeautifulSoup, contents, session_nu
     if not diet_session:
         return 0
 
-    bill = _find_bill(db, diet_session.id, bill_title)
+    bill = _find_or_create_bill(db, diet_session.id, bill_title)
 
     # 起立採決チェック
     kiritsu = contents.find("p", class_="kiritsu")
     if kiritsu:
         result_text = "可決" if "可決" in kiritsu.get_text() else "否決"
-        if bill:
-            existing = (
-                db.query(VoteResult).filter_by(bill_id=bill.id, chamber="councillors").first()
+        existing = (
+            db.query(VoteResult).filter_by(bill_id=bill.id, chamber="councillors").first()
+        )
+        if not existing:
+            vote_result = VoteResult(
+                bill_id=bill.id,
+                chamber="councillors",
+                ayes=0,
+                nays=0,
+                result=result_text,
             )
-            if not existing:
-                vote_result = VoteResult(
-                    bill_id=bill.id,
-                    chamber="councillors",
-                    ayes=0,
-                    nays=0,
-                    result=result_text,
-                )
-                db.add(vote_result)
-                return 1
+            db.add(vote_result)
         return 0
 
     # 記名投票: h3.tohyosousu から集計結果を取得
@@ -169,10 +167,6 @@ def _scrape_vote_page_new(db: Session, soup: BeautifulSoup, contents, session_nu
         result_text = "可決"
     elif "否決" in body_text:
         result_text = "否決"
-
-    if not bill:
-        logger.debug(f"Bill not found for: {bill_title[:50]}")
-        return 0
 
     existing = db.query(VoteResult).filter_by(bill_id=bill.id, chamber="councillors").first()
     if existing:
@@ -219,7 +213,7 @@ def _scrape_vote_page_new(db: Session, soup: BeautifulSoup, contents, session_nu
                 db.add(record)
                 count += 1
 
-    return max(count, 1) if result_text else count
+    return count
 
 
 def _extract_title_new(contents) -> str:
@@ -323,7 +317,7 @@ def _scrape_vote_page_legacy(db: Session, soup: BeautifulSoup, session_number: i
     if not diet_session:
         return 0
 
-    bill = _find_bill(db, diet_session.id, bill_title)
+    bill = _find_or_create_bill(db, diet_session.id, bill_title)
 
     result_text = None
     if "可決" in body_text:
@@ -333,24 +327,18 @@ def _scrape_vote_page_legacy(db: Session, soup: BeautifulSoup, session_number: i
 
     # 起立採決チェック
     if "起立採決" in body_text:
-        if bill:
-            existing = (
-                db.query(VoteResult).filter_by(bill_id=bill.id, chamber="councillors").first()
+        existing = (
+            db.query(VoteResult).filter_by(bill_id=bill.id, chamber="councillors").first()
+        )
+        if not existing:
+            vote_result = VoteResult(
+                bill_id=bill.id,
+                chamber="councillors",
+                ayes=0,
+                nays=0,
+                result=result_text,
             )
-            if not existing:
-                vote_result = VoteResult(
-                    bill_id=bill.id,
-                    chamber="councillors",
-                    ayes=0,
-                    nays=0,
-                    result=result_text,
-                )
-                db.add(vote_result)
-                return 1
-        return 0
-
-    if not bill:
-        logger.debug(f"Bill not found for: {bill_title[:50]}")
+            db.add(vote_result)
         return 0
 
     existing = db.query(VoteResult).filter_by(bill_id=bill.id, chamber="councillors").first()
@@ -438,13 +426,13 @@ def _scrape_vote_page_legacy(db: Session, soup: BeautifulSoup, session_number: i
     vote_result.ayes = ayes
     vote_result.nays = nays
 
-    return max(count, 1) if result_text else count
+    return count
 
 
-def _find_bill(db, session_id: int, bill_title: str):
-    """タイトルの先頭30文字で部分一致検索する。"""
+def _find_or_create_bill(db, session_id: int, bill_title: str):
+    """タイトルの先頭30文字で部分一致検索し、なければ作成する。"""
     search_title = bill_title[:30] if len(bill_title) > 30 else bill_title
-    return (
+    bill = (
         db.query(Bill)
         .filter(
             Bill.session_id == session_id,
@@ -452,6 +440,16 @@ def _find_bill(db, session_id: int, bill_title: str):
         )
         .first()
     )
+    if not bill:
+        bill = Bill(
+            session_id=session_id,
+            bill_kind="その他",
+            title=bill_title,
+        )
+        db.add(bill)
+        db.flush()
+        logger.info(f"Auto-created bill: {bill_title[:50]}")
+    return bill
 
 
 def _parse_vote(text: str) -> str | None:

@@ -24,6 +24,7 @@ class ScoreSummary(BaseModel):
     voting_behavior: float = 0.0
     policy_influence: float = 0.0
     transparency: float = 0.0
+    question_quality: float = 0.0
 
     model_config = {"from_attributes": True}
 
@@ -46,10 +47,12 @@ class ScoreDetail(BaseModel):
     voting_behavior_raw: float = 0.0
     policy_influence_raw: float = 0.0
     transparency_raw: float = 0.0
+    question_quality_raw: float = 0.0
     legislative_activity: float = 0.0
     voting_behavior: float = 0.0
     policy_influence: float = 0.0
     transparency: float = 0.0
+    question_quality: float = 0.0
     total: float = 0.0
     grade: str = "F"
     breakdown: dict | None = None

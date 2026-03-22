@@ -35,16 +35,10 @@ class DataQualityResponse(BaseModel):
 @router.get("", response_model=DataQualityResponse, summary="データ品質概要取得")
 def get_data_quality(db: Session = Depends(get_db)):
     """会期ごとのデータ充足状況を返す。"""
-    total_members = db.execute(
-        select(func.count(Member.id))
-    ).scalar_one()
+    total_members = db.execute(select(func.count(Member.id))).scalar_one()
 
     sessions = (
-        db.execute(
-            select(DietSession).order_by(DietSession.session_number.desc())
-        )
-        .scalars()
-        .all()
+        db.execute(select(DietSession).order_by(DietSession.session_number.desc())).scalars().all()
     )
 
     result: list[SessionDataQuality] = []
@@ -52,9 +46,7 @@ def get_data_quality(db: Session = Depends(get_db)):
         sid = s.id
 
         scored = db.execute(
-            select(func.count(MemberScore.id)).where(
-                MemberScore.session_id == sid
-            )
+            select(func.count(MemberScore.id)).where(MemberScore.session_id == sid)
         ).scalar_one()
 
         speech_count = db.execute(
@@ -62,9 +54,7 @@ def get_data_quality(db: Session = Depends(get_db)):
         ).scalar_one()
 
         speakers = db.execute(
-            select(func.count(func.distinct(Speech.member_id))).where(
-                Speech.session_id == sid
-            )
+            select(func.count(func.distinct(Speech.member_id))).where(Speech.session_id == sid)
         ).scalar_one()
 
         bill_count = db.execute(
@@ -73,9 +63,7 @@ def get_data_quality(db: Session = Depends(get_db)):
 
         vote_result_count = db.execute(
             select(func.count(VoteResult.id)).where(
-                VoteResult.bill_id.in_(
-                    select(Bill.id).where(Bill.session_id == sid)
-                )
+                VoteResult.bill_id.in_(select(Bill.id).where(Bill.session_id == sid))
             )
         ).scalar_one()
 
@@ -83,11 +71,7 @@ def get_data_quality(db: Session = Depends(get_db)):
             select(func.count(VoteRecord.id)).where(
                 VoteRecord.vote_result_id.in_(
                     select(VoteResult.id).where(
-                        VoteResult.bill_id.in_(
-                            select(Bill.id).where(
-                                Bill.session_id == sid
-                            )
-                        )
+                        VoteResult.bill_id.in_(select(Bill.id).where(Bill.session_id == sid))
                     )
                 )
             )

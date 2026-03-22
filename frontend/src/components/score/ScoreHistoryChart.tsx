@@ -22,6 +22,7 @@ const LINE_CONFIG = [
   { dataKey: "voting_behavior", name: "投票行動", color: "#d97706", strokeWidth: 1.5 },
   { dataKey: "policy_influence", name: "政策影響力", color: "#7c3aed", strokeWidth: 1.5 },
   { dataKey: "transparency", name: "透明性", color: "#dc2626", strokeWidth: 1.5 },
+  { dataKey: "question_quality", name: "質問品質", color: "#0891b2", strokeWidth: 1.5 },
 ] as const;
 
 export function ScoreHistoryChart({ scores }: ScoreHistoryChartProps) {
@@ -37,6 +38,7 @@ export function ScoreHistoryChart({ scores }: ScoreHistoryChartProps) {
     voting_behavior: Math.round(s.voting_behavior * 10) / 10,
     policy_influence: Math.round(s.policy_influence * 10) / 10,
     transparency: Math.round(s.transparency * 10) / 10,
+    question_quality: Math.round(s.question_quality * 10) / 10,
   }));
 
   return (

@@ -17,7 +17,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { CHAMBER_LABELS, AXIS_LABELS } from "@/lib/types";
 import { VOTE_LABELS, VOTE_COLORS } from "@/lib/constants";
-import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern } from "@/lib/hooks";
+import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern, useSpeechQuality } from "@/lib/hooks";
 
 interface MemberDetailContentProps {
   params: Promise<{ id: string }>;
@@ -50,24 +50,35 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
   // Vote pattern
   const { data: votePattern } = useVotePattern(memberId);
 
+  // Speech quality state
+  const [qualityPage, setQualityPage] = useState(1);
+  const {
+    data: qualityData,
+    isLoading: qualityLoading,
+  } = useSpeechQuality(memberId, qualityPage, 10);
+  const qualityItems = qualityData?.items ?? [];
+  const qualityPages = qualityData?.pages ?? 0;
+
   const [weights, setWeights] = useState({
-    legislative_activity: 30,
-    voting_behavior: 25,
-    policy_influence: 25,
-    transparency: 20,
+    legislative_activity: 25,
+    voting_behavior: 20,
+    policy_influence: 20,
+    transparency: 15,
+    question_quality: 20,
   });
 
   const latestScore = member?.scores?.[0] ?? null;
 
   const customTotal = useMemo(() => {
     if (!latestScore) return 0;
-    const sum = weights.legislative_activity + weights.voting_behavior + weights.policy_influence + weights.transparency;
+    const sum = weights.legislative_activity + weights.voting_behavior + weights.policy_influence + weights.transparency + weights.question_quality;
     if (sum === 0) return 0;
     return (
       (latestScore.legislative_activity * weights.legislative_activity +
         latestScore.voting_behavior * weights.voting_behavior +
         latestScore.policy_influence * weights.policy_influence +
-        latestScore.transparency * weights.transparency) / sum
+        latestScore.transparency * weights.transparency +
+        latestScore.question_quality * weights.question_quality) / sum
     );
   }, [latestScore, weights]);
 
@@ -129,6 +140,7 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                     voting_behavior={latestScore.voting_behavior}
                     policy_influence={latestScore.policy_influence}
                     transparency={latestScore.transparency}
+                    question_quality={latestScore.question_quality}
                   />
                 </CardContent>
               </Card>
@@ -168,6 +180,7 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                 voting_behavior: latestScore.voting_behavior,
                 policy_influence: latestScore.policy_influence,
                 transparency: latestScore.transparency,
+                question_quality: latestScore.question_quality,
               }}
             />
           </div>
@@ -196,6 +209,7 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
       <Tabs defaultValue="speeches">
         <TabsList>
           <TabsTrigger value="speeches">発言履歴</TabsTrigger>
+          <TabsTrigger value="speech-quality">質問品質</TabsTrigger>
           <TabsTrigger value="votes">投票記録</TabsTrigger>
           <TabsTrigger value="vote-pattern">投票パターン</TabsTrigger>
         </TabsList>
@@ -232,6 +246,54 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                     </tbody>
                   </table>
                   <Pagination page={speechPage} pages={speechPages} onPageChange={setSpeechPage} />
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="speech-quality">
+          <Card>
+            <CardContent className="p-4">
+              {qualityLoading ? (
+                <LoadingSpinner />
+              ) : qualityItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">質問品質データがまだ分析されていません</p>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    {qualityItems.map((q) => {
+                      const bg = q.overall_quality >= 70
+                        ? "border-l-emerald-500"
+                        : q.overall_quality >= 40
+                          ? "border-l-yellow-500"
+                          : "border-l-red-500";
+                      return (
+                        <div key={q.id} className={`border-l-4 ${bg} rounded-r-lg border p-3`}>
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <p className="text-sm font-medium">{q.meeting_name ?? "不明"}</p>
+                              <p className="text-xs text-muted-foreground">{q.speech_date ?? "-"} / {(q.speech_chars ?? 0).toLocaleString()}字</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold">{q.overall_quality.toFixed(0)}</p>
+                              <p className="text-xs text-muted-foreground">総合</p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                            <div><span className="text-muted-foreground">政策関連:</span> <span className="font-medium">{q.policy_relevance.toFixed(0)}</span></div>
+                            <div><span className="text-muted-foreground">建設性:</span> <span className="font-medium">{q.constructiveness.toFixed(0)}</span></div>
+                            <div><span className="text-muted-foreground">専門性:</span> <span className="font-medium">{q.expertise.toFixed(0)}</span></div>
+                            <div><span className="text-muted-foreground">国益:</span> <span className="font-medium">{q.national_interest.toFixed(0)}</span></div>
+                          </div>
+                          {q.analysis_summary && (
+                            <p className="mt-2 text-xs text-muted-foreground">{q.analysis_summary}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <Pagination page={qualityPage} pages={qualityPages} onPageChange={setQualityPage} />
                 </>
               )}
             </CardContent>

@@ -116,6 +116,9 @@ export default function PartyStatsContent() {
                       <th scope="col" className="p-3 text-right hidden lg:table-cell">
                         {AXIS_LABELS.transparency}
                       </th>
+                      <th scope="col" className="p-3 text-right hidden lg:table-cell">
+                        {AXIS_LABELS.question_quality}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -146,11 +149,14 @@ export default function PartyStatsContent() {
                         <td className="p-3 text-right text-xs text-muted-foreground hidden lg:table-cell">
                           {entry.average_transparency.toFixed(1)}
                         </td>
+                        <td className="p-3 text-right text-xs text-muted-foreground hidden lg:table-cell">
+                          {entry.average_question_quality.toFixed(1)}
+                        </td>
                       </tr>
                     ))}
                     {items.length === 0 && (
                       <tr>
-                        <td colSpan={11} className="p-8 text-center text-sm text-muted-foreground">
+                        <td colSpan={12} className="p-8 text-center text-sm text-muted-foreground">
                           データがまだありません
                         </td>
                       </tr>

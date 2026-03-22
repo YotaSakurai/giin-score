@@ -15,6 +15,7 @@ interface MemberScore {
   voting_behavior: number;
   policy_influence: number;
   transparency: number;
+  question_quality: number;
   color: { stroke: string; fill: string };
 }
 
@@ -28,6 +29,7 @@ export function CompareRadarChart({ members }: CompareRadarChartProps) {
     { key: "voting_behavior", label: "投票行動" },
     { key: "policy_influence", label: "政策影響力" },
     { key: "transparency", label: "透明性" },
+    { key: "question_quality", label: "質問品質" },
   ] as const;
 
   // Rechartsに渡すdata形式: 各軸をrowにし、各議員の値をkeyとして持つ

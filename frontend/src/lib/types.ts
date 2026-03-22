@@ -38,6 +38,7 @@ export interface ScoreBreakdownData {
   voting_behavior: VotingBehaviorBreakdown;
   policy_influence: PolicyInfluenceBreakdown;
   transparency: TransparencyBreakdown;
+  question_quality?: Record<string, unknown>;
 }
 
 export interface Score {
@@ -48,10 +49,12 @@ export interface Score {
   voting_behavior_raw: number;
   policy_influence_raw: number;
   transparency_raw: number;
+  question_quality_raw: number;
   legislative_activity: number;
   voting_behavior: number;
   policy_influence: number;
   transparency: number;
+  question_quality: number;
   total: number;
   grade: string;
   breakdown: ScoreBreakdownData | null;
@@ -73,11 +76,31 @@ export interface MemberWithScore extends Member {
     voting_behavior: number;
     policy_influence: number;
     transparency: number;
+    question_quality: number;
   } | null;
+}
+
+export interface QuestionQualityBreakdown {
+  avg_quality: number;
+  analyzed_speeches: number;
 }
 
 export interface ScoreDetail extends Score {
   session_number: number | null;
+}
+
+export interface SpeechQualityItem {
+  id: number;
+  speech_id: number;
+  meeting_name: string | null;
+  speech_date: string | null;
+  speech_chars: number;
+  policy_relevance: number;
+  constructiveness: number;
+  expertise: number;
+  national_interest: number;
+  overall_quality: number;
+  analysis_summary: string | null;
 }
 
 export interface MemberDetail extends Member {
@@ -189,6 +212,7 @@ export interface PartyStatsEntry {
   average_voting_behavior: number;
   average_policy_influence: number;
   average_transparency: number;
+  average_question_quality: number;
 }
 
 export interface PartyStatsResponse {
@@ -215,4 +239,5 @@ export const AXIS_LABELS: Record<string, string> = {
   voting_behavior: "投票行動",
   policy_influence: "政策影響力",
   transparency: "透明性",
+  question_quality: "質問品質",
 };

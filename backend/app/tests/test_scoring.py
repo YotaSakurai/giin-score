@@ -66,8 +66,9 @@ class TestComputeTotal:
             "voting_behavior": 60.0,
             "policy_influence": 40.0,
             "transparency": 20.0,
+            "question_quality": 50.0,
         }
-        # 80*0.30 + 60*0.25 + 40*0.25 + 20*0.20 = 24+15+10+4 = 53.0
+        # 80*0.25 + 60*0.20 + 40*0.20 + 20*0.15 + 50*0.20 = 20+12+8+3+10 = 53.0
         assert compute_total(normalized) == 53.0
 
     def test_custom_weights(self):
@@ -76,12 +77,14 @@ class TestComputeTotal:
             "voting_behavior": 100.0,
             "policy_influence": 100.0,
             "transparency": 100.0,
+            "question_quality": 100.0,
         }
         custom_weights = {
-            "legislative_activity": 0.25,
-            "voting_behavior": 0.25,
-            "policy_influence": 0.25,
-            "transparency": 0.25,
+            "legislative_activity": 0.20,
+            "voting_behavior": 0.20,
+            "policy_influence": 0.20,
+            "transparency": 0.20,
+            "question_quality": 0.20,
         }
         assert compute_total(normalized, custom_weights) == 100.0
 
@@ -91,12 +94,13 @@ class TestComputeTotal:
             "voting_behavior": 0.0,
             "policy_influence": 0.0,
             "transparency": 0.0,
+            "question_quality": 0.0,
         }
         assert compute_total(normalized) == 0.0
 
     def test_missing_keys_default_to_zero(self):
         normalized = {"legislative_activity": 100.0}
-        assert compute_total(normalized) == 30.0
+        assert compute_total(normalized) == 25.0
 
 
 class TestComputeGrade:
@@ -129,30 +133,35 @@ class TestNormalization:
                 "voting_behavior": 50,
                 "policy_influence": 30,
                 "transparency": 20,
+                "question_quality": 10,
             },
             2: {
                 "legislative_activity": 20,
                 "voting_behavior": 40,
                 "policy_influence": 60,
                 "transparency": 40,
+                "question_quality": 20,
             },
             3: {
                 "legislative_activity": 30,
                 "voting_behavior": 30,
                 "policy_influence": 90,
                 "transparency": 60,
+                "question_quality": 30,
             },
             4: {
                 "legislative_activity": 40,
                 "voting_behavior": 20,
                 "policy_influence": 20,
                 "transparency": 80,
+                "question_quality": 40,
             },
             5: {
                 "legislative_activity": 50,
                 "voting_behavior": 10,
                 "policy_influence": 10,
                 "transparency": 100,
+                "question_quality": 50,
             },
         }
         member_ids = [1, 2, 3, 4, 5]
@@ -173,6 +182,7 @@ class TestNormalization:
                 "voting_behavior": 50,
                 "policy_influence": 50,
                 "transparency": 50,
+                "question_quality": 50,
             },
         }
         normalized = {}
@@ -187,12 +197,14 @@ class TestNormalization:
                 "voting_behavior": 10,
                 "policy_influence": 10,
                 "transparency": 10,
+                "question_quality": 10,
             },
             2: {
                 "legislative_activity": 10,
                 "voting_behavior": 10,
                 "policy_influence": 10,
                 "transparency": 10,
+                "question_quality": 10,
             },
         }
         normalized = {}
@@ -212,18 +224,21 @@ class TestNormalization:
                 "voting_behavior": 10,
                 "policy_influence": 10,
                 "transparency": 10,
+                "question_quality": 10,
             },
             2: {
                 "legislative_activity": 10,
                 "voting_behavior": 10,
                 "policy_influence": 10,
                 "transparency": 10,
+                "question_quality": 10,
             },
             3: {
                 "legislative_activity": 20,
                 "voting_behavior": 20,
                 "policy_influence": 20,
                 "transparency": 20,
+                "question_quality": 20,
             },
         }
         normalized = {}
@@ -247,7 +262,8 @@ class TestDefaultWeights:
         assert abs(total - 1.0) < 0.001
 
     def test_weight_values(self):
-        assert DEFAULT_WEIGHTS["legislative_activity"] == 0.30
-        assert DEFAULT_WEIGHTS["voting_behavior"] == 0.25
-        assert DEFAULT_WEIGHTS["policy_influence"] == 0.25
-        assert DEFAULT_WEIGHTS["transparency"] == 0.20
+        assert DEFAULT_WEIGHTS["legislative_activity"] == 0.25
+        assert DEFAULT_WEIGHTS["voting_behavior"] == 0.20
+        assert DEFAULT_WEIGHTS["policy_influence"] == 0.20
+        assert DEFAULT_WEIGHTS["transparency"] == 0.15
+        assert DEFAULT_WEIGHTS["question_quality"] == 0.20

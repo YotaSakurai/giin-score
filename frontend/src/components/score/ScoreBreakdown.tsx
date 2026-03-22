@@ -9,6 +9,7 @@ interface ScoreBreakdownProps {
     voting_behavior: number;
     policy_influence: number;
     transparency: number;
+    question_quality: number;
   };
 }
 
@@ -18,6 +19,7 @@ export function ScoreBreakdown({ breakdown, scores }: ScoreBreakdownProps) {
     { key: "voting_behavior", score: scores.voting_behavior },
     { key: "policy_influence", score: scores.policy_influence },
     { key: "transparency", score: scores.transparency },
+    { key: "question_quality", score: scores.question_quality },
   ] as const;
 
   return (

@@ -21,12 +21,14 @@ class MemberScore(Base):
     voting_behavior_raw: Mapped[float] = mapped_column(Float, default=0.0)
     policy_influence_raw: Mapped[float] = mapped_column(Float, default=0.0)
     transparency_raw: Mapped[float] = mapped_column(Float, default=0.0)
+    question_quality_raw: Mapped[float] = mapped_column(Float, default=0.0)
 
     # Normalized scores (0-100, percentile rank)
     legislative_activity: Mapped[float] = mapped_column(Float, default=0.0)
     voting_behavior: Mapped[float] = mapped_column(Float, default=0.0)
     policy_influence: Mapped[float] = mapped_column(Float, default=0.0)
     transparency: Mapped[float] = mapped_column(Float, default=0.0)
+    question_quality: Mapped[float] = mapped_column(Float, default=0.0)
 
     # Total and grade
     total: Mapped[float] = mapped_column(Float, default=0.0)

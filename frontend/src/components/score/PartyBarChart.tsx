@@ -33,6 +33,7 @@ export function PartyBarChart({ items }: PartyBarChartProps) {
     投票行動: item.average_voting_behavior,
     政策影響力: item.average_policy_influence,
     透明性: item.average_transparency,
+    質問品質: item.average_question_quality,
   }));
 
   return (

@@ -8,10 +8,12 @@ from app.database import get_db
 from app.models.member import Member
 from app.models.score import MemberScore
 from app.models.speech import Speech
+from app.models.speech_quality import SpeechQualityScore
 from app.models.vote import VoteRecord, VoteResult
 from app.schemas.common import PaginatedResponse
 from app.schemas.member import MemberDetail, MemberWithScore, ScoreDetail, ScoreSummary
 from app.schemas.speech import SpeechResponse
+from app.schemas.speech_quality import SpeechQualityResponse
 from app.schemas.vote import DissentDetail, VotePatternResponse, VoteRecordResponse
 
 router = APIRouter(prefix="/members", tags=["members"])
@@ -23,6 +25,7 @@ SCORE_SORT_FIELDS = {
     "voting_behavior": MemberScore.voting_behavior,
     "policy_influence": MemberScore.policy_influence,
     "transparency": MemberScore.transparency,
+    "question_quality": MemberScore.question_quality,
 }
 
 
@@ -40,6 +43,7 @@ def list_members(
         "voting_behavior",
         "policy_influence",
         "transparency",
+        "question_quality",
     ] = "name",
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
@@ -116,6 +120,7 @@ def list_members(
                 voting_behavior=score.voting_behavior,
                 policy_influence=score.policy_influence,
                 transparency=score.transparency,
+                question_quality=score.question_quality,
             )
         items.append(
             MemberWithScore(
@@ -181,10 +186,12 @@ def get_member(member_id: int, db: Session = Depends(get_db)):
                 voting_behavior_raw=s.voting_behavior_raw,
                 policy_influence_raw=s.policy_influence_raw,
                 transparency_raw=s.transparency_raw,
+                question_quality_raw=s.question_quality_raw,
                 legislative_activity=s.legislative_activity,
                 voting_behavior=s.voting_behavior,
                 policy_influence=s.policy_influence,
                 transparency=s.transparency,
+                question_quality=s.question_quality,
                 total=s.total,
                 grade=s.grade,
                 breakdown=s.breakdown,
@@ -344,6 +351,68 @@ def get_member_votes(
                 member_name=member.name,
                 vote=r.vote,
                 bill_title=bill_title,
+            )
+        )
+
+    return PaginatedResponse(
+        items=items,
+        total=total,
+        page=page,
+        per_page=per_page,
+        pages=(total + per_page - 1) // per_page if per_page else 0,
+    )
+
+
+@router.get(
+    "/{member_id}/speech-quality",
+    response_model=PaginatedResponse[SpeechQualityResponse],
+    summary="議員の発言品質スコア一覧",
+)
+def get_member_speech_quality(
+    member_id: int,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """指定議員の発言品質スコア一覧をページングで返す。"""
+    member = db.get(Member, member_id)
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    total = db.execute(
+        select(func.count(SpeechQualityScore.id)).where(SpeechQualityScore.member_id == member_id)
+    ).scalar_one()
+    offset = (page - 1) * per_page
+
+    quality_scores = (
+        db.execute(
+            select(SpeechQualityScore)
+            .where(SpeechQualityScore.member_id == member_id)
+            .options(selectinload(SpeechQualityScore.speech))
+            .order_by(SpeechQualityScore.overall_quality.desc())
+            .offset(offset)
+            .limit(per_page)
+        )
+        .scalars()
+        .all()
+    )
+
+    items = []
+    for qs in quality_scores:
+        speech = qs.speech
+        items.append(
+            SpeechQualityResponse(
+                id=qs.id,
+                speech_id=qs.speech_id,
+                meeting_name=speech.meeting_name if speech else None,
+                speech_date=str(speech.speech_date) if speech and speech.speech_date else None,
+                speech_chars=speech.speech_chars if speech else 0,
+                policy_relevance=qs.policy_relevance,
+                constructiveness=qs.constructiveness,
+                expertise=qs.expertise,
+                national_interest=qs.national_interest,
+                overall_quality=qs.overall_quality,
+                analysis_summary=qs.analysis_summary,
             )
         )
 

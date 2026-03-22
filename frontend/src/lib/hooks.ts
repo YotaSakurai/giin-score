@@ -9,6 +9,7 @@ import type {
   BillDetail,
   PaginatedResponse,
   SpeechItem,
+  SpeechQualityItem,
   VoteRecord,
   VotePattern,
   PartyStatsResponse,
@@ -120,6 +121,12 @@ export function useDataQuality() {
       vote_record_count: number;
     }[];
   }>("/data-quality", swrFetcher);
+}
+
+// ---- 発言品質 ----
+export function useSpeechQuality(id: number, page = 1, perPage = 10) {
+  const key = `/members/${id}/speech-quality${buildQuery({ page, per_page: perPage })}`;
+  return useSWR<PaginatedResponse<SpeechQualityItem>>(key, swrFetcher);
 }
 
 // ---- 政党一覧 ----

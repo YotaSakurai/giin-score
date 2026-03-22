@@ -2,10 +2,7 @@
 
 使用例:
   python -m app.pipeline.runner --pipeline all --session 213
-  python -m app.pipeline.runner --pipeline members --session 213
   python -m app.pipeline.runner --pipeline speeches --session 213
-  python -m app.pipeline.runner --pipeline bills --session 213
-  python -m app.pipeline.runner --pipeline votes --session 213
   python -m app.pipeline.runner --pipeline scoring --session 213
 """
 
@@ -21,7 +18,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# 定期実行パイプライン（この順序で実行される）
+# 新しいパイプラインを定期実行に追加するには、ここに1行追加するだけ
+# ※ scoring は収集データに依存するため末尾に配置すること
+# ---------------------------------------------------------------------------
+SCHEDULED_PIPELINES: list[str] = [
+    "bills",
+    "speeches",
+    "votes",
+    "shugiin",
+    "profiles",
+    "speech_quality",
+    "scoring",
+]
 
+
+# ---------------------------------------------------------------------------
+# 個別パイプライン関数
+# ---------------------------------------------------------------------------
 def run_members(db, session_number: int):
     from app.pipeline.kokkai_api import fetch_speeches
 
@@ -89,18 +104,25 @@ def run_profiles(db, session_number: int):
     logger.info(f"Updated {count} member profiles")
 
 
+def run_speech_quality(db, session_number: int):
+    from app.pipeline.speech_quality import analyze_speeches_for_session
+
+    logger.info(f"=== Analyzing speech quality (session {session_number}) ===")
+    count = analyze_speeches_for_session(db, session_number)
+    logger.info(f"Analyzed {count} speeches")
+
+
 def run_all(db, session_number: int):
-    """全パイプラインを順番に実行する。"""
-    logger.info(f"=== Running ALL pipelines for session {session_number} ===")
-    run_bills(db, session_number)
-    run_speeches(db, session_number)
-    run_votes(db, session_number)
-    run_shugiin(db, session_number)
-    run_scoring(db, session_number)
-    logger.info("=== All pipelines completed ===")
+    """SCHEDULED_PIPELINES に登録された全パイプラインを順番に実行する。"""
+    logger.info(f"=== Running ALL scheduled pipelines for session {session_number} ===")
+    for name in SCHEDULED_PIPELINES:
+        logger.info(f"--- Starting pipeline: {name} ---")
+        PIPELINES[name](db, session_number)
+    logger.info("=== All scheduled pipelines completed ===")
 
 
-PIPELINES = {
+# CLI から個別実行できるパイプライン一覧
+PIPELINES: dict[str, object] = {
     "all": run_all,
     "members": run_members,
     "speeches": run_speeches,
@@ -110,6 +132,7 @@ PIPELINES = {
     "scoring": run_scoring,
     "smartnews": run_smartnews,
     "profiles": run_profiles,
+    "speech_quality": run_speech_quality,
 }
 
 

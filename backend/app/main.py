@@ -32,6 +32,7 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
                 )
         return response
 
+
 API_DESCRIPTION = """
 # GiinScore API
 
@@ -47,13 +48,14 @@ API_DESCRIPTION = """
 
 ## スコアリング
 
-4軸スコア（0-100、パーセンタイルランク正規化）:
+5軸スコア（0-100、パーセンタイルランク正規化）:
 - **立法活動 (LAS)** – 法案発議・委員会質疑
 - **投票行動 (VBS)** – 投票参加率
 - **政策影響力 (PIS)** – 成立法案への貢献
 - **透明性 (TS)** – 公開活動参加度
+- **質問品質 (QQS)** – 国会質問のLLM分析による品質評価
 
-総合スコア = LAS×0.30 + VBS×0.25 + PIS×0.25 + TS×0.20
+総合スコア = LAS×0.25 + VBS×0.20 + PIS×0.20 + TS×0.15 + QQS×0.20
 
 ## レート制限
 

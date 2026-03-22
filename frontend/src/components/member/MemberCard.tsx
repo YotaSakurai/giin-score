@@ -45,6 +45,7 @@ export const MemberCard = memo(function MemberCard({ member }: MemberCardProps) 
                 { label: "投票", value: score.voting_behavior },
                 { label: "影響", value: score.policy_influence },
                 { label: "透明", value: score.transparency },
+                { label: "質問", value: score.question_quality },
               ].map(({ label, value }) => (
                 <div key={label} className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground w-8">{label}</span>

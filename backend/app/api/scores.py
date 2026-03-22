@@ -50,6 +50,7 @@ RANKING_SORT_FIELDS = {
     "voting_behavior": MemberScore.voting_behavior,
     "policy_influence": MemberScore.policy_influence,
     "transparency": MemberScore.transparency,
+    "question_quality": MemberScore.question_quality,
 }
 
 
@@ -65,6 +66,7 @@ def get_ranking(
         "voting_behavior",
         "policy_influence",
         "transparency",
+        "question_quality",
     ] = "total",
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -210,6 +212,7 @@ def get_party_stats(
         vbs = [s.voting_behavior for s in members_scores]
         pis = [s.policy_influence for s in members_scores]
         ts = [s.transparency for s in members_scores]
+        qqs = [s.question_quality for s in members_scores]
         n = len(totals)
         items.append(
             PartyStatsEntry(
@@ -223,6 +226,7 @@ def get_party_stats(
                 average_voting_behavior=round(statistics.mean(vbs), 1),
                 average_policy_influence=round(statistics.mean(pis), 1),
                 average_transparency=round(statistics.mean(ts), 1),
+                average_question_quality=round(statistics.mean(qqs), 1),
             )
         )
 
@@ -275,6 +279,7 @@ def export_ranking_csv(
             "投票行動",
             "政策影響力",
             "透明性",
+            "質問品質",
         ]
     )
 
@@ -293,6 +298,7 @@ def export_ranking_csv(
                 round(s.voting_behavior, 1),
                 round(s.policy_influence, 1),
                 round(s.transparency, 1),
+                round(s.question_quality, 1),
             ]
         )
 

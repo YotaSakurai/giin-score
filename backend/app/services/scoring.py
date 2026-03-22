@@ -1,6 +1,6 @@
 """スコアリングエンジン
 
-4軸スコア (立法活動/投票行動/政策影響力/透明性) を算出し、
+5軸スコア (立法活動/投票行動/政策影響力/透明性/質問品質) を算出し、
 パーセンタイルランクで正規化する。
 """
 
@@ -15,15 +15,17 @@ from app.models.member import Member
 from app.models.score import MemberScore
 from app.models.session import DietSession
 from app.models.speech import Speech
+from app.models.speech_quality import SpeechQualityScore
 from app.models.vote import VoteRecord, VoteResult
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_WEIGHTS = {
-    "legislative_activity": 0.30,
-    "voting_behavior": 0.25,
-    "policy_influence": 0.25,
-    "transparency": 0.20,
+    "legislative_activity": 0.25,
+    "voting_behavior": 0.20,
+    "policy_influence": 0.20,
+    "transparency": 0.15,
+    "question_quality": 0.20,
 }
 
 SPEECH_DENSITY_BASELINE = 3000  # 基準文字数/回
@@ -44,10 +46,13 @@ def compute_scores_for_session(db: Session, session_number: int) -> int:
 
     logger.info(f"Computing scores for {len(members)} members in session {session_number}")
 
+    # Phase 0: 質問品質の集約スコアを事前計算
+    quality_scores = _compute_quality_scores_bulk(db, diet_session)
+
     # Phase 1: raw スコア算出
     raw_scores: dict[int, dict] = {}
     for member in members:
-        raw = _compute_raw_scores(db, member, diet_session)
+        raw = _compute_raw_scores(db, member, diet_session, quality_scores)
         raw_scores[member.id] = raw
 
     # Phase 2: パーセンタイルランク正規化 (比較群: chamber × role_category)
@@ -83,10 +88,12 @@ def compute_scores_for_session(db: Session, session_number: int) -> int:
             existing.voting_behavior_raw = raw["voting_behavior"]
             existing.policy_influence_raw = raw["policy_influence"]
             existing.transparency_raw = raw["transparency"]
+            existing.question_quality_raw = raw["question_quality"]
             existing.legislative_activity = norm["legislative_activity"]
             existing.voting_behavior = norm["voting_behavior"]
             existing.policy_influence = norm["policy_influence"]
             existing.transparency = norm["transparency"]
+            existing.question_quality = norm["question_quality"]
             existing.total = total
             existing.grade = grade
             existing.breakdown = breakdown
@@ -98,10 +105,12 @@ def compute_scores_for_session(db: Session, session_number: int) -> int:
                 voting_behavior_raw=raw["voting_behavior"],
                 policy_influence_raw=raw["policy_influence"],
                 transparency_raw=raw["transparency"],
+                question_quality_raw=raw["question_quality"],
                 legislative_activity=norm["legislative_activity"],
                 voting_behavior=norm["voting_behavior"],
                 policy_influence=norm["policy_influence"],
                 transparency=norm["transparency"],
+                question_quality=norm["question_quality"],
                 total=total,
                 grade=grade,
                 breakdown=breakdown,
@@ -114,23 +123,31 @@ def compute_scores_for_session(db: Session, session_number: int) -> int:
     return count
 
 
-def _compute_raw_scores(db: Session, member: Member, session: DietSession) -> dict:
+def _compute_raw_scores(
+    db: Session,
+    member: Member,
+    session: DietSession,
+    quality_scores: dict[int, tuple[float, int]] | None = None,
+) -> dict:
     """個別議員のraw スコアを算出する。"""
     las_raw, las_breakdown = _compute_legislative_activity(db, member, session)
     vbs_raw, vbs_breakdown = _compute_voting_behavior(db, member, session)
     pis_raw, pis_breakdown = _compute_policy_influence(db, member, session)
     ts_raw, ts_breakdown = _compute_transparency(db, member, session)
+    qq_raw, qq_breakdown = _compute_question_quality(member, quality_scores)
 
     return {
         "legislative_activity": las_raw,
         "voting_behavior": vbs_raw,
         "policy_influence": pis_raw,
         "transparency": ts_raw,
+        "question_quality": qq_raw,
         "breakdown": {
             "legislative_activity": las_breakdown,
             "voting_behavior": vbs_breakdown,
             "policy_influence": pis_breakdown,
             "transparency": ts_breakdown,
+            "question_quality": qq_breakdown,
         },
     }
 
@@ -382,6 +399,44 @@ def _compute_transparency(db: Session, member: Member, session: DietSession) -> 
     return diversity_rate, breakdown
 
 
+def _compute_quality_scores_bulk(db: Session, session: DietSession) -> dict[int, tuple[float, int]]:
+    """会期内の全議員の質問品質集約スコアを一括取得する。
+
+    Returns:
+        {member_id: (avg_quality, analyzed_count)}
+    """
+    results = (
+        db.query(
+            SpeechQualityScore.member_id,
+            func.avg(SpeechQualityScore.overall_quality).label("avg_quality"),
+            func.count(SpeechQualityScore.id).label("analyzed_count"),
+        )
+        .filter(SpeechQualityScore.session_id == session.id)
+        .group_by(SpeechQualityScore.member_id)
+        .all()
+    )
+    return {row.member_id: (float(row.avg_quality), int(row.analyzed_count)) for row in results}
+
+
+def _compute_question_quality(
+    member: Member,
+    quality_scores: dict[int, tuple[float, int]] | None = None,
+) -> tuple[float, dict]:
+    """質問品質スコア (QQS) — LLM分析結果の集約値。
+
+    speech_quality パイプラインで事前に分析された結果を使用する。
+    未分析の場合は 0.0 を返す。
+    """
+    if not quality_scores or member.id not in quality_scores:
+        return 0.0, {"avg_quality": 0.0, "analyzed_speeches": 0}
+
+    avg_quality, count = quality_scores[member.id]
+    return avg_quality, {
+        "avg_quality": round(avg_quality, 1),
+        "analyzed_speeches": count,
+    }
+
+
 def _normalize_group(
     raw_scores: dict[int, dict],
     member_ids: list[int],
@@ -392,7 +447,13 @@ def _normalize_group(
     同点の議員には平均ランク方式で同一パーセンタイルを付与。
     最高値は100に到達する（rank / (n-1) * 100）。
     """
-    axes = ["legislative_activity", "voting_behavior", "policy_influence", "transparency"]
+    axes = [
+        "legislative_activity",
+        "voting_behavior",
+        "policy_influence",
+        "transparency",
+        "question_quality",
+    ]
 
     for axis in axes:
         values = [(mid, raw_scores[mid][axis]) for mid in member_ids if mid in raw_scores]
@@ -439,6 +500,7 @@ def compute_total(normalized: dict, weights: dict | None = None) -> float:
         + normalized.get("voting_behavior", 0) * w["voting_behavior"]
         + normalized.get("policy_influence", 0) * w["policy_influence"]
         + normalized.get("transparency", 0) * w["transparency"]
+        + normalized.get("question_quality", 0) * w["question_quality"]
     )
     return round(total, 1)
 

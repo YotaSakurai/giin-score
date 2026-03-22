@@ -303,6 +303,7 @@ export default function HomeContent() {
                     <th scope="col" className="p-3 hidden lg:table-cell text-right">投票</th>
                     <th scope="col" className="p-3 hidden lg:table-cell text-right">影響</th>
                     <th scope="col" className="p-3 hidden lg:table-cell text-right">透明</th>
+                    <th scope="col" className="p-3 hidden lg:table-cell text-right">質問</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -355,12 +356,13 @@ export default function HomeContent() {
                         <td className="p-3 hidden lg:table-cell text-right text-xs text-muted-foreground">{entry.score.voting_behavior.toFixed(0)}</td>
                         <td className="p-3 hidden lg:table-cell text-right text-xs text-muted-foreground">{entry.score.policy_influence.toFixed(0)}</td>
                         <td className="p-3 hidden lg:table-cell text-right text-xs text-muted-foreground">{entry.score.transparency.toFixed(0)}</td>
+                        <td className="p-3 hidden lg:table-cell text-right text-xs text-muted-foreground">{entry.score.question_quality.toFixed(0)}</td>
                       </tr>
                     );
                   })}
                   {ranking.length === 0 && (
                     <tr>
-                      <td colSpan={11} className="p-8 text-center text-sm text-muted-foreground">
+                      <td colSpan={12} className="p-8 text-center text-sm text-muted-foreground">
                         スコアデータがまだありません
                       </td>
                     </tr>

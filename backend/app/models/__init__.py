@@ -4,6 +4,7 @@ from app.models.pipeline import PipelineRun
 from app.models.score import MemberScore
 from app.models.session import DietSession
 from app.models.speech import Speech
+from app.models.speech_quality import SpeechQualityScore
 from app.models.vote import VoteRecord, VoteResult
 
 __all__ = [
@@ -14,6 +15,7 @@ __all__ = [
     "VoteResult",
     "VoteRecord",
     "Speech",
+    "SpeechQualityScore",
     "MemberScore",
     "PipelineRun",
 ]

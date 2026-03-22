@@ -105,9 +105,12 @@ def fetch_speeches(db: Session, session_number: int, resume_from: int = 0) -> in
     return total_processed
 
 
+EXCLUDED_SPEAKERS = {"会議録情報", "会議", "記録", "事務局"}
+
+
 def _process_speech_record(db: Session, diet_session: DietSession, record: dict):
-    speaker_name = record.get("speaker", "")
-    if not speaker_name:
+    speaker_name = record.get("speaker", "").strip()
+    if not speaker_name or speaker_name in EXCLUDED_SPEAKERS:
         return
 
     speaker_group = record.get("speakerGroup", "")

@@ -25,6 +25,7 @@ const SCORE_AXES = [
   "voting_behavior",
   "policy_influence",
   "transparency",
+  "question_quality",
 ] as const;
 
 function useMemberDetail(id: number | null) {
@@ -163,6 +164,7 @@ export default function CompareContent() {
               voting_behavior: ms.score?.voting_behavior ?? 0,
               policy_influence: ms.score?.policy_influence ?? 0,
               transparency: ms.score?.transparency ?? 0,
+              question_quality: ms.score?.question_quality ?? 0,
               color: COMPARE_COLORS[idx],
             }))}
           />
