@@ -356,6 +356,24 @@ def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
     batch_count = 0
     start_time = time.time()
 
+    # Discord通知（開始）
+    from app.pipeline.notify import _send_webhook
+
+    _send_webhook(
+        {
+            "title": "🔬 発言品質分析を開始します",
+            "description": (
+                f"**会期:** {session_number}\n"
+                f"**対象発言数:** {total}件\n"
+                f"**バックエンド:** {backend} ({PARALLEL_WORKERS}並列)"
+            ),
+            "color": 0x3498DB,
+        }
+    )
+
+    # 通知間隔: 10バッチ(200件)ごと
+    NOTIFY_EVERY_N_BATCHES = 10
+
     try:
         workers = PARALLEL_WORKERS if backend == "ollama" else 1
         for i in range(0, total, BATCH_SIZE):
@@ -390,17 +408,47 @@ def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
 
             elapsed = time.time() - start_time
             speed = processed / elapsed if elapsed > 0 else 0
-            eta_hours = (total - (i + BATCH_SIZE)) / speed / 3600 if speed > 0 else 0
+            done = min(i + BATCH_SIZE, total)
+            eta_hours = (total - done) / speed / 3600 if speed > 0 else 0
             logger.info(
-                f"Batch {batch_count}: {min(i + BATCH_SIZE, total)}/{total} "
+                f"Batch {batch_count}: {done}/{total} "
                 f"({speed:.1f} speeches/s, ETA: {eta_hours:.1f}h)"
             )
+
+            # Discord途中経過通知
+            if batch_count % NOTIFY_EVERY_N_BATCHES == 0:
+                pct = done / total * 100
+                _send_webhook(
+                    {
+                        "title": f"🔬 発言品質分析 {pct:.0f}%",
+                        "description": (
+                            f"**進捗:** {processed}/{total}件 分析済み\n"
+                            f"**速度:** {speed:.1f} 件/秒\n"
+                            f"**残り時間:** 約{eta_hours:.1f}時間"
+                        ),
+                        "color": 0x9B59B6,
+                    }
+                )
     finally:
         if backend == "ollama" and http_client:
             http_client.close()
 
     elapsed = time.time() - start_time
-    logger.info(f"Completed: analyzed {processed}/{total} speeches in {elapsed / 3600:.1f}h")
+    elapsed_h = elapsed / 3600
+    logger.info(f"Completed: analyzed {processed}/{total} speeches in {elapsed_h:.1f}h")
+
+    _send_webhook(
+        {
+            "title": "🎉 発言品質分析が完了しました",
+            "description": (
+                f"**会期:** {session_number}\n"
+                f"**分析結果:** {processed}/{total}件\n"
+                f"**所要時間:** {elapsed_h:.1f}時間"
+            ),
+            "color": 0x2ECC71,
+        }
+    )
+
     return processed
 
 
