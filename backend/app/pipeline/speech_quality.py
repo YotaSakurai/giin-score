@@ -15,11 +15,13 @@ import json
 import logging
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session as DBSession
 
+from app.models.member import Member
 from app.models.session import DietSession
 from app.models.speech import Speech
 from app.models.speech_quality import SpeechQualityScore
@@ -31,6 +33,11 @@ BATCH_SIZE = 20
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 2.0
 MAX_SPEECH_CHARS = 4000
+MIN_SPEECH_CHARS = 200  # 200字未満の短い発言はスキップ
+PARALLEL_WORKERS = int(os.environ.get("SPEECH_QUALITY_WORKERS", "4"))
+
+# フィルタリング対象外のrole_category（答弁者・議長は質問者ではない）
+SKIP_ROLE_CATEGORIES = {"cabinet", "chair"}
 
 # LLMバックエンド設定
 LLM_BACKEND = os.environ.get("SPEECH_QUALITY_BACKEND", "ollama")  # "ollama" or "anthropic"
@@ -153,7 +160,7 @@ def _analyze_speech_ollama(
                         {"role": "user", "content": user_message},
                     ],
                     "stream": False,
-                    "options": {"temperature": 0.1, "num_predict": 300},
+                    "options": {"temperature": 0.1, "num_predict": 200},
                 },
                 timeout=120.0,
             )
@@ -244,8 +251,11 @@ def _analyze_speech_anthropic(
 # ---------------------------------------------------------------------------
 
 
-def analyze_speeches_for_session(db: Session, session_number: int) -> int:
+def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
     """指定会期の発言品質を分析する。
+
+    chair（議長・委員長）とcabinet（閣僚答弁）はスキップし、
+    質問者（与野党議員）の実質的発言のみを分析対象とする。
 
     Returns:
         分析完了した発言数
@@ -255,13 +265,18 @@ def analyze_speeches_for_session(db: Session, session_number: int) -> int:
         logger.error(f"Session {session_number} not found")
         return 0
 
-    # 未分析の発言を取得（既に分析済みのspeech_idを除外）
+    # 未分析の発言を取得（フィルタリング適用）
     analyzed_ids_sq = db.query(SpeechQualityScore.speech_id).subquery()
+    skip_member_ids_sq = (
+        db.query(Member.id).filter(Member.role_category.in_(SKIP_ROLE_CATEGORIES)).subquery()
+    )
     speeches = (
         db.query(Speech)
         .filter(
             Speech.session_id == diet_session.id,
-            Speech.speech_chars >= 100,
+            Speech.speech_chars >= MIN_SPEECH_CHARS,
+            Speech.member_id.isnot(None),
+            ~Speech.member_id.in_(db.query(skip_member_ids_sq)),
             ~Speech.id.in_(db.query(analyzed_ids_sq)),
         )
         .order_by(Speech.id)
@@ -274,7 +289,10 @@ def analyze_speeches_for_session(db: Session, session_number: int) -> int:
         return 0
 
     backend = LLM_BACKEND.lower()
-    logger.info(f"Analyzing {total} speeches for session {session_number} (backend={backend})")
+    logger.info(
+        f"Analyzing {total} speeches for session {session_number} "
+        f"(backend={backend}, workers={PARALLEL_WORKERS})"
+    )
 
     # バックエンド初期化
     http_client = None
@@ -296,64 +314,97 @@ def analyze_speeches_for_session(db: Session, session_number: int) -> int:
         logger.error(f"Unknown backend: {backend}. Use 'ollama' or 'anthropic'.")
         return 0
 
-    def analyze_fn(text: str, name: str | None) -> dict | None:
+    def analyze_one(speech_data: tuple) -> tuple | None:
+        """1件の発言を分析する（並列実行用）。"""
+        speech_id, member_id, speech_text, meeting_name = speech_data
+        if not speech_text:
+            return None
+
         if backend == "ollama":
-            return _analyze_speech_ollama(http_client, text, name)
-        return _analyze_speech_anthropic(anthropic_client, text, name)
+            # 並列時はスレッドごとにクライアントを使用
+            thread_client = httpx.Client()
+            try:
+                result = _analyze_speech_ollama(thread_client, speech_text, meeting_name)
+            finally:
+                thread_client.close()
+        else:
+            result = _analyze_speech_anthropic(anthropic_client, speech_text, meeting_name)
+            time.sleep(0.5)  # Anthropicレート制限
+
+        if result is None:
+            return None
+
+        overall = (
+            result["policy_relevance"]
+            + result["constructiveness"]
+            + result["expertise"]
+            + result["national_interest"]
+        ) / 4.0
+
+        return (
+            speech_id,
+            member_id,
+            result["policy_relevance"],
+            result["constructiveness"],
+            result["expertise"],
+            result["national_interest"],
+            round(overall, 1),
+            result.get("summary", ""),
+        )
 
     processed = 0
     batch_count = 0
+    start_time = time.time()
 
     try:
+        workers = PARALLEL_WORKERS if backend == "ollama" else 1
         for i in range(0, total, BATCH_SIZE):
             batch = speeches[i : i + BATCH_SIZE]
             batch_count += 1
 
-            for speech in batch:
-                if not speech.speech_text:
+            # 発言データをタプルに変換（DBセッション外で利用可能に）
+            batch_data = [(s.id, s.member_id, s.speech_text, s.meeting_name) for s in batch]
+
+            # 並列実行
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                results = list(executor.map(analyze_one, batch_data))
+
+            for r in results:
+                if r is None:
                     continue
-
-                result = analyze_fn(speech.speech_text, speech.meeting_name)
-                if result is None:
-                    continue
-
-                overall = (
-                    result["policy_relevance"]
-                    + result["constructiveness"]
-                    + result["expertise"]
-                    + result["national_interest"]
-                ) / 4.0
-
                 quality_score = SpeechQualityScore(
-                    speech_id=speech.id,
-                    member_id=speech.member_id,
+                    speech_id=r[0],
+                    member_id=r[1],
                     session_id=diet_session.id,
-                    policy_relevance=result["policy_relevance"],
-                    constructiveness=result["constructiveness"],
-                    expertise=result["expertise"],
-                    national_interest=result["national_interest"],
-                    overall_quality=round(overall, 1),
-                    analysis_summary=result.get("summary", ""),
+                    policy_relevance=r[2],
+                    constructiveness=r[3],
+                    expertise=r[4],
+                    national_interest=r[5],
+                    overall_quality=r[6],
+                    analysis_summary=r[7],
                 )
                 db.add(quality_score)
                 processed += 1
 
-                # Anthropicの場合のみレート制限
-                if backend == "anthropic":
-                    time.sleep(0.5)
-
-            # バッチごとにコミット
             db.commit()
-            logger.info(f"Batch {batch_count}: processed {min(i + BATCH_SIZE, total)}/{total}")
+
+            elapsed = time.time() - start_time
+            speed = processed / elapsed if elapsed > 0 else 0
+            eta_hours = (total - (i + BATCH_SIZE)) / speed / 3600 if speed > 0 else 0
+            logger.info(
+                f"Batch {batch_count}: {min(i + BATCH_SIZE, total)}/{total} "
+                f"({speed:.1f} speeches/s, ETA: {eta_hours:.1f}h)"
+            )
     finally:
-        if backend == "ollama":
+        if backend == "ollama" and http_client:
             http_client.close()
 
-    logger.info(f"Completed: analyzed {processed}/{total} speeches")
+    elapsed = time.time() - start_time
+    logger.info(f"Completed: analyzed {processed}/{total} speeches in {elapsed / 3600:.1f}h")
     return processed
 
 
-def compute_member_quality_scores(db: Session, session_number: int) -> dict[int, float]:
+def compute_member_quality_scores(db: DBSession, session_number: int) -> dict[int, float]:
     """議員ごとの質問品質集約スコアを算出する。
 
     各議員の全発言品質スコアの平均を返す。
