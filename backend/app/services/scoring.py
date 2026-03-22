@@ -405,17 +405,22 @@ def _compute_quality_scores_bulk(db: Session, session: DietSession) -> dict[int,
     Returns:
         {member_id: (avg_quality, analyzed_count)}
     """
-    results = (
-        db.query(
-            SpeechQualityScore.member_id,
-            func.avg(SpeechQualityScore.overall_quality).label("avg_quality"),
-            func.count(SpeechQualityScore.id).label("analyzed_count"),
+    try:
+        results = (
+            db.query(
+                SpeechQualityScore.member_id,
+                func.avg(SpeechQualityScore.overall_quality).label("avg_quality"),
+                func.count(SpeechQualityScore.id).label("analyzed_count"),
+            )
+            .filter(SpeechQualityScore.session_id == session.id)
+            .group_by(SpeechQualityScore.member_id)
+            .all()
         )
-        .filter(SpeechQualityScore.session_id == session.id)
-        .group_by(SpeechQualityScore.member_id)
-        .all()
-    )
-    return {row.member_id: (float(row.avg_quality), int(row.analyzed_count)) for row in results}
+        return {row.member_id: (float(row.avg_quality), int(row.analyzed_count)) for row in results}
+    except Exception:
+        db.rollback()
+        logger.info("speech_quality_scores table not available, skipping quality scores")
+        return {}
 
 
 def _compute_question_quality(
