@@ -144,9 +144,7 @@ def _scrape_vote_page_new(db: Session, soup: BeautifulSoup, contents, session_nu
     kiritsu = contents.find("p", class_="kiritsu")
     if kiritsu:
         result_text = "可決" if "可決" in kiritsu.get_text() else "否決"
-        existing = (
-            db.query(VoteResult).filter_by(bill_id=bill.id, chamber="councillors").first()
-        )
+        existing = db.query(VoteResult).filter_by(bill_id=bill.id, chamber="councillors").first()
         if not existing:
             vote_result = VoteResult(
                 bill_id=bill.id,
@@ -327,9 +325,7 @@ def _scrape_vote_page_legacy(db: Session, soup: BeautifulSoup, session_number: i
 
     # 起立採決チェック
     if "起立採決" in body_text:
-        existing = (
-            db.query(VoteResult).filter_by(bill_id=bill.id, chamber="councillors").first()
-        )
+        existing = db.query(VoteResult).filter_by(bill_id=bill.id, chamber="councillors").first()
         if not existing:
             vote_result = VoteResult(
                 bill_id=bill.id,
