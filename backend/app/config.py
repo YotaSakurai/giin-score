@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     kokkai_api_rate_limit: float = 1.0
     kokkai_api_base_url: str = "https://kokkai.ndl.go.jp/api"
     data_dir: str = "/data"
+    discord_webhook_url: str = ""
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 

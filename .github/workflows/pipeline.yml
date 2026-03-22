@@ -68,4 +68,5 @@ jobs:
         env:
           DATABASE_URL: postgresql://giin:giin@localhost:5432/giin_score
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         timeout-minutes: 120

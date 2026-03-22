@@ -43,6 +43,7 @@ def run_members(db, session_number: int):
     logger.info(f"=== Fetching member data from speeches (session {session_number}) ===")
     count = fetch_speeches(db, session_number)
     logger.info(f"Processed {count} speech records (members extracted)")
+    return count
 
 
 def run_speeches(db, session_number: int):
@@ -54,6 +55,7 @@ def run_speeches(db, session_number: int):
     logger.info(f"=== Fetching speeches (session {session_number}) ===")
     count = fetch_speeches(db, session_number, resume_from=resume_from)
     logger.info(f"Processed {count} speeches")
+    return count
 
 
 def run_bills(db, session_number: int):
@@ -62,6 +64,7 @@ def run_bills(db, session_number: int):
     logger.info(f"=== Scraping bills list from Shugiin (session {session_number}) ===")
     count = scrape_bills_list(db, session_number)
     logger.info(f"Scraped {count} bills")
+    return count
 
 
 def run_votes(db, session_number: int):
@@ -70,6 +73,7 @@ def run_votes(db, session_number: int):
     logger.info(f"=== Scraping Sangiin votes (session {session_number}) ===")
     count = scrape_votes(db, session_number)
     logger.info(f"Scraped {count} vote records")
+    return count
 
 
 def run_shugiin(db, session_number: int):
@@ -78,6 +82,7 @@ def run_shugiin(db, session_number: int):
     logger.info(f"=== Scraping Shugiin bills (session {session_number}) ===")
     count = scrape_bills(db, session_number)
     logger.info(f"Scraped {count} bill details")
+    return count
 
 
 def run_scoring(db, session_number: int):
@@ -86,6 +91,7 @@ def run_scoring(db, session_number: int):
     logger.info(f"=== Computing scores (session {session_number}) ===")
     count = compute_scores_for_session(db, session_number)
     logger.info(f"Computed scores for {count} members")
+    return count
 
 
 def run_smartnews(db, session_number: int):
@@ -94,6 +100,7 @@ def run_smartnews(db, session_number: int):
     logger.info("=== Loading bills from SmartNews CSV ===")
     count = load_bills_csv(db)
     logger.info(f"Loaded {count} bills from CSV")
+    return count
 
 
 def run_profiles(db, session_number: int):
@@ -102,6 +109,7 @@ def run_profiles(db, session_number: int):
     logger.info("=== Scraping member profiles (district, reading) ===")
     count = scrape_member_profiles(db)
     logger.info(f"Updated {count} member profiles")
+    return count
 
 
 def run_speech_quality(db, session_number: int):
@@ -110,14 +118,45 @@ def run_speech_quality(db, session_number: int):
     logger.info(f"=== Analyzing speech quality (session {session_number}) ===")
     count = analyze_speeches_for_session(db, session_number)
     logger.info(f"Analyzed {count} speeches")
+    return count
 
 
 def run_all(db, session_number: int):
     """SCHEDULED_PIPELINES に登録された全パイプラインを順番に実行する。"""
+    import time
+
+    from app.pipeline.notify import (
+        notify_batch_complete,
+        notify_batch_start,
+        notify_pipeline_failure,
+        notify_pipeline_success,
+    )
+
     logger.info(f"=== Running ALL scheduled pipelines for session {session_number} ===")
+    notify_batch_start(session_number, SCHEDULED_PIPELINES)
+
+    results: list[dict] = []
+    batch_start = time.monotonic()
+
     for name in SCHEDULED_PIPELINES:
         logger.info(f"--- Starting pipeline: {name} ---")
-        PIPELINES[name](db, session_number)
+        t0 = time.monotonic()
+        try:
+            count = PIPELINES[name](db, session_number)
+            elapsed = time.monotonic() - t0
+            records = count if isinstance(count, int) else 0
+            results.append({"name": name, "status": "ok", "records": records, "elapsed": elapsed})
+            notify_pipeline_success(name, records, elapsed)
+        except Exception as e:
+            elapsed = time.monotonic() - t0
+            results.append(
+                {"name": name, "status": "error", "records": 0, "error": str(e), "elapsed": elapsed}
+            )
+            notify_pipeline_failure(name, str(e), elapsed)
+            logger.error(f"Pipeline {name} failed: {e}", exc_info=True)
+
+    total_elapsed = time.monotonic() - batch_start
+    notify_batch_complete(session_number, results, total_elapsed)
     logger.info("=== All scheduled pipelines completed ===")
 
 
