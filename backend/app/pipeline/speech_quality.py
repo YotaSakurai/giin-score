@@ -1,7 +1,11 @@
 """質問品質分析パイプライン
 
-国会発言をClaude Haiku で分析し、質問の品質をスコアリングする。
+国会発言をLLMで分析し、質問の品質をスコアリングする。
 イデオロギーフリーの原則に基づき、政策の方向性ではなく質問の「質」のみを評価。
+
+バックエンド:
+  - デフォルト: Ollama (ローカル、コスト無料)
+  - 代替: Anthropic Claude API (SPEECH_QUALITY_BACKEND=anthropic)
 
 使用例:
   python -m app.pipeline.runner --pipeline speech_quality --session 213
@@ -12,6 +16,7 @@ import logging
 import os
 import time
 
+import httpx
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -22,11 +27,15 @@ from app.models.speech_quality import SpeechQualityScore
 logger = logging.getLogger(__name__)
 
 # バッチ設定
-BATCH_SIZE = 20  # 一度にAPIに送る件数
-API_RATE_LIMIT_DELAY = 0.5  # API呼び出し間隔（秒）
+BATCH_SIZE = 20
 MAX_RETRIES = 3
-RETRY_BASE_DELAY = 2.0  # リトライ間隔の基底（秒）
-MAX_SPEECH_CHARS = 4000  # LLMに送る発言テキストの最大文字数
+RETRY_BASE_DELAY = 2.0
+MAX_SPEECH_CHARS = 4000
+
+# LLMバックエンド設定
+LLM_BACKEND = os.environ.get("SPEECH_QUALITY_BACKEND", "ollama")  # "ollama" or "anthropic"
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:14b")
 
 SYSTEM_PROMPT = """\
 あなたは国会質疑の品質を客観的に評価する分析システムです。
@@ -61,15 +70,119 @@ SYSTEM_PROMPT = """\
 - **expertise**: 独自の調査・専門知識に基づく質問か。データや事例を用いた分析的質問は高評価。公開情報をただ聞くだけ・表面的な一般論は低評価。
 - **national_interest**: 国民生活の向上・国力強化に直結するテーマか。経済・安全保障・社会保障・教育等は高評価。内輪の政局話・ゴシップは低評価。
 
-## 出力形式（JSON）
+## 出力形式
+以下のJSON形式のみを出力してください。JSON以外のテキストは一切出力しないでください。
 {
-  "policy_relevance": <0-100>,
-  "constructiveness": <0-100>,
-  "expertise": <0-100>,
-  "national_interest": <0-100>,
+  "policy_relevance": <0-100の整数>,
+  "constructiveness": <0-100の整数>,
+  "expertise": <0-100の整数>,
+  "national_interest": <0-100の整数>,
   "summary": "<1文の評価要約（日本語）>"
 }
 """
+
+
+def _truncate_text(text: str, max_chars: int = MAX_SPEECH_CHARS) -> str:
+    """発言テキストを最大文字数で切り詰める。"""
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars] + "…（以下省略）"
+
+
+def _build_user_message(speech_text: str, meeting_name: str | None) -> str:
+    """分析用のユーザーメッセージを組み立てる。"""
+    truncated = _truncate_text(speech_text)
+    user_message = "以下の国会発言を評価してください。\n\n"
+    if meeting_name:
+        user_message += f"【会議名】{meeting_name}\n\n"
+    user_message += f"【発言内容】\n{truncated}"
+    return user_message
+
+
+def _parse_llm_response(text: str) -> dict | None:
+    """LLMレスポンスからJSONを抽出・バリデーションする。"""
+    text = text.strip()
+    if "{" not in text:
+        logger.warning(f"No JSON found in response: {text[:100]}")
+        return None
+
+    try:
+        json_str = text[text.index("{") : text.rindex("}") + 1]
+        result = json.loads(json_str)
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.warning(f"JSON parse error: {e}")
+        return None
+
+    required_keys = [
+        "policy_relevance",
+        "constructiveness",
+        "expertise",
+        "national_interest",
+    ]
+    for key in required_keys:
+        val = result.get(key)
+        if not isinstance(val, (int, float)) or val < 0 or val > 100:
+            result[key] = 50.0
+        else:
+            result[key] = float(val)
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Ollama バックエンド
+# ---------------------------------------------------------------------------
+
+
+def _analyze_speech_ollama(
+    http_client: httpx.Client,
+    speech_text: str,
+    meeting_name: str | None,
+) -> dict | None:
+    """Ollama (ローカルLLM) で発言を分析する。"""
+    user_message = _build_user_message(speech_text, meeting_name)
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            resp = http_client.post(
+                f"{OLLAMA_BASE_URL}/api/chat",
+                json={
+                    "model": OLLAMA_MODEL,
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": user_message},
+                    ],
+                    "stream": False,
+                    "options": {"temperature": 0.1, "num_predict": 300},
+                },
+                timeout=120.0,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            text = data.get("message", {}).get("content", "")
+            result = _parse_llm_response(text)
+            if result is not None:
+                return result
+
+            logger.warning(f"Failed to parse Ollama response (attempt {attempt + 1})")
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_BASE_DELAY)
+                continue
+            return None
+
+        except Exception as e:
+            logger.error(f"Ollama error (attempt {attempt + 1}): {e}")
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_BASE_DELAY * (2**attempt))
+                continue
+            return None
+
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Anthropic バックエンド
+# ---------------------------------------------------------------------------
 
 
 def _get_anthropic_client():
@@ -82,21 +195,13 @@ def _get_anthropic_client():
     return anthropic.Anthropic(api_key=api_key)
 
 
-def _truncate_text(text: str, max_chars: int = MAX_SPEECH_CHARS) -> str:
-    """発言テキストを最大文字数で切り詰める。"""
-    if len(text) <= max_chars:
-        return text
-    return text[:max_chars] + "…（以下省略）"
-
-
-def _analyze_speech(client, speech_text: str, meeting_name: str | None) -> dict | None:
-    """単一の発言をClaude Haikuで分析する。"""
-    truncated = _truncate_text(speech_text)
-
-    user_message = "以下の国会発言を評価してください。\n\n"
-    if meeting_name:
-        user_message += f"【会議名】{meeting_name}\n\n"
-    user_message += f"【発言内容】\n{truncated}"
+def _analyze_speech_anthropic(
+    client,
+    speech_text: str,
+    meeting_name: str | None,
+) -> dict | None:
+    """Anthropic Claude API で発言を分析する。"""
+    user_message = _build_user_message(speech_text, meeting_name)
 
     for attempt in range(MAX_RETRIES):
         try:
@@ -107,35 +212,14 @@ def _analyze_speech(client, speech_text: str, meeting_name: str | None) -> dict 
                 messages=[{"role": "user", "content": user_message}],
             )
 
-            text = response.content[0].text.strip()
-            # JSON部分を抽出
-            if "{" in text:
-                json_str = text[text.index("{") : text.rindex("}") + 1]
-                result = json.loads(json_str)
-
-                # バリデーション
-                required_keys = [
-                    "policy_relevance",
-                    "constructiveness",
-                    "expertise",
-                    "national_interest",
-                ]
-                for key in required_keys:
-                    val = result.get(key)
-                    if not isinstance(val, (int, float)) or val < 0 or val > 100:
-                        result[key] = 50.0  # 不正値はデフォルト
-                    else:
-                        result[key] = float(val)
-
+            text = response.content[0].text
+            result = _parse_llm_response(text)
+            if result is not None:
                 return result
 
-            logger.warning(f"No JSON found in response: {text[:100]}")
-            return None
-
-        except json.JSONDecodeError as e:
-            logger.warning(f"JSON parse error (attempt {attempt + 1}): {e}")
+            logger.warning(f"Failed to parse Anthropic response (attempt {attempt + 1})")
             if attempt < MAX_RETRIES - 1:
-                time.sleep(RETRY_BASE_DELAY * (2**attempt))
+                time.sleep(RETRY_BASE_DELAY)
                 continue
             return None
 
@@ -155,6 +239,11 @@ def _analyze_speech(client, speech_text: str, meeting_name: str | None) -> dict 
     return None
 
 
+# ---------------------------------------------------------------------------
+# メインパイプライン
+# ---------------------------------------------------------------------------
+
+
 def analyze_speeches_for_session(db: Session, session_number: int) -> int:
     """指定会期の発言品質を分析する。
 
@@ -172,7 +261,7 @@ def analyze_speeches_for_session(db: Session, session_number: int) -> int:
         db.query(Speech)
         .filter(
             Speech.session_id == diet_session.id,
-            Speech.speech_chars >= 100,  # 100文字未満は短すぎるのでスキップ
+            Speech.speech_chars >= 100,
             ~Speech.id.in_(db.query(analyzed_ids_sq)),
         )
         .order_by(Speech.id)
@@ -184,51 +273,81 @@ def analyze_speeches_for_session(db: Session, session_number: int) -> int:
         logger.info(f"No unanalyzed speeches found for session {session_number}")
         return 0
 
-    logger.info(f"Analyzing {total} speeches for session {session_number}")
+    backend = LLM_BACKEND.lower()
+    logger.info(f"Analyzing {total} speeches for session {session_number} (backend={backend})")
 
-    client = _get_anthropic_client()
+    # バックエンド初期化
+    http_client = None
+    anthropic_client = None
+
+    if backend == "ollama":
+        http_client = httpx.Client()
+        try:
+            r = http_client.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5.0)
+            r.raise_for_status()
+            logger.info(f"Ollama connected: {OLLAMA_BASE_URL}, model={OLLAMA_MODEL}")
+        except Exception as e:
+            logger.error(f"Cannot connect to Ollama at {OLLAMA_BASE_URL}: {e}")
+            http_client.close()
+            return 0
+    elif backend == "anthropic":
+        anthropic_client = _get_anthropic_client()
+    else:
+        logger.error(f"Unknown backend: {backend}. Use 'ollama' or 'anthropic'.")
+        return 0
+
+    def analyze_fn(text: str, name: str | None) -> dict | None:
+        if backend == "ollama":
+            return _analyze_speech_ollama(http_client, text, name)
+        return _analyze_speech_anthropic(anthropic_client, text, name)
+
     processed = 0
     batch_count = 0
 
-    for i in range(0, total, BATCH_SIZE):
-        batch = speeches[i : i + BATCH_SIZE]
-        batch_count += 1
+    try:
+        for i in range(0, total, BATCH_SIZE):
+            batch = speeches[i : i + BATCH_SIZE]
+            batch_count += 1
 
-        for speech in batch:
-            if not speech.speech_text:
-                continue
+            for speech in batch:
+                if not speech.speech_text:
+                    continue
 
-            result = _analyze_speech(client, speech.speech_text, speech.meeting_name)
-            if result is None:
-                continue
+                result = analyze_fn(speech.speech_text, speech.meeting_name)
+                if result is None:
+                    continue
 
-            overall = (
-                result["policy_relevance"]
-                + result["constructiveness"]
-                + result["expertise"]
-                + result["national_interest"]
-            ) / 4.0
+                overall = (
+                    result["policy_relevance"]
+                    + result["constructiveness"]
+                    + result["expertise"]
+                    + result["national_interest"]
+                ) / 4.0
 
-            quality_score = SpeechQualityScore(
-                speech_id=speech.id,
-                member_id=speech.member_id,
-                session_id=diet_session.id,
-                policy_relevance=result["policy_relevance"],
-                constructiveness=result["constructiveness"],
-                expertise=result["expertise"],
-                national_interest=result["national_interest"],
-                overall_quality=round(overall, 1),
-                analysis_summary=result.get("summary", ""),
-            )
-            db.add(quality_score)
-            processed += 1
+                quality_score = SpeechQualityScore(
+                    speech_id=speech.id,
+                    member_id=speech.member_id,
+                    session_id=diet_session.id,
+                    policy_relevance=result["policy_relevance"],
+                    constructiveness=result["constructiveness"],
+                    expertise=result["expertise"],
+                    national_interest=result["national_interest"],
+                    overall_quality=round(overall, 1),
+                    analysis_summary=result.get("summary", ""),
+                )
+                db.add(quality_score)
+                processed += 1
 
-            # レート制限
-            time.sleep(API_RATE_LIMIT_DELAY)
+                # Anthropicの場合のみレート制限
+                if backend == "anthropic":
+                    time.sleep(0.5)
 
-        # バッチごとにコミット
-        db.commit()
-        logger.info(f"Batch {batch_count}: processed {min(i + BATCH_SIZE, total)}/{total}")
+            # バッチごとにコミット
+            db.commit()
+            logger.info(f"Batch {batch_count}: processed {min(i + BATCH_SIZE, total)}/{total}")
+    finally:
+        if backend == "ollama":
+            http_client.close()
 
     logger.info(f"Completed: analyzed {processed}/{total} speeches")
     return processed
@@ -237,8 +356,7 @@ def analyze_speeches_for_session(db: Session, session_number: int) -> int:
 def compute_member_quality_scores(db: Session, session_number: int) -> dict[int, float]:
     """議員ごとの質問品質集約スコアを算出する。
 
-    各議員の全発言品質スコアの加重平均を返す。
-    発言文字数で重み付け（長い発言ほど重要度が高い）。
+    各議員の全発言品質スコアの平均を返す。
 
     Returns:
         {member_id: average_quality_score}
@@ -247,7 +365,6 @@ def compute_member_quality_scores(db: Session, session_number: int) -> dict[int,
     if not diet_session:
         return {}
 
-    # 議員ごとの品質スコアを取得（発言文字数を重みとして使用）
     results = (
         db.query(
             SpeechQualityScore.member_id,
