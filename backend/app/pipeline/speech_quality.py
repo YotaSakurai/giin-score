@@ -15,7 +15,6 @@ import json
 import logging
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 from sqlalchemy import func
@@ -314,43 +313,10 @@ def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
         logger.error(f"Unknown backend: {backend}. Use 'ollama' or 'anthropic'.")
         return 0
 
-    def analyze_one(speech_data: tuple) -> tuple | None:
-        """1件の発言を分析する（並列実行用）。"""
-        speech_id, member_id, speech_text, meeting_name = speech_data
-        if not speech_text:
-            return None
-
+    def analyze_fn(text: str, name: str | None) -> dict | None:
         if backend == "ollama":
-            # 並列時はスレッドごとにクライアントを使用
-            thread_client = httpx.Client()
-            try:
-                result = _analyze_speech_ollama(thread_client, speech_text, meeting_name)
-            finally:
-                thread_client.close()
-        else:
-            result = _analyze_speech_anthropic(anthropic_client, speech_text, meeting_name)
-            time.sleep(0.5)  # Anthropicレート制限
-
-        if result is None:
-            return None
-
-        overall = (
-            result["policy_relevance"]
-            + result["constructiveness"]
-            + result["expertise"]
-            + result["national_interest"]
-        ) / 4.0
-
-        return (
-            speech_id,
-            member_id,
-            result["policy_relevance"],
-            result["constructiveness"],
-            result["expertise"],
-            result["national_interest"],
-            round(overall, 1),
-            result.get("summary", ""),
-        )
+            return _analyze_speech_ollama(http_client, text, name)
+        return _analyze_speech_anthropic(anthropic_client, text, name)
 
     processed = 0
     batch_count = 0
@@ -375,34 +341,41 @@ def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
     NOTIFY_EVERY_N_BATCHES = 10
 
     try:
-        workers = PARALLEL_WORKERS if backend == "ollama" else 1
         for i in range(0, total, BATCH_SIZE):
             batch = speeches[i : i + BATCH_SIZE]
             batch_count += 1
 
-            # 発言データをタプルに変換（DBセッション外で利用可能に）
-            batch_data = [(s.id, s.member_id, s.speech_text, s.meeting_name) for s in batch]
-
-            # 並列実行
-            with ThreadPoolExecutor(max_workers=workers) as executor:
-                results = list(executor.map(analyze_one, batch_data))
-
-            for r in results:
-                if r is None:
+            for speech in batch:
+                if not speech.speech_text:
                     continue
+
+                result = analyze_fn(speech.speech_text, speech.meeting_name)
+                if result is None:
+                    continue
+
+                overall = (
+                    result["policy_relevance"]
+                    + result["constructiveness"]
+                    + result["expertise"]
+                    + result["national_interest"]
+                ) / 4.0
+
                 quality_score = SpeechQualityScore(
-                    speech_id=r[0],
-                    member_id=r[1],
+                    speech_id=speech.id,
+                    member_id=speech.member_id,
                     session_id=diet_session.id,
-                    policy_relevance=r[2],
-                    constructiveness=r[3],
-                    expertise=r[4],
-                    national_interest=r[5],
-                    overall_quality=r[6],
-                    analysis_summary=r[7],
+                    policy_relevance=result["policy_relevance"],
+                    constructiveness=result["constructiveness"],
+                    expertise=result["expertise"],
+                    national_interest=result["national_interest"],
+                    overall_quality=round(overall, 1),
+                    analysis_summary=result.get("summary", ""),
                 )
                 db.add(quality_score)
                 processed += 1
+
+                if backend == "anthropic":
+                    time.sleep(0.5)
 
             db.commit()
 
