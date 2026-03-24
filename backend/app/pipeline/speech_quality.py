@@ -298,7 +298,10 @@ def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
     anthropic_client = None
 
     if backend == "ollama":
-        http_client = httpx.Client()
+        http_client = httpx.Client(
+            timeout=httpx.Timeout(connect=10.0, read=120.0, write=10.0, pool=10.0),
+            limits=httpx.Limits(max_connections=2, max_keepalive_connections=1),
+        )
         try:
             r = http_client.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5.0)
             r.raise_for_status()
@@ -313,10 +316,13 @@ def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
         logger.error(f"Unknown backend: {backend}. Use 'ollama' or 'anthropic'.")
         return 0
 
+    # http_clientは再接続で差し替えるためリストで保持
+    clients = {"http": http_client, "anthropic": anthropic_client}
+
     def analyze_fn(text: str, name: str | None) -> dict | None:
         if backend == "ollama":
-            return _analyze_speech_ollama(http_client, text, name)
-        return _analyze_speech_anthropic(anthropic_client, text, name)
+            return _analyze_speech_ollama(clients["http"], text, name)
+        return _analyze_speech_anthropic(clients["anthropic"], text, name)
 
     processed = 0
     batch_count = 0
@@ -340,6 +346,9 @@ def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
     # 通知間隔: 10バッチ(200件)ごと
     NOTIFY_EVERY_N_BATCHES = 10
 
+    consecutive_errors = 0
+    MAX_CONSECUTIVE_ERRORS = 10
+
     try:
         for i in range(0, total, BATCH_SIZE):
             batch = speeches[i : i + BATCH_SIZE]
@@ -349,9 +358,42 @@ def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
                 if not speech.speech_text:
                     continue
 
-                result = analyze_fn(speech.speech_text, speech.meeting_name)
-                if result is None:
+                try:
+                    result = analyze_fn(speech.speech_text, speech.meeting_name)
+                except (httpx.ConnectError, httpx.ReadError, httpx.WriteError, httpx.PoolTimeout) as e:
+                    logger.warning(f"Connection error (speech {speech.id}): {e}. Reconnecting...")
+                    # httpxクライアント再接続
+                    if backend == "ollama" and clients["http"]:
+                        try:
+                            clients["http"].close()
+                        except Exception:
+                            pass
+                        clients["http"] = httpx.Client(
+                            timeout=httpx.Timeout(connect=10.0, read=120.0, write=10.0, pool=10.0),
+                            limits=httpx.Limits(max_connections=2, max_keepalive_connections=1),
+                        )
+                    time.sleep(5)
+                    consecutive_errors += 1
+                    if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                        logger.error(f"{MAX_CONSECUTIVE_ERRORS} consecutive errors, aborting")
+                        raise
                     continue
+                except Exception as e:
+                    logger.error(f"Unexpected error (speech {speech.id}): {e}")
+                    consecutive_errors += 1
+                    if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                        logger.error(f"{MAX_CONSECUTIVE_ERRORS} consecutive errors, aborting")
+                        raise
+                    continue
+
+                if result is None:
+                    consecutive_errors += 1
+                    if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                        logger.error(f"{MAX_CONSECUTIVE_ERRORS} consecutive None results, aborting")
+                        break
+                    continue
+
+                consecutive_errors = 0  # 成功したらリセット
 
                 overall = (
                     result["policy_relevance"]
@@ -403,8 +445,8 @@ def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
                     }
                 )
     finally:
-        if backend == "ollama" and http_client:
-            http_client.close()
+        if backend == "ollama" and clients["http"]:
+            clients["http"].close()
 
     elapsed = time.time() - start_time
     elapsed_h = elapsed / 3600
