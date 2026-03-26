@@ -14,6 +14,7 @@
 import json
 import logging
 import os
+import re
 import time
 
 import httpx
@@ -86,6 +87,25 @@ SYSTEM_PROMPT = """\
   "summary": "<1文の評価要約（日本語）>"
 }
 """
+
+
+# 議事進行発言を検出するパターン
+_PROCEDURAL_PATTERNS = [
+    re.compile(r"^○.{1,10}(委員長|主査|会長|議長)"),  # ○xx委員長、○xx主査 等で始まる
+    re.compile(r"(これより会議を開きます|散会いたします|休憩いたします|再開いたします)"),
+    re.compile(r"(御異議なしと認めます|異議なしと認め)"),
+    re.compile(r"(ただいまから.{1,20}を(開会|開議)いたします)"),
+    re.compile(r"(これにて.{1,20}(質疑|討論|採決)は終了|本日は、これにて散会)"),
+    re.compile(r"^○.{1,10}(事務総長|事務次長)"),  # 事務局挨拶
+]
+
+
+def _is_procedural(text: str) -> bool:
+    """議事進行・手続き的な発言かどうかを判定する。"""
+    for pat in _PROCEDURAL_PATTERNS:
+        if pat.search(text[:300]):
+            return True
+    return False
 
 
 def _truncate_text(text: str, max_chars: int = MAX_SPEECH_CHARS) -> str:
@@ -358,9 +378,17 @@ def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
                 if not speech.speech_text:
                     continue
 
+                if _is_procedural(speech.speech_text):
+                    continue
+
                 try:
                     result = analyze_fn(speech.speech_text, speech.meeting_name)
-                except (httpx.ConnectError, httpx.ReadError, httpx.WriteError, httpx.PoolTimeout) as e:
+                except (
+                    httpx.ConnectError,
+                    httpx.ReadError,
+                    httpx.WriteError,
+                    httpx.PoolTimeout,
+                ) as e:
                     logger.warning(f"Connection error (speech {speech.id}): {e}. Reconnecting...")
                     # httpxクライアント再接続
                     if backend == "ollama" and clients["http"]:
