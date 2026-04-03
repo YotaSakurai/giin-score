@@ -11,7 +11,13 @@ from app.models.speech import Speech
 from app.models.speech_quality import SpeechQualityScore
 from app.models.vote import VoteRecord, VoteResult
 from app.schemas.common import PaginatedResponse
-from app.schemas.member import MemberDetail, MemberWithScore, ScoreDetail, ScoreSummary
+from app.schemas.member import (
+    MemberDetail,
+    MemberScorePoint,
+    MemberWithScore,
+    ScoreDetail,
+    ScoreSummary,
+)
 from app.schemas.speech import SpeechResponse
 from app.schemas.speech_quality import SpeechQualityResponse
 from app.schemas.vote import DissentDetail, VotePatternResponse, VoteRecordResponse
@@ -29,31 +35,8 @@ SCORE_SORT_FIELDS = {
 }
 
 
-@router.get("", response_model=PaginatedResponse[MemberWithScore], summary="議員一覧取得")
-def list_members(
-    chamber: Literal["representatives", "councillors"] | None = None,
-    party: str | None = None,
-    role_category: str | None = None,
-    search: str | None = None,
-    district: str | None = None,
-    sort_by: Literal[
-        "name",
-        "total",
-        "legislative_activity",
-        "voting_behavior",
-        "policy_influence",
-        "transparency",
-        "question_quality",
-    ] = "name",
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
-    db: Session = Depends(get_db),
-):
-    """議員一覧を最新スコア付きで返す。
-
-    院・政党・選挙区・名前でフィルタリングし、スコア各軸でソート可能。
-    """
-    # 最新スコアのサブクエリ
+def _build_member_score_query(db: Session):
+    """Member + 最新スコアJOINの共通クエリビルダー。"""
     latest_score_sq = (
         select(
             MemberScore.member_id,
@@ -65,7 +48,6 @@ def list_members(
 
     LatestScore = aliased(MemberScore)
 
-    # メインクエリ: Member + 最新スコアをJOIN
     query = (
         select(Member, LatestScore)
         .outerjoin(
@@ -78,9 +60,35 @@ def list_members(
             & (LatestScore.session_id == latest_score_sq.c.max_session_id),
         )
     )
+    return query, LatestScore, latest_score_sq
 
-    count_query = select(func.count(Member.id))
 
+def _apply_filters(
+    query,
+    count_query,
+    LatestScore,
+    latest_score_sq,
+    *,
+    chamber: str | None,
+    party: str | None,
+    role_category: str | None,
+    search: str | None,
+    district: str | None,
+    grade: str | None,
+    score_min: float | None,
+    score_max: float | None,
+    la_min: float | None,
+    la_max: float | None,
+    vb_min: float | None,
+    vb_max: float | None,
+    pi_min: float | None,
+    pi_max: float | None,
+    tr_min: float | None,
+    tr_max: float | None,
+    qq_min: float | None,
+    qq_max: float | None,
+):
+    """共通フィルタを適用する。"""
     if chamber:
         query = query.where(Member.chamber == chamber)
         count_query = count_query.where(Member.chamber == chamber)
@@ -97,14 +105,121 @@ def list_members(
         query = query.where(Member.name.ilike(f"%{search}%"))
         count_query = count_query.where(Member.name.ilike(f"%{search}%"))
 
+    # スコアフィルタ
+    score_filters_active = any(
+        v is not None
+        for v in [
+            grade, score_min, score_max,
+            la_min, la_max, vb_min, vb_max,
+            pi_min, pi_max, tr_min, tr_max, qq_min, qq_max,
+        ]
+    )
+    if score_filters_active:
+        # count_queryにもLatestScoreのJOINが必要
+        count_query = (
+            count_query
+            .join(latest_score_sq, Member.id == latest_score_sq.c.member_id)
+            .join(
+                LatestScore,
+                (LatestScore.member_id == latest_score_sq.c.member_id)
+                & (LatestScore.session_id == latest_score_sq.c.max_session_id),
+            )
+        )
+
+    if grade:
+        grades = [g.strip() for g in grade.split(",")]
+        query = query.where(LatestScore.grade.in_(grades))
+        if score_filters_active:
+            count_query = count_query.where(LatestScore.grade.in_(grades))
+
+    axis_filters = [
+        (score_min, score_max, "total"),
+        (la_min, la_max, "legislative_activity"),
+        (vb_min, vb_max, "voting_behavior"),
+        (pi_min, pi_max, "policy_influence"),
+        (tr_min, tr_max, "transparency"),
+        (qq_min, qq_max, "question_quality"),
+    ]
+    for fmin, fmax, attr in axis_filters:
+        col = getattr(LatestScore, attr)
+        if fmin is not None:
+            query = query.where(col >= fmin)
+            if score_filters_active:
+                count_query = count_query.where(col >= fmin)
+        if fmax is not None:
+            query = query.where(col <= fmax)
+            if score_filters_active:
+                count_query = count_query.where(col <= fmax)
+
+    return query, count_query
+
+
+@router.get("", response_model=PaginatedResponse[MemberWithScore], summary="議員一覧取得")
+def list_members(
+    chamber: Literal["representatives", "councillors"] | None = None,
+    party: str | None = None,
+    role_category: str | None = None,
+    search: str | None = None,
+    district: str | None = None,
+    grade: str | None = None,
+    score_min: float | None = Query(None, ge=0, le=100),
+    score_max: float | None = Query(None, ge=0, le=100),
+    la_min: float | None = Query(None, ge=0, le=100),
+    la_max: float | None = Query(None, ge=0, le=100),
+    vb_min: float | None = Query(None, ge=0, le=100),
+    vb_max: float | None = Query(None, ge=0, le=100),
+    pi_min: float | None = Query(None, ge=0, le=100),
+    pi_max: float | None = Query(None, ge=0, le=100),
+    tr_min: float | None = Query(None, ge=0, le=100),
+    tr_max: float | None = Query(None, ge=0, le=100),
+    qq_min: float | None = Query(None, ge=0, le=100),
+    qq_max: float | None = Query(None, ge=0, le=100),
+    sort_by: Literal[
+        "name",
+        "total",
+        "legislative_activity",
+        "voting_behavior",
+        "policy_influence",
+        "transparency",
+        "question_quality",
+    ] = "name",
+    sort_order: Literal["asc", "desc"] = "desc",
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """議員一覧を最新スコア付きで返す。
+
+    院・政党・選挙区・名前・グレード・スコアレンジでフィルタリングし、
+    スコア各軸でソート可能。
+    """
+    query, LatestScore, latest_score_sq = _build_member_score_query(db)
+    count_query = select(func.count(Member.id))
+
+    query, count_query = _apply_filters(
+        query, count_query, LatestScore, latest_score_sq,
+        chamber=chamber, party=party, role_category=role_category,
+        search=search, district=district, grade=grade,
+        score_min=score_min, score_max=score_max,
+        la_min=la_min, la_max=la_max, vb_min=vb_min, vb_max=vb_max,
+        pi_min=pi_min, pi_max=pi_max, tr_min=tr_min, tr_max=tr_max,
+        qq_min=qq_min, qq_max=qq_max,
+    )
+
     total = db.execute(count_query).scalar_one()
 
     # ソート
     if sort_by in SCORE_SORT_FIELDS:
         score_col = getattr(LatestScore, sort_by)
-        query = query.order_by(score_col.desc().nullslast(), Member.name)
+        if sort_order == "asc":
+            query = query.order_by(score_col.asc().nullslast(), Member.name)
+        else:
+            query = query.order_by(score_col.desc().nullslast(), Member.name)
     else:
-        query = query.order_by(Member.name)
+        if sort_order == "asc":
+            query = query.order_by(Member.name)
+        else:
+            query = query.order_by(Member.name.desc())
 
     offset = (page - 1) * per_page
     rows = db.execute(query.offset(offset).limit(per_page)).all()
@@ -143,6 +258,66 @@ def list_members(
         per_page=per_page,
         pages=(total + per_page - 1) // per_page if per_page else 0,
     )
+
+
+@router.get("/scatter", response_model=list[MemberScorePoint], summary="散布図用データ取得")
+def list_members_scatter(
+    chamber: Literal["representatives", "councillors"] | None = None,
+    party: str | None = None,
+    role_category: str | None = None,
+    search: str | None = None,
+    district: str | None = None,
+    grade: str | None = None,
+    score_min: float | None = Query(None, ge=0, le=100),
+    score_max: float | None = Query(None, ge=0, le=100),
+    la_min: float | None = Query(None, ge=0, le=100),
+    la_max: float | None = Query(None, ge=0, le=100),
+    vb_min: float | None = Query(None, ge=0, le=100),
+    vb_max: float | None = Query(None, ge=0, le=100),
+    pi_min: float | None = Query(None, ge=0, le=100),
+    pi_max: float | None = Query(None, ge=0, le=100),
+    tr_min: float | None = Query(None, ge=0, le=100),
+    tr_max: float | None = Query(None, ge=0, le=100),
+    qq_min: float | None = Query(None, ge=0, le=100),
+    qq_max: float | None = Query(None, ge=0, le=100),
+    db: Session = Depends(get_db),
+):
+    """散布図用に全議員のスコアデータをページングなしで返す。"""
+    query, LatestScore, latest_score_sq = _build_member_score_query(db)
+    count_query = select(func.count(Member.id))  # not used but needed by _apply_filters
+
+    query, _ = _apply_filters(
+        query, count_query, LatestScore, latest_score_sq,
+        chamber=chamber, party=party, role_category=role_category,
+        search=search, district=district, grade=grade,
+        score_min=score_min, score_max=score_max,
+        la_min=la_min, la_max=la_max, vb_min=vb_min, vb_max=vb_max,
+        pi_min=pi_min, pi_max=pi_max, tr_min=tr_min, tr_max=tr_max,
+        qq_min=qq_min, qq_max=qq_max,
+    )
+
+    # スコアが無い議員は散布図に表示しない
+    query = query.where(LatestScore.total.isnot(None))
+    query = query.order_by(Member.name)
+
+    rows = db.execute(query).all()
+
+    return [
+        MemberScorePoint(
+            id=member.id,
+            name=member.name,
+            party=member.party,
+            chamber=member.chamber,
+            grade=score.grade if score else "F",
+            total=score.total if score else 0.0,
+            legislative_activity=score.legislative_activity if score else 0.0,
+            voting_behavior=score.voting_behavior if score else 0.0,
+            policy_influence=score.policy_influence if score else 0.0,
+            transparency=score.transparency if score else 0.0,
+            question_quality=score.question_quality if score else 0.0,
+        )
+        for member, score in rows
+    ]
 
 
 @router.get("/districts", response_model=list[str], summary="選挙区一覧取得")

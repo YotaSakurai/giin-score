@@ -67,6 +67,7 @@ class PartyStatsEntry(BaseModel):
     average_policy_influence: float
     average_transparency: float
     average_question_quality: float = 0.0
+    grade_distribution: dict[str, int] = {"A": 0, "B": 0, "C": 0, "D": 0, "F": 0}
 
 
 class PartyStatsResponse(BaseModel):

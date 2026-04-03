@@ -28,6 +28,7 @@ SCHEDULED_PIPELINES: list[str] = [
     "speeches",
     "votes",
     "shugiin",
+    "written_questions",
     "profiles",
     "speech_quality",
     "scoring",
@@ -112,6 +113,17 @@ def run_profiles(db, session_number: int):
     return count
 
 
+def run_written_questions(db, session_number: int):
+    from app.pipeline.shitsumon_scraper import scrape_written_questions
+
+    logger.info(
+        f"=== Scraping written questions (session {session_number}) ==="
+    )
+    count = scrape_written_questions(db, session_number)
+    logger.info(f"Scraped {count} written questions")
+    return count
+
+
 def run_speech_quality(db, session_number: int):
     from app.pipeline.speech_quality import analyze_speeches_for_session
 
@@ -171,6 +183,7 @@ PIPELINES: dict[str, object] = {
     "scoring": run_scoring,
     "smartnews": run_smartnews,
     "profiles": run_profiles,
+    "written_questions": run_written_questions,
     "speech_quality": run_speech_quality,
 }
 

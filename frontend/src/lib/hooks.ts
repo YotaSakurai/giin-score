@@ -5,6 +5,7 @@ import type {
   Stats,
   MemberWithScore,
   MemberDetail,
+  MemberScorePoint,
   Bill,
   BillDetail,
   PaginatedResponse,
@@ -44,12 +45,50 @@ export function useMembers(params?: {
   role_category?: string;
   search?: string;
   district?: string;
+  grade?: string;
+  score_min?: number;
+  score_max?: number;
+  la_min?: number;
+  la_max?: number;
+  vb_min?: number;
+  vb_max?: number;
+  pi_min?: number;
+  pi_max?: number;
+  tr_min?: number;
+  tr_max?: number;
+  qq_min?: number;
+  qq_max?: number;
   sort_by?: string;
+  sort_order?: string;
   page?: number;
   per_page?: number;
 }) {
   const key = `/members${buildQuery(params)}`;
   return useSWR<PaginatedResponse<MemberWithScore>>(key, swrFetcher);
+}
+
+// ---- 散布図用データ ----
+export function useMembersScatter(params?: {
+  chamber?: string;
+  party?: string;
+  search?: string;
+  district?: string;
+  grade?: string;
+  score_min?: number;
+  score_max?: number;
+  la_min?: number;
+  la_max?: number;
+  vb_min?: number;
+  vb_max?: number;
+  pi_min?: number;
+  pi_max?: number;
+  tr_min?: number;
+  tr_max?: number;
+  qq_min?: number;
+  qq_max?: number;
+}) {
+  const key = `/members/scatter${buildQuery(params)}`;
+  return useSWR<MemberScorePoint[]>(key, swrFetcher);
 }
 
 // ---- 議員詳細 ----

@@ -213,6 +213,7 @@ export interface PartyStatsEntry {
   average_policy_influence: number;
   average_transparency: number;
   average_question_quality: number;
+  grade_distribution: Record<string, number>;
 }
 
 export interface PartyStatsResponse {
@@ -234,6 +235,20 @@ export const GRADE_COLORS: Record<string, string> = {
   F: "bg-red-500",
 };
 
+export interface MemberScorePoint {
+  id: number;
+  name: string;
+  party: string | null;
+  chamber: string;
+  grade: string;
+  total: number;
+  legislative_activity: number;
+  voting_behavior: number;
+  policy_influence: number;
+  transparency: number;
+  question_quality: number;
+}
+
 export const AXIS_LABELS: Record<string, string> = {
   legislative_activity: "立法活動",
   voting_behavior: "投票行動",
@@ -241,3 +256,12 @@ export const AXIS_LABELS: Record<string, string> = {
   transparency: "透明性",
   question_quality: "質問品質",
 };
+
+export const SCORE_AXIS_OPTIONS: { value: string; label: string }[] = [
+  { value: "total", label: "総合スコア" },
+  { value: "legislative_activity", label: "立法活動" },
+  { value: "voting_behavior", label: "投票行動" },
+  { value: "policy_influence", label: "政策影響力" },
+  { value: "transparency", label: "透明性" },
+  { value: "question_quality", label: "質問品質" },
+];

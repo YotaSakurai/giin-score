@@ -39,6 +39,20 @@ class MemberDetail(MemberResponse):
     model_config = {"from_attributes": True}
 
 
+class MemberScorePoint(BaseModel):
+    id: int
+    name: str
+    party: str | None = None
+    chamber: str
+    grade: str = "F"
+    total: float = 0.0
+    legislative_activity: float = 0.0
+    voting_behavior: float = 0.0
+    policy_influence: float = 0.0
+    transparency: float = 0.0
+    question_quality: float = 0.0
+
+
 class ScoreDetail(BaseModel):
     id: int
     session_id: int

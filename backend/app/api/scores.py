@@ -214,6 +214,11 @@ def get_party_stats(
         ts = [s.transparency for s in members_scores]
         qqs = [s.question_quality for s in members_scores]
         n = len(totals)
+
+        grades = {"A": 0, "B": 0, "C": 0, "D": 0, "F": 0}
+        for s in members_scores:
+            grades[s.grade] = grades.get(s.grade, 0) + 1
+
         items.append(
             PartyStatsEntry(
                 party=party,
@@ -227,6 +232,7 @@ def get_party_stats(
                 average_policy_influence=round(statistics.mean(pis), 1),
                 average_transparency=round(statistics.mean(ts), 1),
                 average_question_quality=round(statistics.mean(qqs), 1),
+                grade_distribution=grades,
             )
         )
 

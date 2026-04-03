@@ -17,6 +17,7 @@ from app.models.session import DietSession
 from app.models.speech import Speech
 from app.models.speech_quality import SpeechQualityScore
 from app.models.vote import VoteRecord, VoteResult
+from app.models.written_question import WrittenQuestion
 
 logger = logging.getLogger(__name__)
 
@@ -210,16 +211,40 @@ def _compute_legislative_activity(
     )
     committee_score = speech_count * density_factor
 
-    las_raw = bill_score + committee_score
+    # 質問主意書
+    wq_count = (
+        db.query(func.count(WrittenQuestion.id))
+        .filter(
+            WrittenQuestion.member_id == member.id,
+            WrittenQuestion.session_id == session.id,
+        )
+        .scalar()
+    ) or 0
+    wq_answered = (
+        db.query(func.count(WrittenQuestion.id))
+        .filter(
+            WrittenQuestion.member_id == member.id,
+            WrittenQuestion.session_id == session.id,
+            WrittenQuestion.has_answer.is_(True),
+        )
+        .scalar()
+    ) or 0
+    # 質問主意書1件 = 0.5ポイント（法案発議よりは低い）
+    wq_score = wq_count * 0.5
+
+    las_raw = bill_score + committee_score + wq_score
 
     breakdown = {
         "bill_score": round(bill_score, 2),
         "committee_score": round(committee_score, 2),
+        "written_questions_score": round(wq_score, 2),
         "bills_sponsored": bills_sponsored,
         "speech_count": speech_count,
         "total_speech_chars": total_chars,
         "avg_speech_chars": round(avg_chars, 0),
         "density_factor": round(density_factor, 2),
+        "written_questions": wq_count,
+        "written_questions_answered": wq_answered,
     }
 
     return las_raw, breakdown
@@ -329,13 +354,27 @@ def _compute_policy_influence(
             }
         )
 
-    # MVP段階では質問主意書は未実装（データソース追加後に対応）
-    pis_raw = enacted_score
+    # 質問主意書（答弁ありは政策対話の成果）
+    wq_answered_count = (
+        db.query(func.count(WrittenQuestion.id))
+        .filter(
+            WrittenQuestion.member_id == member.id,
+            WrittenQuestion.session_id == session.id,
+            WrittenQuestion.has_answer.is_(True),
+        )
+        .scalar()
+    ) or 0
+    # 答弁付き質問主意書1件 = 0.3ポイント
+    wq_influence = wq_answered_count * 0.3
+
+    pis_raw = enacted_score + wq_influence
 
     breakdown = {
         "enacted_bills": enacted_bills,
         "enacted_score": round(enacted_score, 2),
         "enacted_count": len(enacted_bills),
+        "written_questions_answered": wq_answered_count,
+        "written_questions_influence": round(wq_influence, 2),
     }
 
     return pis_raw, breakdown

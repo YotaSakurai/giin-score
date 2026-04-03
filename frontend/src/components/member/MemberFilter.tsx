@@ -2,6 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useParties } from "@/lib/hooks";
 
 interface MemberFilterProps {
   search: string;
@@ -14,14 +15,12 @@ interface MemberFilterProps {
   onDistrictChange?: (v: string) => void;
 }
 
-const PARTIES = [
-  "自由民主党", "立憲民主党", "公明党", "日本維新の会",
-  "国民民主党", "日本共産党", "れいわ新選組", "社会民主党", "無所属",
-];
-
 export function MemberFilter({
   search, chamber, party, district = "", onSearchChange, onChamberChange, onPartyChange, onDistrictChange,
 }: MemberFilterProps) {
+  const chamberParam = chamber === "all" ? undefined : chamber;
+  const { data: parties } = useParties(chamberParam);
+
   return (
     <div className="flex flex-col sm:flex-row gap-3 mb-6 flex-wrap">
       <Input
@@ -46,7 +45,7 @@ export function MemberFilter({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">全政党</SelectItem>
-          {PARTIES.map((p) => (
+          {(parties ?? []).map((p) => (
             <SelectItem key={p} value={p}>{p}</SelectItem>
           ))}
         </SelectContent>
