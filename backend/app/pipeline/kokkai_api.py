@@ -109,12 +109,12 @@ EXCLUDED_SPEAKERS = {"会議録情報", "会議", "記録", "事務局"}
 
 
 def _process_speech_record(db: Session, diet_session: DietSession, record: dict):
-    speaker_name = record.get("speaker", "").strip()
+    speaker_name = (record.get("speaker") or "").strip()
     if not speaker_name or speaker_name in EXCLUDED_SPEAKERS:
         return
 
-    speaker_group = record.get("speakerGroup", "")
-    speaker_role = record.get("speakerPosition", "")
+    speaker_group = (record.get("speakerGroup") or "")
+    speaker_role = (record.get("speakerPosition") or "")
 
     chamber = "representatives"
     meeting_name = record.get("nameOfMeeting", "")
