@@ -9,8 +9,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { useParties } from "@/lib/hooks";
+import { useParties, useRoleCategories } from "@/lib/hooks";
 import { GRADE_COLORS, AXIS_LABELS } from "@/lib/types";
+
+const ROLE_CATEGORY_LABELS: Record<string, string> = {
+  cabinet: "閣僚",
+  ruling_senior: "与党幹部",
+  ruling_junior: "与党一般",
+  opposition_leader: "野党幹部",
+  opposition_junior: "野党一般",
+  chair: "委員長",
+  unknown: "不明",
+};
 
 const GRADES = ["A", "B", "C", "D", "F"] as const;
 
@@ -18,6 +28,7 @@ export interface AdvancedFilterState {
   search: string;
   chamber: string;
   party: string;
+  roleCategory: string;
   district: string;
   grades: string[];
   scoreRange: [number, number];
@@ -34,6 +45,7 @@ export const DEFAULT_FILTER_STATE: AdvancedFilterState = {
   search: "",
   chamber: "all",
   party: "all",
+  roleCategory: "all",
   district: "",
   grades: [],
   scoreRange: DEFAULT_RANGE,
@@ -140,6 +152,7 @@ export function AdvancedMemberFilter({ state, onChange }: AdvancedMemberFilterPr
   const [open, setOpen] = useState(false);
   const chamberParam = state.chamber === "all" ? undefined : state.chamber;
   const { data: parties } = useParties(chamberParam);
+  const { data: roleCategories } = useRoleCategories(chamberParam);
 
   const activeCount = countActiveFilters(state);
 
@@ -198,6 +211,17 @@ export function AdvancedMemberFilter({ state, onChange }: AdvancedMemberFilterPr
             <SelectItem value="all">全政党</SelectItem>
             {(parties ?? []).map((p) => (
               <SelectItem key={p} value={p}>{p}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={state.roleCategory} onValueChange={(v) => update({ roleCategory: v })}>
+          <SelectTrigger className="sm:w-40" aria-label="役職を選択">
+            <SelectValue placeholder="役職を選択" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全役職</SelectItem>
+            {(roleCategories ?? []).map((c) => (
+              <SelectItem key={c} value={c}>{ROLE_CATEGORY_LABELS[c] ?? c}</SelectItem>
             ))}
           </SelectContent>
         </Select>

@@ -237,15 +237,21 @@ function SortableHeader({
   className?: string;
 }) {
   const isActive = currentSort === sortKey;
+  const ariaSort = isActive ? (sortAsc ? "ascending" : "descending") : undefined;
   return (
     <th
       scope="col"
       className={`p-3 text-right cursor-pointer select-none hover:text-foreground ${className}`}
       onClick={() => onClick(sortKey)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(sortKey); } }}
+      tabIndex={0}
+      role="columnheader"
+      aria-sort={ariaSort}
+      aria-label={`${label}でソート`}
     >
       {label}
       {isActive && (
-        <span className="ml-0.5">{sortAsc ? "▲" : "▼"}</span>
+        <span className="ml-0.5" aria-hidden="true">{sortAsc ? "▲" : "▼"}</span>
       )}
     </th>
   );

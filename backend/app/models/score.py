@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Float, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -6,7 +6,11 @@ from app.database import Base
 
 class MemberScore(Base):
     __tablename__ = "member_scores"
-    __table_args__ = (UniqueConstraint("member_id", "session_id", name="uq_member_session_score"),)
+    __table_args__ = (
+        UniqueConstraint("member_id", "session_id", name="uq_member_session_score"),
+        Index("ix_member_scores_session_total", "session_id", "total"),
+        Index("ix_member_scores_session_grade", "session_id", "grade"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     member_id: Mapped[int] = mapped_column(

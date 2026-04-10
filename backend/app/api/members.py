@@ -338,6 +338,24 @@ def get_districts(
     return [d for d in districts if d]
 
 
+@router.get("/role-categories", response_model=list[str], summary="役職カテゴリ一覧取得")
+def get_role_categories(
+    chamber: Literal["representatives", "councillors"] | None = None,
+    db: Session = Depends(get_db),
+):
+    """データベースに存在する役職カテゴリ一覧を返す。"""
+    query = (
+        select(Member.role_category)
+        .where(Member.role_category.isnot(None))
+        .distinct()
+        .order_by(Member.role_category)
+    )
+    if chamber:
+        query = query.where(Member.chamber == chamber)
+    categories = db.execute(query).scalars().all()
+    return [c for c in categories if c]
+
+
 @router.get("/{member_id}", response_model=MemberDetail, summary="議員詳細取得")
 def get_member(member_id: int, db: Session = Depends(get_db)):
     """指定IDの議員詳細（プロフィール・全会期スコア）を返す。"""

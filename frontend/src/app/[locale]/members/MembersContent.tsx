@@ -10,8 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMembers, useMembersScatter } from "@/lib/hooks";
 import { AdvancedMemberFilter, type AdvancedFilterState } from "@/components/member/AdvancedMemberFilter";
 import { ViewModeToggle, type ViewMode } from "@/components/member/ViewModeToggle";
-import { MemberTable } from "@/components/member/MemberTable";
-import { MemberScatterPlot } from "@/components/member/MemberScatterPlot";
+import dynamic from "next/dynamic";
+
+const MemberTable = dynamic(() => import("@/components/member/MemberTable").then(m => ({ default: m.MemberTable })), {
+  loading: () => <LoadingSpinner />,
+});
+const MemberScatterPlot = dynamic(() => import("@/components/member/MemberScatterPlot").then(m => ({ default: m.MemberScatterPlot })), {
+  loading: () => <LoadingSpinner />,
+});
 
 function parseRange(minStr: string | null, maxStr: string | null): [number, number] {
   const min = minStr ? Number(minStr) : 0;
@@ -41,6 +47,7 @@ export default function MembersContent() {
       search: searchParams.get("search") || "",
       chamber: searchParams.get("chamber") || "all",
       party: searchParams.get("party") || "all",
+      roleCategory: searchParams.get("role_category") || "all",
       district: searchParams.get("district") || "",
       grades: gradeStr ? gradeStr.split(",") : [],
       scoreRange: parseRange(searchParams.get("score_min"), searchParams.get("score_max")),
@@ -85,6 +92,7 @@ export default function MembersContent() {
       search: s.search || undefined,
       chamber: s.chamber === "all" ? undefined : s.chamber,
       party: s.party === "all" ? undefined : s.party,
+      role_category: s.roleCategory === "all" ? undefined : s.roleCategory,
       district: s.district || undefined,
       grade: s.grades.length > 0 ? s.grades.join(",") : undefined,
       ...rangeParams(s.scoreRange, "score_min", "score_max"),
@@ -121,6 +129,7 @@ export default function MembersContent() {
         search: newState.search || undefined,
         chamber: newState.chamber,
         party: newState.party,
+        role_category: newState.roleCategory,
         district: newState.district || undefined,
         grade: newState.grades.length > 0 ? newState.grades.join(",") : undefined,
         page: undefined, // ページリセット

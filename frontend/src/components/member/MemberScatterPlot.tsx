@@ -214,6 +214,7 @@ export function MemberScatterPlot({
           該当する議員が見つかりません。フィルタ条件を変更してください。
         </div>
       ) : (
+      <div role="img" aria-label={`散布図: X軸=${SCORE_AXIS_OPTIONS.find(o => o.value === xAxis)?.label ?? xAxis}, Y軸=${SCORE_AXIS_OPTIONS.find(o => o.value === yAxis)?.label ?? yAxis}`}>
       <ResponsiveContainer width="100%" height={500}>
         <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -277,6 +278,7 @@ export function MemberScatterPlot({
           ))}
         </ScatterChart>
       </ResponsiveContainer>
+      </div>
       )}
     </div>
   );

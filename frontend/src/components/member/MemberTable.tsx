@@ -192,6 +192,7 @@ export function MemberTable({ members, sortBy, sortOrder, onSortChange }: Member
               <Checkbox
                 checked={members.length > 0 && selected.size === members.length}
                 onCheckedChange={toggleAll}
+                aria-label="全て選択"
               />
             </TableHead>
             {cols.map((col) => (
@@ -200,9 +201,10 @@ export function MemberTable({ members, sortBy, sortOrder, onSortChange }: Member
                   <button
                     className="inline-flex items-center hover:text-foreground transition-colors"
                     onClick={() => handleSort(col.key)}
+                    aria-label={`${col.label}でソート`}
                   >
                     {col.label}
-                    <SortIcon columnKey={col.key} sortBy={sortBy} sortOrder={sortOrder} />
+                    <span aria-hidden="true"><SortIcon columnKey={col.key} sortBy={sortBy} sortOrder={sortOrder} /></span>
                   </button>
                 ) : (
                   col.label
@@ -230,6 +232,7 @@ export function MemberTable({ members, sortBy, sortOrder, onSortChange }: Member
                   <Checkbox
                     checked={selected.has(member.id)}
                     onCheckedChange={() => toggleSelect(member.id)}
+                    aria-label={`${member.name}を選択`}
                   />
                 </TableCell>
                 {cols.map((col) => (

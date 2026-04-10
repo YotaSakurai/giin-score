@@ -2,24 +2,38 @@
 
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useParties } from "@/lib/hooks";
+import { useParties, useRoleCategories } from "@/lib/hooks";
+
+const ROLE_CATEGORY_LABELS: Record<string, string> = {
+  cabinet: "閣僚",
+  ruling_senior: "与党幹部",
+  ruling_junior: "与党一般",
+  opposition_leader: "野党幹部",
+  opposition_junior: "野党一般",
+  chair: "委員長",
+  unknown: "不明",
+};
 
 interface MemberFilterProps {
   search: string;
   chamber: string;
   party: string;
+  roleCategory?: string;
   district?: string;
   onSearchChange: (v: string) => void;
   onChamberChange: (v: string) => void;
   onPartyChange: (v: string) => void;
+  onRoleCategoryChange?: (v: string) => void;
   onDistrictChange?: (v: string) => void;
 }
 
 export function MemberFilter({
-  search, chamber, party, district = "", onSearchChange, onChamberChange, onPartyChange, onDistrictChange,
+  search, chamber, party, roleCategory = "all", district = "",
+  onSearchChange, onChamberChange, onPartyChange, onRoleCategoryChange, onDistrictChange,
 }: MemberFilterProps) {
   const chamberParam = chamber === "all" ? undefined : chamber;
   const { data: parties } = useParties(chamberParam);
+  const { data: roleCategories } = useRoleCategories(chamberParam);
 
   return (
     <div className="flex flex-col sm:flex-row gap-3 mb-6 flex-wrap">
@@ -28,9 +42,10 @@ export function MemberFilter({
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
         className="sm:max-w-xs"
+        aria-label="議員名検索"
       />
       <Select value={chamber} onValueChange={onChamberChange}>
-        <SelectTrigger className="sm:w-40">
+        <SelectTrigger className="sm:w-40" aria-label="院を選択">
           <SelectValue placeholder="院を選択" />
         </SelectTrigger>
         <SelectContent>
@@ -40,7 +55,7 @@ export function MemberFilter({
         </SelectContent>
       </Select>
       <Select value={party} onValueChange={onPartyChange}>
-        <SelectTrigger className="sm:w-48">
+        <SelectTrigger className="sm:w-48" aria-label="政党を選択">
           <SelectValue placeholder="政党を選択" />
         </SelectTrigger>
         <SelectContent>
@@ -50,12 +65,26 @@ export function MemberFilter({
           ))}
         </SelectContent>
       </Select>
+      {onRoleCategoryChange && (
+        <Select value={roleCategory} onValueChange={onRoleCategoryChange}>
+          <SelectTrigger className="sm:w-40" aria-label="役職を選択">
+            <SelectValue placeholder="役職を選択" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全役職</SelectItem>
+            {(roleCategories ?? []).map((c) => (
+              <SelectItem key={c} value={c}>{ROLE_CATEGORY_LABELS[c] ?? c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
       {onDistrictChange && (
         <Input
           placeholder="選挙区で検索..."
           value={district}
           onChange={(e) => onDistrictChange(e.target.value)}
           className="sm:max-w-[200px]"
+          aria-label="選挙区検索"
         />
       )}
     </div>

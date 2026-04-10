@@ -11,7 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
-import { CompareRadarChart } from "@/components/score/CompareRadarChart";
+import dynamic from "next/dynamic";
+
+const CompareRadarChart = dynamic(
+  () => import("@/components/score/CompareRadarChart").then(m => ({ default: m.CompareRadarChart })),
+  { loading: () => <LoadingSpinner /> },
+);
 
 const COMPARE_COLORS = [
   { stroke: "#3b82f6", fill: "#3b82f6" }, // blue

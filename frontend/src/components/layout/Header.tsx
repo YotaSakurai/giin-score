@@ -30,7 +30,7 @@ export function Header() {
           <span className="text-blue-600 dark:text-blue-400">GiinScore</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6">
+        <nav aria-label="メインナビゲーション" className="hidden md:flex items-center gap-6">
           {navKeys.map((item) => (
             <Link
               key={item.href}
@@ -56,7 +56,7 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-64">
-              <nav className="flex flex-col gap-4 mt-8">
+              <nav aria-label="モバイルナビゲーション" className="flex flex-col gap-4 mt-8">
                 {navKeys.map((item) => (
                   <Link
                     key={item.href}

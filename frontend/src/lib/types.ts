@@ -9,28 +9,63 @@ export interface Member {
   role_category: string | null;
 }
 
+export interface BillSponsorDetail {
+  bill_id: number;
+  title: string;
+  sponsor_type: string;
+  co_sponsors: number;
+  weight: number;
+  score: number;
+}
+
 export interface LegislativeActivityBreakdown {
   bill_score: number;
   committee_score: number;
+  written_questions_score: number;
+  bills_sponsored: BillSponsorDetail[];
   speech_count: number;
+  total_speech_chars: number;
   avg_speech_chars: number;
+  density_factor: number;
+  written_questions: number;
+  written_questions_answered: number;
 }
 
 export interface VotingBehaviorBreakdown {
   votes_cast: number;
   vote_opportunities: number;
   participation_rate: number;
+  absent_count: number;
+  abstain_count: number;
+  aye_count: number;
+  nay_count: number;
+  aye_rate: number;
+  nay_rate: number;
+}
+
+export interface EnactedBillDetail {
+  bill_id: number;
+  title: string;
+  kind_weight: number;
 }
 
 export interface PolicyInfluenceBreakdown {
-  enacted_count: number;
+  enacted_bills: EnactedBillDetail[];
   enacted_score: number;
+  enacted_count: number;
+  written_questions_answered: number;
+  written_questions_influence: number;
 }
 
 export interface TransparencyBreakdown {
-  committee_speeches: number;
-  committee_meetings: number;
-  disclosure_rate: number;
+  member_meetings: number;
+  total_meetings: number;
+  diversity_rate: number;
+}
+
+export interface QuestionQualityBreakdown {
+  avg_quality: number;
+  analyzed_speeches: number;
 }
 
 export interface ScoreBreakdownData {
@@ -38,7 +73,7 @@ export interface ScoreBreakdownData {
   voting_behavior: VotingBehaviorBreakdown;
   policy_influence: PolicyInfluenceBreakdown;
   transparency: TransparencyBreakdown;
-  question_quality?: Record<string, unknown>;
+  question_quality: QuestionQualityBreakdown;
 }
 
 export interface Score {
@@ -78,11 +113,6 @@ export interface MemberWithScore extends Member {
     transparency: number;
     question_quality: number;
   } | null;
-}
-
-export interface QuestionQualityBreakdown {
-  avg_quality: number;
-  analyzed_speeches: number;
 }
 
 export interface ScoreDetail extends Score {

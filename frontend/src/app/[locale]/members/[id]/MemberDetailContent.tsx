@@ -281,10 +281,22 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                             </div>
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                            <div><span className="text-muted-foreground">政策関連:</span> <span className="font-medium">{q.policy_relevance.toFixed(0)}</span></div>
-                            <div><span className="text-muted-foreground">建設性:</span> <span className="font-medium">{q.constructiveness.toFixed(0)}</span></div>
-                            <div><span className="text-muted-foreground">専門性:</span> <span className="font-medium">{q.expertise.toFixed(0)}</span></div>
-                            <div><span className="text-muted-foreground">国益:</span> <span className="font-medium">{q.national_interest.toFixed(0)}</span></div>
+                            {[
+                              { label: "政策関連", value: q.policy_relevance, color: "bg-blue-500" },
+                              { label: "建設性", value: q.constructiveness, color: "bg-emerald-500" },
+                              { label: "専門性", value: q.expertise, color: "bg-amber-500" },
+                              { label: "国益", value: q.national_interest, color: "bg-violet-500" },
+                            ].map((axis) => (
+                              <div key={axis.label}>
+                                <div className="flex items-center justify-between mb-0.5">
+                                  <span className="text-muted-foreground">{axis.label}</span>
+                                  <span className="font-medium">{axis.value.toFixed(0)}</span>
+                                </div>
+                                <div className="h-1 w-full rounded-full bg-muted">
+                                  <div className={`h-1 rounded-full ${axis.color}`} style={{ width: `${Math.min(axis.value, 100)}%` }} />
+                                </div>
+                              </div>
+                            ))}
                           </div>
                           {q.analysis_summary && (
                             <p className="mt-2 text-xs text-muted-foreground">{q.analysis_summary}</p>

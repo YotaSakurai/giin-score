@@ -162,6 +162,22 @@ export function useDataQuality() {
   }>("/data-quality", swrFetcher);
 }
 
+// ---- 最終更新日時 ----
+export function useLastUpdated() {
+  return useSWR<{
+    last_updated: string | null;
+    pipelines: {
+      pipeline_name: string;
+      status: string;
+      finished_at: string | null;
+      records_processed: number;
+    }[];
+  }>("/data-quality/last-updated", swrFetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 600000,
+  });
+}
+
 // ---- 発言品質 ----
 export function useSpeechQuality(id: number, page = 1, perPage = 10) {
   const key = `/members/${id}/speech-quality${buildQuery({ page, per_page: perPage })}`;
@@ -171,5 +187,11 @@ export function useSpeechQuality(id: number, page = 1, perPage = 10) {
 // ---- 政党一覧 ----
 export function useParties(chamber?: string) {
   const key = `/scores/parties${buildQuery({ chamber })}`;
+  return useSWR<string[]>(key, swrFetcher);
+}
+
+// ---- 役職カテゴリ一覧 ----
+export function useRoleCategories(chamber?: string) {
+  const key = `/members/role-categories${buildQuery({ chamber })}`;
   return useSWR<string[]>(key, swrFetcher);
 }
