@@ -567,17 +567,66 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                 <p className="text-sm text-muted-foreground text-center py-4">投票パターンデータがありません</p>
               ) : (
                 <div className="space-y-6">
-                  {/* サマリーカード */}
+                  {/* サマリーカード with visual gauges */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="rounded-lg border p-4 text-center">
-                      <p className="text-xs text-muted-foreground">投票参加率</p>
-                      <p className="text-2xl font-bold text-blue-600">{votePattern.participation_rate}%</p>
-                      <p className="text-xs text-muted-foreground/70">{votePattern.total_votes}/{votePattern.total_votes + votePattern.absent_count}回</p>
+                      <p className="text-xs text-muted-foreground mb-2">投票参加率</p>
+                      <div className="relative inline-flex items-center justify-center">
+                        <svg className="h-20 w-20" viewBox="0 0 36 36">
+                          <path
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            className="text-muted/40"
+                          />
+                          <path
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            strokeDasharray={`${votePattern.participation_rate}, 100`}
+                            className={votePattern.participation_rate >= 80 ? "text-emerald-500" : votePattern.participation_rate >= 50 ? "text-yellow-500" : "text-red-500"}
+                          />
+                        </svg>
+                        <span className="absolute text-lg font-bold">{votePattern.participation_rate}%</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground/70 mt-1">{votePattern.total_votes}/{votePattern.total_votes + votePattern.absent_count}回</p>
+                      {votePattern.participation_rate < 50 && (
+                        <p className="text-xs text-red-500 mt-1 flex items-center justify-center gap-1">
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                          参加率が低い
+                        </p>
+                      )}
                     </div>
                     <div className="rounded-lg border p-4 text-center">
-                      <p className="text-xs text-muted-foreground">造反率</p>
-                      <p className="text-2xl font-bold text-orange-600">{votePattern.dissent_rate}%</p>
-                      <p className="text-xs text-muted-foreground/70">{votePattern.dissent_votes}/{votePattern.party_majority_votes}回</p>
+                      <p className="text-xs text-muted-foreground mb-2">造反率</p>
+                      <div className="relative inline-flex items-center justify-center">
+                        <svg className="h-20 w-20" viewBox="0 0 36 36">
+                          <path
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            className="text-muted/40"
+                          />
+                          <path
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            strokeDasharray={`${votePattern.dissent_rate}, 100`}
+                            className="text-orange-500"
+                          />
+                        </svg>
+                        <span className="absolute text-lg font-bold">{votePattern.dissent_rate}%</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground/70 mt-1">{votePattern.dissent_votes}/{votePattern.party_majority_votes}回</p>
+                      <p className="text-xs text-muted-foreground/70 mt-0.5">
+                        {votePattern.dissent_rate < 5 ? "党方針に忠実" : votePattern.dissent_rate < 20 ? "時々独自判断" : "独自路線が多い"}
+                      </p>
                     </div>
                     <div className="rounded-lg border p-4 text-center">
                       <p className="text-xs text-muted-foreground">投票回数</p>
@@ -585,7 +634,12 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                     </div>
                     <div className="rounded-lg border p-4 text-center">
                       <p className="text-xs text-muted-foreground">欠席回数</p>
-                      <p className="text-2xl font-bold text-muted-foreground/70">{votePattern.absent_count}</p>
+                      <p className={`text-2xl font-bold ${votePattern.absent_count > 10 ? "text-red-500" : "text-muted-foreground/70"}`}>
+                        {votePattern.absent_count}
+                      </p>
+                      {votePattern.absent_count > 10 && (
+                        <p className="text-xs text-red-500 mt-1">欠席が多い</p>
+                      )}
                     </div>
                   </div>
 

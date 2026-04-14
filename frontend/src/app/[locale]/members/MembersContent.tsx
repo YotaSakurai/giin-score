@@ -186,7 +186,14 @@ export default function MembersContent() {
       <AdvancedMemberFilter state={filterState} onChange={handleFilterChange} />
 
       {!isScatterView && (
-        <p className="text-sm text-muted-foreground mb-4">{total}名の議員</p>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-muted-foreground">{total}名の議員</p>
+          {filterState.district && total > 0 && total <= 10 && (
+            <p className="text-xs text-blue-600">
+              「{filterState.district}」の議員 — スコアを比較して投票の参考にしましょう
+            </p>
+          )}
+        </div>
       )}
       {isScatterView && (
         <p className="text-sm text-muted-foreground mb-4">{scatterData.length}名の議員</p>

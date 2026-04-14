@@ -242,6 +242,42 @@ export default function HomeContent() {
         </div>
       )}
 
+      {/* グレード分布 */}
+      {stats && stats.distribution.length > 0 && (
+        <Card className="mb-8">
+          <CardContent className="p-4">
+            <h3 className="text-sm font-semibold mb-3">グレード分布</h3>
+            <div className="flex items-end gap-2 h-24">
+              {(["A", "B", "C", "D", "F"] as const).map((grade) => {
+                const dist = stats.distribution.find((d) => d.grade === grade);
+                const count = dist?.count ?? 0;
+                const pct = dist?.percentage ?? 0;
+                const maxPct = Math.max(...stats.distribution.map((d) => d.percentage), 1);
+                const barHeight = (pct / maxPct) * 100;
+                const gradeColor = GRADE_COLORS[grade] || "bg-gray-300";
+                return (
+                  <Link
+                    key={grade}
+                    href={`/members?grade=${grade}&sort_by=total&sort_order=desc`}
+                    className="flex-1 flex flex-col items-center gap-1 group cursor-pointer"
+                  >
+                    <span className="text-xs text-muted-foreground">{count}名</span>
+                    <div className="w-full flex justify-center">
+                      <div
+                        className={`w-full max-w-12 rounded-t ${gradeColor} group-hover:opacity-80 transition-opacity`}
+                        style={{ height: `${Math.max(barHeight, 4)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-medium">{grade}</span>
+                    <span className="text-xs text-muted-foreground">{pct}%</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* TOP3 ハイライト */}
       {sortOrder === "desc" && ranking.length >= 3 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
