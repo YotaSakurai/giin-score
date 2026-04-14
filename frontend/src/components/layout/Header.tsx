@@ -13,6 +13,7 @@ const navKeys = [
   { href: "/members", key: "members" },
   { href: "/parties", key: "parties" },
   { href: "/compare", key: "compare" },
+  { href: "/quality-ranking", key: "quality" },
   { href: "/favorites", key: "favorites" },
   { href: "/bills", key: "bills" },
   { href: "/about", key: "about" },

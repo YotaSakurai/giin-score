@@ -220,7 +220,7 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://giinscore.jp";
   const shareUrl = `${siteUrl}/members/${memberId}`;
   const shareTitle = latestScore
-    ? `${member.name}の国会活動スコア: 総合${latestScore.total.toFixed(1)}点（グレード${latestScore.grade}）${summaryLines.length > 0 ? ` — ${summaryLines[0]}` : ""} | GiinScore`
+    ? `${member.name}（${member.party ?? "無所属"}）国会活動スコア\n総合${latestScore.total.toFixed(1)}点 グレード${latestScore.grade}\n立法${latestScore.legislative_activity.toFixed(0)} 投票${latestScore.voting_behavior.toFixed(0)} 影響${latestScore.policy_influence.toFixed(0)} 透明${latestScore.transparency.toFixed(0)} 質問${latestScore.question_quality.toFixed(0)}${summaryLines.length > 0 ? `\n${summaryLines[0]}` : ""} | GiinScore`
     : `${member.name}のスコア | GiinScore`;
 
   return (

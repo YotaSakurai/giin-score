@@ -33,6 +33,29 @@ const SCORE_AXES = [
   "question_quality",
 ] as const;
 
+type ScoreAxis = (typeof SCORE_AXES)[number] | "total";
+
+const AXIS_BAR_COLORS: Record<string, string> = {
+  legislative_activity: "bg-violet-500",
+  voting_behavior: "bg-sky-500",
+  policy_influence: "bg-emerald-500",
+  transparency: "bg-amber-500",
+  question_quality: "bg-rose-500",
+  total: "bg-blue-600",
+};
+
+function ScoreBar({ value, maxInGroup, color }: { value: number; maxInGroup: number; color: string }) {
+  const width = maxInGroup > 0 ? (value / maxInGroup) * 100 : 0;
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${width}%` }} />
+      </div>
+      <span className="text-xs font-medium w-10 text-right">{value.toFixed(1)}</span>
+    </div>
+  );
+}
+
 function useMemberDetail(id: number | null) {
   return useSWR<MemberDetail>(
     id !== null ? `/members/${id}` : null,
@@ -315,6 +338,83 @@ export default function CompareContent() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 5軸ビジュアル差分バー */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-base">軸別スコア比較</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {(["total", ...SCORE_AXES] as ScoreAxis[]).map((axis) => {
+            const label = axis === "total" ? "総合スコア" : AXIS_LABELS[axis];
+            const values = memberScores.map((ms) => ms.score?.[axis] ?? 0);
+            const maxVal = Math.max(...values, 1);
+            return (
+              <div key={axis}>
+                <p className="text-sm font-medium mb-2">{label}</p>
+                <div className="space-y-1.5">
+                  {memberScores.map((ms, idx) => (
+                    <div key={ms.member.id} className="flex items-center gap-2">
+                      <span
+                        className="inline-block h-2 w-2 rounded-full shrink-0"
+                        style={{ backgroundColor: COMPARE_COLORS[idx].stroke }}
+                      />
+                      <span className="text-xs w-20 truncate text-muted-foreground">{ms.member.name}</span>
+                      <div className="flex-1">
+                        <ScoreBar value={ms.score?.[axis] ?? 0} maxInGroup={maxVal} color={AXIS_BAR_COLORS[axis] ?? "bg-blue-500"} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      {/* 最大差分ハイライト */}
+      {memberScores.length >= 2 && memberScores.every((ms) => ms.score) && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-base">注目すべき差</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {(["total", ...SCORE_AXES] as ScoreAxis[]).map((axis) => {
+                const label = axis === "total" ? "総合" : AXIS_LABELS[axis];
+                const entries = memberScores.map((ms, idx) => ({
+                  name: ms.member.name,
+                  value: ms.score?.[axis] ?? 0,
+                  idx,
+                }));
+                const sorted = [...entries].sort((a, b) => b.value - a.value);
+                const gap = sorted[0].value - sorted[sorted.length - 1].value;
+                if (gap < 5) return null;
+                return (
+                  <div key={axis} className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground mb-1">{label}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: COMPARE_COLORS[sorted[0].idx].stroke }} />
+                        <span className="text-sm font-medium">{sorted[0].name}</span>
+                        <span className="text-xs text-muted-foreground">{sorted[0].value.toFixed(1)}</span>
+                      </div>
+                      <span className={`text-xs font-bold ${gap > 30 ? "text-red-500" : "text-amber-500"}`}>
+                        {gap > 30 ? "大差" : "差"} {gap.toFixed(0)}pt
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: COMPARE_COLORS[sorted[sorted.length - 1].idx].stroke }} />
+                      <span className="text-sm text-muted-foreground">{sorted[sorted.length - 1].name}</span>
+                      <span className="text-xs text-muted-foreground">{sorted[sorted.length - 1].value.toFixed(1)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

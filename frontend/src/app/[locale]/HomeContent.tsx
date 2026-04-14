@@ -640,6 +640,66 @@ export default function HomeContent() {
         </>
       )}
 
+      {/* 他のランキングへの導線 */}
+      {!loading && !error && (
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link href="/quality-ranking">
+            <Button variant="outline" size="sm">
+              質問品質ランキングを見る →
+            </Button>
+          </Link>
+          <Link href="/parties">
+            <Button variant="outline" size="sm">
+              政党別統計を見る →
+            </Button>
+          </Link>
+          <Link href="/members?view=scatter">
+            <Button variant="outline" size="sm">
+              散布図で分析する →
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      {/* 注目の低活動議員 (高スコア順表示時のみ) */}
+      {!loading && !error && sortOrder === "desc" && ranking.length > 0 && (() => {
+        const lowMembers = ranking.filter((e) => e.score.grade === "F" || e.score.grade === "D").slice(0, 5);
+        if (lowMembers.length === 0) return null;
+        return (
+          <Card className="mt-8 border-red-200 dark:border-red-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base text-red-600 dark:text-red-400">低活動議員ピックアップ</CardTitle>
+                <Button variant="ghost" size="sm" className="text-xs" onClick={toggleSortOrder}>
+                  ワーストランキングを見る →
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground mb-3">
+                活動スコアが特に低い議員です。国会での立法活動・質疑・投票参加が少ないことを示しています。
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                {lowMembers.map((entry) => {
+                  const gradeColor = GRADE_COLORS[entry.score.grade] || "bg-gray-300";
+                  return (
+                    <Link key={entry.member.id} href={`/members/${entry.member.id}`} className="flex items-center gap-2 rounded-lg border p-2 hover:bg-muted/50 transition-colors">
+                      <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold ${gradeColor}`}>
+                        {entry.score.grade}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{entry.member.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{entry.member.party ?? "無所属"} · {entry.score.total.toFixed(1)}点</p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {/* フローティング比較ボタン */}
       {compareIds.length >= 1 && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2">
