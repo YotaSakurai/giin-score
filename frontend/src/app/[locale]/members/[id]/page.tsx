@@ -18,9 +18,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const member = await getMember(Number(id));
     const latestScore = member.scores?.[0] ?? null;
 
-    const title = `${member.name}のスコア`;
-    const description = latestScore
-      ? `${member.name}の国会活動スコア: 総合${latestScore.total.toFixed(1)}点（グレード${latestScore.grade}）`
+    const chamberLabel = CHAMBER_LABELS[member.chamber] ?? member.chamber;
+    const title = `${member.name}（${member.party ?? "無所属"}・${chamberLabel}）のスコア`;
+    const scoreDetail = latestScore
+      ? `総合${latestScore.total.toFixed(1)}点（グレード${latestScore.grade}）立法${latestScore.legislative_activity.toFixed(0)} 投票${latestScore.voting_behavior.toFixed(0)} 影響${latestScore.policy_influence.toFixed(0)} 透明${latestScore.transparency.toFixed(0)} 質問${latestScore.question_quality.toFixed(0)}`
+      : null;
+    const description = scoreDetail
+      ? `${member.name}の国会活動スコア: ${scoreDetail}${member.district ? ` — ${member.district}` : ""}`
       : `${member.name}の国会活動スコアを確認できます`;
     const url = `${siteUrl}/members/${id}`;
 

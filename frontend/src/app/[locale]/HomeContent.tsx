@@ -61,6 +61,10 @@ export default function HomeContent() {
 
   const [compareIds, setCompareIds] = useState<number[]>(() => getStoredCompareIds());
   const [showGuide, setShowGuide] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return !localStorage.getItem("giin-score-onboarding-dismissed");
+  });
 
   const toggleCompare = useCallback((memberId: number) => {
     setCompareIds((prev) => {
@@ -153,6 +157,50 @@ export default function HomeContent() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
+      {/* 初心者向けオンボーディング */}
+      {showOnboarding && (
+        <Card className="mb-6 border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between mb-3">
+              <h2 className="text-lg font-bold text-foreground">GiinScoreの使い方</h2>
+              <button
+                onClick={() => {
+                  setShowOnboarding(false);
+                  localStorage.setItem("giin-score-onboarding-dismissed", "1");
+                }}
+                className="text-muted-foreground hover:text-foreground text-sm"
+                aria-label="閉じる"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white font-bold text-sm">1</span>
+                <div>
+                  <p className="text-sm font-medium">選挙区を入力</p>
+                  <p className="text-xs text-muted-foreground">下の検索欄にお住まいの選挙区名を入力します</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white font-bold text-sm">2</span>
+                <div>
+                  <p className="text-sm font-medium">スコアを比較</p>
+                  <p className="text-xs text-muted-foreground">議員の5軸スコアを見て、活動量や質を確認します</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white font-bold text-sm">3</span>
+                <div>
+                  <p className="text-sm font-medium">詳細を確認</p>
+                  <p className="text-xs text-muted-foreground">議員をクリックして発言内容や投票記録を詳しく見ます</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* 免責表示 */}
       <div className="mb-6 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-4 py-3">
         <p className="text-xs text-amber-800 dark:text-amber-200">
@@ -523,7 +571,13 @@ export default function HomeContent() {
                     const isSelected = compareIds.includes(entry.member.id);
                     const isDisabled = !isSelected && compareIds.length >= MAX_COMPARE;
                     return (
-                      <tr key={entry.member.id} className="border-b hover:bg-muted/50 transition-colors">
+                      <tr
+                        key={entry.member.id}
+                        className={`border-b hover:bg-muted/50 transition-colors ${
+                          entry.score.grade === "F" ? "bg-red-50/50 dark:bg-red-950/10" :
+                          entry.score.grade === "D" ? "bg-orange-50/30 dark:bg-orange-950/10" : ""
+                        }`}
+                      >
                         <td className="p-3 text-center">
                           <button
                             type="button"
