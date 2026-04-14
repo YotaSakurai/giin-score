@@ -57,6 +57,7 @@ export default function HomeContent() {
   const chamber = searchParams.get("chamber") || "all";
   const sessionParam = searchParams.get("session") || "";
   const sortOrder = searchParams.get("sort") || "desc";
+  const rankingLimit = Number(searchParams.get("limit")) || 100;
   const [districtSearch, setDistrictSearch] = useState("");
 
   const [compareIds, setCompareIds] = useState<number[]>(() => getStoredCompareIds());
@@ -101,7 +102,7 @@ export default function HomeContent() {
     error: rankingError,
     isLoading: rankingLoading,
     mutate: mutateRanking,
-  } = useRanking({ chamber: chamberParam, session_number: sessionNumber, sort_order: sortOrder, limit: 100 });
+  } = useRanking({ chamber: chamberParam, session_number: sessionNumber, sort_order: sortOrder, limit: rankingLimit });
 
   const {
     data: stats,
@@ -415,6 +416,16 @@ export default function HomeContent() {
           </svg>
           スコアの見方
         </Button>
+        <Select value={String(rankingLimit)} onValueChange={(v) => updateHomeParams({ limit: v === "100" ? undefined : v })}>
+          <SelectTrigger className="w-24" aria-label="表示件数">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="50">50件</SelectItem>
+            <SelectItem value="100">100件</SelectItem>
+            <SelectItem value="200">200件</SelectItem>
+          </SelectContent>
+        </Select>
         <a
           href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/scores/export/csv${buildQuery({ chamber: chamberParam, session_number: sessionNumber })}`}
           download

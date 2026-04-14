@@ -450,6 +450,7 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                         <th scope="col" className="p-2">日付</th>
                         <th scope="col" className="p-2">会議名</th>
                         <th scope="col" className="p-2 text-right">文字数</th>
+                        <th scope="col" className="p-2 text-right">リンク</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -461,6 +462,15 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                           <td className="p-2 text-sm">{s.meeting_name ?? "-"}</td>
                           <td className="p-2 text-sm text-right text-muted-foreground">
                             {(s.speech_chars ?? 0).toLocaleString()}字
+                          </td>
+                          <td className="p-2 text-sm text-right">
+                            {s.speech_url ? (
+                              <a href={s.speech_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">
+                                会議録
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground/50 text-xs">-</span>
+                            )}
                           </td>
                         </tr>
                       ))}

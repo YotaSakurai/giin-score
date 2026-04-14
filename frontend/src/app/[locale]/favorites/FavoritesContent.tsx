@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import useSWR from "swr";
 import { swrFetcher } from "@/lib/api";
@@ -33,7 +34,9 @@ function useFavoriteMembers(ids: number[]) {
 }
 
 export default function FavoritesContent() {
+  const router = useRouter();
   const [favoriteIds, setFavoriteIds] = useState<number[]>(() => getFavorites());
+  const [compareSelection, setCompareSelection] = useState<number[]>([]);
 
   const ids = useMemo(() => favoriteIds.slice(0, 20), [favoriteIds]);
   const { members, isLoading } = useFavoriteMembers(ids);
@@ -88,9 +91,16 @@ export default function FavoritesContent() {
             {favoriteIds.length}名の議員をウォッチ中
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleClearAll}>
-          全てクリア
-        </Button>
+        <div className="flex items-center gap-2">
+          {compareSelection.length >= 2 && (
+            <Button size="sm" onClick={() => router.push(`/compare?ids=${compareSelection.join(",")}`)}>
+              比較する ({compareSelection.length})
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={handleClearAll}>
+            全てクリア
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -103,9 +113,34 @@ export default function FavoritesContent() {
               ? GRADE_COLORS[latestScore.grade] || "bg-gray-300"
               : "bg-gray-300";
             return (
-              <Card key={member.id} className="relative">
+              <Card key={member.id} className={`relative ${compareSelection.includes(member.id) ? "ring-2 ring-blue-500" : ""}`}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCompareSelection((prev) =>
+                            prev.includes(member.id)
+                              ? prev.filter((id) => id !== member.id)
+                              : prev.length < 4 ? [...prev, member.id] : prev,
+                          );
+                        }}
+                        className={`mt-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
+                          compareSelection.includes(member.id)
+                            ? "bg-blue-600 border-blue-600 text-white"
+                            : compareSelection.length >= 4
+                              ? "border-muted bg-muted/50 cursor-not-allowed"
+                              : "border-slate-300 hover:border-blue-400"
+                        }`}
+                        aria-label={`${member.name}を比較に追加`}
+                      >
+                        {compareSelection.includes(member.id) && (
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </button>
                     <div>
                       <Link href={`/members/${member.id}`} className="text-base font-bold text-blue-600 hover:underline">
                         {member.name}
@@ -116,6 +151,7 @@ export default function FavoritesContent() {
                         </Badge>
                         <span className="text-xs text-muted-foreground">{member.party ?? "無所属"}</span>
                       </div>
+                    </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <FavoriteButton memberId={member.id} />

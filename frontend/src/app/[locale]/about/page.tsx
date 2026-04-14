@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 export const metadata: Metadata = {
   title: "スコア算出方法",
   description:
-    "GiinScoreのスコアリング手法・4軸スコア・正規化方法・データソース・限界について説明します。",
+    "GiinScoreのスコアリング手法・5軸スコア・正規化方法・データソース・限界について説明します。",
 };
 
 export default function AboutPage() {
@@ -23,17 +23,17 @@ export default function AboutPage() {
         </p>
       </div>
 
-      {/* 4軸スコア説明 */}
-      <h2 className="text-xl font-bold text-foreground mb-4">4軸スコア</h2>
+      {/* 5軸スコア説明 */}
+      <h2 className="text-xl font-bold text-foreground mb-4">5軸スコア</h2>
       <p className="text-sm text-muted-foreground mb-6">
-        GiinScoreは、イデオロギーフリーの設計原則に基づき、以下の4つの軸で議員の活動を定量化します。
-        政策の「方向性」ではなく「行動量」を計測します。
+        GiinScoreは、イデオロギーフリーの設計原則に基づき、以下の5つの軸で議員の活動を定量化します。
+        政策の「方向性」ではなく「行動量と質」を計測します。
       </p>
 
       <div className="space-y-4 mb-8">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">1. 立法活動スコア (LAS) - デフォルト重み: 30%</CardTitle>
+            <CardTitle className="text-base">1. 立法活動スコア (LAS) - デフォルト重み: 25%</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>法案の発議と委員会での質疑活動を計測します。</p>
@@ -46,7 +46,7 @@ export default function AboutPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">2. 投票行動スコア (VBS) - デフォルト重み: 25%</CardTitle>
+            <CardTitle className="text-base">2. 投票行動スコア (VBS) - デフォルト重み: 20%</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>投票への参加率を計測します。</p>
@@ -61,7 +61,7 @@ export default function AboutPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">3. 政策影響力スコア (PIS) - デフォルト重み: 25%</CardTitle>
+            <CardTitle className="text-base">3. 政策影響力スコア (PIS) - デフォルト重み: 20%</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>発議した法案の成立度合いを計測します。</p>
@@ -74,14 +74,30 @@ export default function AboutPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">4. 透明性スコア (TS) - デフォルト重み: 20%</CardTitle>
+            <CardTitle className="text-base">4. 透明性スコア (TS) - デフォルト重み: 15%</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>公開活動への参加度を計測します。</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li>MVP段階: 委員会発言回数 / 全委員会開催数 × 100</li>
-              <li>将来: 政治資金報告書の公開度、資産公開状況を追加予定</li>
+              <li>委員会発言回数 / 全委員会開催数 × 100</li>
+              <li>委員会の多様性（異なる委員会への参加率）</li>
             </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">5. 質問品質スコア (QQS) - デフォルト重み: 20%</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <p>国会での質疑内容をAI（Claude Haiku）が分析し、質の高い政策議論ができているかを評価します。</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>政策的関連性: 国民生活・経済・安全保障に直接影響する政策課題か</li>
+              <li>建設性: 対案や改善提案を伴う質問か（スキャンダル追及のみは低評価）</li>
+              <li>専門性: 独自の調査・データに基づく追及か</li>
+              <li>国益貢献度: 国力向上・国民生活改善への直接的な貢献度</li>
+            </ul>
+            <p className="mt-2 text-xs">※ 各発言の4軸スコア平均が質問品質の基礎値となります</p>
           </CardContent>
         </Card>
       </div>
@@ -99,7 +115,7 @@ export default function AboutPage() {
             <li>各軸を0-100に正規化</li>
             <li>パーセンタイル = (自分より低い人数 / 比較群総数) × 100</li>
           </ul>
-          <p className="mt-4"><strong>総合スコア</strong> = LAS×0.30 + VBS×0.25 + PIS×0.25 + TS×0.20</p>
+          <p className="mt-4"><strong>総合スコア</strong> = LAS×0.25 + VBS×0.20 + PIS×0.20 + TS×0.15 + QQS×0.20</p>
           <p className="text-xs text-muted-foreground mt-2">※ 重みはユーザーがスライダーで自由に変更できます</p>
         </CardContent>
       </Card>
@@ -130,12 +146,13 @@ export default function AboutPage() {
       <h2 className="text-xl font-bold text-foreground mb-4">デフォルト重みの根拠</h2>
       <Card className="mb-8">
         <CardContent className="p-6 text-sm text-muted-foreground space-y-2">
-          <p>デフォルトの重み配分（LAS 30%, VBS 25%, PIS 25%, TS 20%）は以下の考え方に基づいています:</p>
+          <p>デフォルトの重み配分（LAS 25%, VBS 20%, PIS 20%, TS 15%, QQS 20%）は以下の考え方に基づいています:</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li><strong>立法活動 (30%)</strong>: 議員の本来的職務である立法に最大の重みを付与</li>
-            <li><strong>投票行動 (25%)</strong>: 国民の代理としての投票は基本的義務</li>
-            <li><strong>政策影響力 (25%)</strong>: 実際の政策実現への貢献度</li>
-            <li><strong>透明性 (20%)</strong>: MVP段階ではデータソースが限定的なため、やや低めに設定</li>
+            <li><strong>立法活動 (25%)</strong>: 議員の本来的職務である立法に最大の重みを付与</li>
+            <li><strong>投票行動 (20%)</strong>: 国民の代理としての投票は基本的義務</li>
+            <li><strong>政策影響力 (20%)</strong>: 実際の政策実現への貢献度</li>
+            <li><strong>透明性 (15%)</strong>: データソースが限定的なため、やや低めに設定</li>
+            <li><strong>質問品質 (20%)</strong>: 国会質疑の質はサービス理念「質疑時間の生産性」に直結する重要指標</li>
           </ul>
           <p className="mt-2">ユーザーはスライダーでこの重みを自由に変更でき、自分の価値観に基づいた評価が可能です。</p>
         </CardContent>
@@ -172,14 +189,32 @@ export default function AboutPage() {
                   <td>衆議院Webサイト (shugiin.go.jp)</td>
                   <td>スクレイピング</td>
                 </tr>
-                <tr>
+                <tr className="border-b">
                   <td className="py-2">投票記録</td>
                   <td>参議院Webサイト (sangiin.go.jp)</td>
                   <td>スクレイピング</td>
                 </tr>
+                <tr className="border-b">
+                  <td className="py-2">質問主意書</td>
+                  <td>参議院Webサイト (sangiin.go.jp)</td>
+                  <td>スクレイピング</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-2">議員プロフィール</td>
+                  <td>衆議院・参議院Webサイト</td>
+                  <td>スクレイピング</td>
+                </tr>
+                <tr>
+                  <td className="py-2">質問品質分析</td>
+                  <td>Claude Haiku (AI分析)</td>
+                  <td>LLM API</td>
+                </tr>
               </tbody>
             </table>
           </div>
+          <p className="text-xs text-muted-foreground mt-4">
+            データは週次で自動更新されます。最終更新日はフッターに表示しています。
+          </p>
         </CardContent>
       </Card>
 
