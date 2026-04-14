@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
+import useSWR from "swr";
+import { swrFetcher, buildQuery } from "@/lib/api";
+import type { MemberWithScore, PaginatedResponse } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -148,6 +151,93 @@ function DebouncedInput({
   return <Input {...props} value={localValue} onChange={handleChange} />;
 }
 
+/** 議員名検索 with オートコンプリートサジェスト */
+function MemberSearchInput({
+  value,
+  onChange,
+  className,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  className?: string;
+}) {
+  const [localValue, setLocalValue] = useState(value);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [debouncedQuery, setDebouncedQuery] = useState(value);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    setLocalValue(v);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setDebouncedQuery(v);
+      onChange(v);
+    }, 300);
+    setShowSuggestions(v.length >= 1);
+  };
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  // サジェスト用データ取得
+  const { data: suggestions } = useSWR<PaginatedResponse<MemberWithScore>>(
+    debouncedQuery.length >= 1 ? `/members${buildQuery({ search: debouncedQuery, per_page: 5 })}` : null,
+    swrFetcher,
+    { revalidateOnFocus: false, dedupingInterval: 1000 },
+  );
+
+  // 外側クリックで閉じる
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const items = suggestions?.items ?? [];
+
+  return (
+    <div ref={containerRef} className={`relative ${className ?? ""}`}>
+      <Input
+        placeholder="議員名で検索..."
+        value={localValue}
+        onChange={handleChange}
+        onFocus={() => localValue.length >= 1 && setShowSuggestions(true)}
+      />
+      {showSuggestions && items.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
+          {items.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              className="w-full px-3 py-2 text-left hover:bg-muted/50 flex items-center gap-2 text-sm"
+              onClick={() => {
+                setLocalValue(m.name);
+                onChange(m.name);
+                setShowSuggestions(false);
+              }}
+            >
+              <span className="font-medium">{m.name}</span>
+              <span className="text-xs text-muted-foreground">{m.party ?? "無所属"}</span>
+              {m.latest_score && (
+                <span className="ml-auto text-xs text-muted-foreground">{m.latest_score.grade} {m.latest_score.total.toFixed(1)}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AdvancedMemberFilter({ state, onChange }: AdvancedMemberFilterProps) {
   const [open, setOpen] = useState(false);
   const chamberParam = state.chamber === "all" ? undefined : state.chamber;
@@ -187,8 +277,7 @@ export function AdvancedMemberFilter({ state, onChange }: AdvancedMemberFilterPr
     <div className="space-y-3 mb-6">
       {/* 基本フィルタ行 */}
       <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-start">
-        <DebouncedInput
-          placeholder="議員名で検索..."
+        <MemberSearchInput
           value={state.search}
           onChange={(v) => update({ search: v })}
           className="sm:max-w-xs"

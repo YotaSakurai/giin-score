@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, use } from "react";
+import { useState, useMemo, use, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -108,6 +109,20 @@ function generateMemberSummary(
 export default function MemberDetailContent({ params }: MemberDetailContentProps) {
   const { id } = use(params);
   const memberId = Number(id);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get("tab") || "speeches";
+
+  const setActiveTab = useCallback((tab: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "speeches") {
+      params.delete("tab");
+    } else {
+      params.set("tab", tab);
+    }
+    const qs = params.toString();
+    router.replace(qs ? `?${qs}` : ``, { scroll: false });
+  }, [router, searchParams]);
 
   const { data: member, error, isLoading, mutate } = useMember(memberId);
 
@@ -159,6 +174,20 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
   });
 
   const latestScore = member?.scores?.[0] ?? null;
+  const prevScore = member?.scores?.[1] ?? null;
+
+  // 前会期との差分
+  const scoreDiff = useMemo(() => {
+    if (!latestScore || !prevScore) return null;
+    return {
+      total: latestScore.total - prevScore.total,
+      legislative_activity: latestScore.legislative_activity - prevScore.legislative_activity,
+      voting_behavior: latestScore.voting_behavior - prevScore.voting_behavior,
+      policy_influence: latestScore.policy_influence - prevScore.policy_influence,
+      transparency: latestScore.transparency - prevScore.transparency,
+      question_quality: latestScore.question_quality - prevScore.question_quality,
+    };
+  }, [latestScore, prevScore]);
 
   const customTotal = useMemo(() => {
     if (!latestScore) return 0;
@@ -281,13 +310,21 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div>
               <ScoreCard total={customTotal} grade={customGrade} label="総合スコア" />
-              {comparison && (
-                <div className="mt-2 text-center">
+              <div className="mt-2 text-center space-y-1">
+                {comparison && (
                   <span className={`text-sm font-medium ${comparison.totalDiff >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                     全体平均{comparison.totalDiff >= 0 ? "+" : ""}{comparison.totalDiff.toFixed(1)}
                   </span>
-                </div>
-              )}
+                )}
+                {scoreDiff && (
+                  <p className={`text-xs ${scoreDiff.total >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                    前会期比 {scoreDiff.total >= 0 ? "+" : ""}{scoreDiff.total.toFixed(1)}pt
+                    {prevScore?.grade && latestScore?.grade && prevScore.grade !== latestScore.grade && (
+                      <span className="ml-1">({prevScore.grade}→{latestScore.grade})</span>
+                    )}
+                  </p>
+                )}
+              </div>
             </div>
             <div className="md:col-span-2">
               <Card>
@@ -426,7 +463,7 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
       )}
 
       {/* タブ: 発言・投票・法案 */}
-      <Tabs defaultValue="speeches">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="speeches">発言履歴</TabsTrigger>
           <TabsTrigger value="speech-quality">質問品質</TabsTrigger>
