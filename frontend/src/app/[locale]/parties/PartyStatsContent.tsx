@@ -161,8 +161,11 @@ export default function PartyStatsContent() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedItems.map((entry, idx) => (
-                      <tr key={entry.party} className="border-b hover:bg-muted/50 transition-colors">
+                    {sortedItems.map((entry, idx) => {
+                      const lowGradeCount = (entry.grade_distribution["D"] ?? 0) + (entry.grade_distribution["F"] ?? 0);
+                      const lowGradeRate = entry.member_count > 0 ? (lowGradeCount / entry.member_count * 100) : 0;
+                      return (
+                      <tr key={entry.party} className={`border-b hover:bg-muted/50 transition-colors ${lowGradeRate > 50 ? "bg-red-50/30 dark:bg-red-950/10" : ""}`}>
                         <td className="p-3 text-sm font-medium text-muted-foreground">{idx + 1}</td>
                         <td className="p-3 text-sm font-medium text-foreground">
                           <Link
@@ -171,6 +174,11 @@ export default function PartyStatsContent() {
                           >
                             {entry.party}
                           </Link>
+                          {lowGradeRate > 50 && (
+                            <span className="ml-1 text-xs text-red-500" title={`D/Fグレード議員が${lowGradeRate.toFixed(0)}%`}>
+                              (低活動{lowGradeRate.toFixed(0)}%)
+                            </span>
+                          )}
                         </td>
                         <td className="p-3 hidden sm:table-cell">
                           <GradeBadges distribution={entry.grade_distribution} />
@@ -202,7 +210,8 @@ export default function PartyStatsContent() {
                           {entry.min_score.toFixed(1)}
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                     {sortedItems.length === 0 && (
                       <tr>
                         <td colSpan={14} className="p-8 text-center text-sm text-muted-foreground">

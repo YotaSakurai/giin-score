@@ -7,6 +7,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { useMembers, useMembersScatter } from "@/lib/hooks";
 import { AdvancedMemberFilter, type AdvancedFilterState } from "@/components/member/AdvancedMemberFilter";
 import { ViewModeToggle, type ViewMode } from "@/components/member/ViewModeToggle";
@@ -181,6 +182,43 @@ export default function MembersContent() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-foreground">議員一覧</h1>
         <ViewModeToggle value={viewMode} onChange={handleViewChange} />
+      </div>
+
+      {/* クイックフィルタプリセット */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <span className="text-xs text-muted-foreground mr-1">クイック絞り込み:</span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => updateParams({ grade: "F", sort_by: "total", sort_order: "asc", page: undefined })}
+        >
+          低活動議員(F)
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => updateParams({ grade: "A", sort_by: "total", sort_order: "desc", page: undefined })}
+        >
+          高活動議員(A)
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => updateParams({ sort_by: "legislative_activity", sort_order: "desc", page: undefined, grade: undefined })}
+        >
+          立法活動順
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => updateParams({ sort_by: "question_quality", sort_order: "desc", page: undefined, grade: undefined })}
+        >
+          質問品質順
+        </Button>
       </div>
 
       <AdvancedMemberFilter state={filterState} onChange={handleFilterChange} />
