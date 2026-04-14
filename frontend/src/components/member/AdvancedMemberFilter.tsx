@@ -73,11 +73,11 @@ interface AdvancedMemberFilterProps {
   onChange: (state: AdvancedFilterState) => void;
 }
 
-function isRangeActive(range: [number, number]): boolean {
+export function isRangeActive(range: [number, number]): boolean {
   return range[0] > 0 || range[1] < 100;
 }
 
-function countActiveFilters(state: AdvancedFilterState): number {
+export function countActiveFilters(state: AdvancedFilterState): number {
   let count = 0;
   if (state.grades.length > 0) count++;
   if (isRangeActive(state.scoreRange)) count++;

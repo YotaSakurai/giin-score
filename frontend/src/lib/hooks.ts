@@ -184,10 +184,23 @@ export function useSpeechQuality(id: number, page = 1, perPage = 10) {
   return useSWR<PaginatedResponse<SpeechQualityItem>>(key, swrFetcher);
 }
 
+// ---- 質問主意書 ----
+export function useWrittenQuestions(id: number, page = 1, perPage = 10) {
+  const key = `/members/${id}/written-questions${buildQuery({ page, per_page: perPage })}`;
+  return useSWR<PaginatedResponse<import("./types").WrittenQuestionItem>>(key, swrFetcher);
+}
+
 // ---- 政党一覧 ----
 export function useParties(chamber?: string) {
   const key = `/scores/parties${buildQuery({ chamber })}`;
   return useSWR<string[]>(key, swrFetcher);
+}
+
+// ---- セッション一覧 ----
+export function useSessions() {
+  return useSWR<import("./types").DietSession[]>("/sessions", swrFetcher, {
+    revalidateOnFocus: false,
+  });
 }
 
 // ---- 役職カテゴリ一覧 ----

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LoadingSpinner } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
 import { CHAMBER_LABELS, GRADE_COLORS } from "@/lib/types";
-import { useRanking, useStats } from "@/lib/hooks";
+import { useRanking, useStats, useSessions } from "@/lib/hooks";
 import { ShareButton } from "@/components/ShareButton";
 import { buildQuery } from "@/lib/api";
 
@@ -37,6 +37,7 @@ export default function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const chamber = searchParams.get("chamber") || "all";
+  const sessionParam = searchParams.get("session") || "";
 
   const [compareIds, setCompareIds] = useState<number[]>(() => getStoredCompareIds());
 
@@ -67,37 +68,52 @@ export default function HomeContent() {
   }, [compareIds, router]);
 
   const chamberParam = chamber === "all" ? undefined : chamber;
+  const sessionNumber = sessionParam ? Number(sessionParam) : undefined;
+
+  const { data: sessions } = useSessions();
 
   const {
     data: rankingData,
     error: rankingError,
     isLoading: rankingLoading,
     mutate: mutateRanking,
-  } = useRanking({ chamber: chamberParam, limit: 100 });
+  } = useRanking({ chamber: chamberParam, session_number: sessionNumber, limit: 100 });
 
   const {
     data: stats,
     error: statsError,
     isLoading: statsLoading,
     mutate: mutateStats,
-  } = useStats({ chamber: chamberParam });
+  } = useStats({ chamber: chamberParam, session_number: sessionNumber });
 
   const loading = rankingLoading || statsLoading;
   const error = rankingError || statsError;
   const ranking = rankingData?.items ?? [];
 
-  const setChamber = useCallback(
-    (value: string) => {
+  const updateHomeParams = useCallback(
+    (updates: Record<string, string | undefined>) => {
       const params = new URLSearchParams(searchParams.toString());
-      if (value === "all") {
-        params.delete("chamber");
-      } else {
-        params.set("chamber", value);
-      }
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === undefined || value === "" || value === "all") {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+      });
       const qs = params.toString();
       router.push(qs ? `/?${qs}` : "/");
     },
     [router, searchParams],
+  );
+
+  const setChamber = useCallback(
+    (value: string) => updateHomeParams({ chamber: value === "all" ? undefined : value }),
+    [updateHomeParams],
+  );
+
+  const setSession = useCallback(
+    (value: string) => updateHomeParams({ session: value === "latest" ? undefined : value }),
+    [updateHomeParams],
   );
 
   const handleRetry = useCallback(() => {
@@ -194,9 +210,9 @@ export default function HomeContent() {
       )}
 
       {/* フィルタ */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-6 flex-wrap">
         <Select value={chamber} onValueChange={setChamber}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-40" aria-label="院を選択">
             <SelectValue placeholder="院を選択" />
           </SelectTrigger>
           <SelectContent>
@@ -205,8 +221,23 @@ export default function HomeContent() {
             <SelectItem value="councillors">参議院</SelectItem>
           </SelectContent>
         </Select>
+        {sessions && sessions.length > 0 && (
+          <Select value={sessionParam || "latest"} onValueChange={setSession}>
+            <SelectTrigger className="w-48" aria-label="会期を選択">
+              <SelectValue placeholder="会期を選択" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="latest">最新会期</SelectItem>
+              {sessions.map((s) => (
+                <SelectItem key={s.id} value={String(s.session_number)}>
+                  第{s.session_number}回 {s.kind}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <a
-          href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/scores/export/csv${buildQuery({ chamber: chamberParam })}`}
+          href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/scores/export/csv${buildQuery({ chamber: chamberParam, session_number: sessionNumber })}`}
           download
         >
           <Button variant="outline" size="sm">

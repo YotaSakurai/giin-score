@@ -10,6 +10,7 @@ from app.models.score import MemberScore
 from app.models.speech import Speech
 from app.models.speech_quality import SpeechQualityScore
 from app.models.vote import VoteRecord, VoteResult
+from app.models.written_question import WrittenQuestion
 from app.schemas.common import PaginatedResponse
 from app.schemas.member import (
     MemberDetail,
@@ -21,6 +22,7 @@ from app.schemas.member import (
 from app.schemas.speech import SpeechResponse
 from app.schemas.speech_quality import SpeechQualityResponse
 from app.schemas.vote import DissentDetail, VotePatternResponse, VoteRecordResponse
+from app.schemas.written_question import WrittenQuestionResponse
 
 router = APIRouter(prefix="/members", tags=["members"])
 
@@ -729,4 +731,62 @@ def get_vote_pattern(member_id: int, db: Session = Depends(get_db)):
         absent_count=absent_count,
         participation_rate=participation_rate,
         dissent_details=dissent_details[:10],
+    )
+
+
+@router.get(
+    "/{member_id}/written-questions",
+    response_model=PaginatedResponse[WrittenQuestionResponse],
+    summary="議員質問主意書一覧取得",
+)
+def get_member_written_questions(
+    member_id: int,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """指定議員の質問主意書一覧をページングで返す。"""
+    member = db.get(Member, member_id)
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    total = db.execute(
+        select(func.count(WrittenQuestion.id)).where(WrittenQuestion.member_id == member_id)
+    ).scalar_one()
+    offset = (page - 1) * per_page
+    questions = (
+        db.execute(
+            select(WrittenQuestion)
+            .where(WrittenQuestion.member_id == member_id)
+            .order_by(WrittenQuestion.submitted_date.desc().nullslast())
+            .offset(offset)
+            .limit(per_page)
+        )
+        .scalars()
+        .all()
+    )
+
+    pages = (total + per_page - 1) // per_page
+
+    items = [
+        WrittenQuestionResponse(
+            id=q.id,
+            session_id=q.session_id,
+            question_number=q.question_number,
+            title=q.title,
+            submitted_date=str(q.submitted_date) if q.submitted_date else None,
+            answer_date=str(q.answer_date) if q.answer_date else None,
+            question_url=q.question_url,
+            answer_url=q.answer_url,
+            has_answer=q.has_answer,
+        )
+        for q in questions
+    ]
+
+    return PaginatedResponse(
+        items=items,
+        total=total,
+        page=page,
+        per_page=per_page,
+        pages=pages,
     )

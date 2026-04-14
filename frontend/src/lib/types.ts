@@ -252,6 +252,18 @@ export interface PartyStatsResponse {
   session_number: number | null;
 }
 
+export interface WrittenQuestionItem {
+  id: number;
+  session_id: number;
+  question_number: number;
+  title: string;
+  submitted_date: string | null;
+  answer_date: string | null;
+  question_url: string | null;
+  answer_url: string | null;
+  has_answer: boolean;
+}
+
 export const CHAMBER_LABELS: Record<string, string> = {
   representatives: "衆議院",
   councillors: "参議院",

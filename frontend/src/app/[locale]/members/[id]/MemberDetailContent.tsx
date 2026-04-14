@@ -17,7 +17,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { CHAMBER_LABELS, AXIS_LABELS } from "@/lib/types";
 import { VOTE_LABELS, VOTE_COLORS } from "@/lib/constants";
-import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern, useSpeechQuality } from "@/lib/hooks";
+import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern, useSpeechQuality, useWrittenQuestions } from "@/lib/hooks";
 
 interface MemberDetailContentProps {
   params: Promise<{ id: string }>;
@@ -58,6 +58,15 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
   } = useSpeechQuality(memberId, qualityPage, 10);
   const qualityItems = qualityData?.items ?? [];
   const qualityPages = qualityData?.pages ?? 0;
+
+  // Written questions state
+  const [wqPage, setWqPage] = useState(1);
+  const {
+    data: wqData,
+    isLoading: wqLoading,
+  } = useWrittenQuestions(memberId, wqPage, 10);
+  const wqItems = wqData?.items ?? [];
+  const wqPages = wqData?.pages ?? 0;
 
   const [weights, setWeights] = useState({
     legislative_activity: 25,
@@ -212,6 +221,7 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
           <TabsTrigger value="speech-quality">質問品質</TabsTrigger>
           <TabsTrigger value="votes">投票記録</TabsTrigger>
           <TabsTrigger value="vote-pattern">投票パターン</TabsTrigger>
+          <TabsTrigger value="written-questions">質問主意書</TabsTrigger>
         </TabsList>
 
         <TabsContent value="speeches">
@@ -412,6 +422,54 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                     </div>
                   )}
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="written-questions">
+          <Card>
+            <CardContent className="p-4">
+              {wqLoading ? (
+                <LoadingSpinner />
+              ) : wqItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">質問主意書データがありません</p>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    {wqItems.map((q) => (
+                      <div key={q.id} className={`border-l-4 ${q.has_answer ? "border-l-emerald-500" : "border-l-muted"} rounded-r-lg border p-3`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{q.title}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              提出: {q.submitted_date ?? "-"}
+                              {q.answer_date && <> / 答弁: {q.answer_date}</>}
+                            </p>
+                          </div>
+                          <Badge variant={q.has_answer ? "default" : "secondary"} className="shrink-0">
+                            {q.has_answer ? "答弁あり" : "未答弁"}
+                          </Badge>
+                        </div>
+                        {(q.question_url || q.answer_url) && (
+                          <div className="flex gap-3 mt-2">
+                            {q.question_url && (
+                              <a href={q.question_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
+                                質問本文
+                              </a>
+                            )}
+                            {q.answer_url && (
+                              <a href={q.answer_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
+                                答弁書
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <Pagination page={wqPage} pages={wqPages} onPageChange={setWqPage} />
+                </>
               )}
             </CardContent>
           </Card>
