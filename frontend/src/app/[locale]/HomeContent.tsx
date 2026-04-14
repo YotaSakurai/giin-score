@@ -539,6 +539,23 @@ export default function HomeContent() {
                       )}
                     </button>
                   </div>
+                  {/* 5軸ミニバー */}
+                  <div className="mt-2 grid grid-cols-5 gap-1">
+                    {([
+                      { key: "legislative_activity" as const, label: "立法", color: "bg-violet-500" },
+                      { key: "voting_behavior" as const, label: "投票", color: "bg-sky-500" },
+                      { key: "policy_influence" as const, label: "影響", color: "bg-emerald-500" },
+                      { key: "transparency" as const, label: "透明", color: "bg-amber-500" },
+                      { key: "question_quality" as const, label: "質問", color: "bg-rose-500" },
+                    ]).map(({ key, label, color }) => (
+                      <div key={key} className="text-center">
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${color}`} style={{ width: `${entry.score[key]}%` }} />
+                        </div>
+                        <span className="text-[9px] text-muted-foreground">{label} {entry.score[key].toFixed(0)}</span>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -617,7 +634,13 @@ export default function HomeContent() {
                             {entry.member.name}
                           </Link>
                         </td>
-                        <td className="p-3 text-sm text-muted-foreground">{entry.member.party ?? "無所属"}</td>
+                        <td className="p-3 text-sm text-muted-foreground">
+                          {entry.member.party ? (
+                            <Link href={`/members?party=${encodeURIComponent(entry.member.party)}`} className="hover:text-primary hover:underline">
+                              {entry.member.party}
+                            </Link>
+                          ) : "無所属"}
+                        </td>
                         <td className="p-3 hidden md:table-cell">
                           <Badge variant="outline" className="text-xs">
                             {CHAMBER_LABELS[entry.member.chamber]}

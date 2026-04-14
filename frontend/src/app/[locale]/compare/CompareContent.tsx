@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
+import { ShareButton } from "@/components/ShareButton";
 import dynamic from "next/dynamic";
 
 const CompareRadarChart = dynamic(
@@ -157,7 +158,12 @@ export default function CompareContent() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">議員比較</h1>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-2xl font-bold text-foreground">議員比較</h1>
+            <ShareButton
+              title={`議員比較: ${members.map((m) => m.name).join(" vs ")} | GiinScore`}
+            />
+          </div>
           <p className="text-sm text-muted-foreground">
             {members.map((m) => m.name).join(" / ")} の活動スコアを比較
           </p>

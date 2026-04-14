@@ -137,8 +137,37 @@ export default function QualityRankingContent() {
             </div>
           )}
 
+          {/* モバイルカード */}
+          <div className="sm:hidden space-y-3">
+            {ranking.map((entry) => {
+              const gradeColor = GRADE_COLORS[entry.score.grade] || "bg-gray-300";
+              return (
+                <Card key={entry.member.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg font-bold text-muted-foreground w-8 text-right">{entry.rank}</span>
+                      <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white text-sm font-bold ${gradeColor}`}>
+                        {entry.score.grade}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <Link href={`/members/${entry.member.id}`} className="text-sm font-bold text-blue-600 hover:underline">
+                          {entry.member.name}
+                        </Link>
+                        <p className="text-xs text-muted-foreground mt-0.5">{entry.member.party ?? "無所属"}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-rose-600">{entry.score.question_quality.toFixed(1)}</p>
+                        <p className="text-xs text-muted-foreground">総合 {entry.score.total.toFixed(1)}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
           {/* テーブル */}
-          <Card>
+          <Card className="hidden sm:block">
             <CardHeader>
               <CardTitle className="text-base">TOP {ranking.length}</CardTitle>
             </CardHeader>
