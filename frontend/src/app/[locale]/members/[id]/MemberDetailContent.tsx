@@ -17,7 +17,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { CHAMBER_LABELS, AXIS_LABELS, GRADE_COLORS } from "@/lib/types";
 import { VOTE_LABELS, VOTE_COLORS, SCORE_DESCRIPTIONS, GRADE_DESCRIPTIONS } from "@/lib/constants";
-import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern, useSpeechQuality, useWrittenQuestions, useStats } from "@/lib/hooks";
+import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern, useSpeechQuality, useWrittenQuestions, useStats, useMembers } from "@/lib/hooks";
 
 interface MemberDetailContentProps {
   params: Promise<{ id: string }>;
@@ -187,6 +187,17 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
     } : null,
     member?.chamber,
   );
+
+  // 同じ選挙区の議員
+  const { data: sameDistrictData } = useMembers(
+    member?.district
+      ? { district: member.district, sort_by: "total", sort_order: "desc", per_page: 10 }
+      : undefined,
+  );
+  const sameDistrictMembers = useMemo(() => {
+    if (!sameDistrictData?.items) return [];
+    return sameDistrictData.items.filter((m) => m.id !== memberId);
+  }, [sameDistrictData, memberId]);
 
   // 特徴サマリー
   const summaryLines = useMemo(() => {
@@ -729,6 +740,45 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* 同じ選挙区の議員 */}
+      {sameDistrictMembers.length > 0 && member.district && (
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="text-base">「{member.district}」の他の議員</CardTitle>
+            <p className="text-xs text-muted-foreground">同じ選挙区の議員をスコア順に表示しています</p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {sameDistrictMembers.map((m) => {
+                const s = m.latest_score;
+                const gc = s ? (GRADE_COLORS[s.grade] || "bg-gray-300") : "bg-gray-300";
+                return (
+                  <Link key={m.id} href={`/members/${m.id}`}>
+                    <div className="rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold ${gc}`}>
+                          {s?.grade ?? "-"}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-blue-600 truncate">{m.name}</p>
+                          <p className="text-xs text-muted-foreground">{m.party ?? "無所属"}</p>
+                        </div>
+                        {s && <span className="text-sm font-bold">{s.total.toFixed(1)}</span>}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="mt-3 text-right">
+              <Link href={`/members?district=${encodeURIComponent(member.district)}&sort_by=total&sort_order=desc`} className="text-xs text-blue-600 hover:underline">
+                全議員を見る →
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

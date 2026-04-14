@@ -48,7 +48,9 @@ function Stat({ label, value, unit, bar, barMax, barColor }: {
   );
 }
 
-function LegislativeDetail({ d }: { d: LegislativeActivityBreakdown }) {
+function LegislativeDetail({ d, enactedCount }: { d: LegislativeActivityBreakdown; enactedCount?: number }) {
+  const sponsoredCount = d.bills_sponsored?.length ?? 0;
+  const enacted = enactedCount ?? 0;
   return (
     <div className="space-y-0.5">
       <Stat label="発言回数" value={d.speech_count} unit="回" />
@@ -61,6 +63,35 @@ function LegislativeDetail({ d }: { d: LegislativeActivityBreakdown }) {
           <Stat label="質問主意書" value={d.written_questions} unit="件" />
           <Stat label="答弁あり" value={d.written_questions_answered} unit="件" />
         </>
+      )}
+      {/* 発議 vs 成立 比率バー */}
+      {sponsoredCount > 0 && (
+        <div className="mt-2 rounded-lg border p-2 bg-muted/30">
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="text-muted-foreground">発議 {sponsoredCount}件 → 成立 {enacted}件</span>
+            <span className="font-medium">
+              {sponsoredCount > 0 ? `${((enacted / sponsoredCount) * 100).toFixed(0)}%` : "0%"} 成立率
+            </span>
+          </div>
+          <div className="h-3 rounded-full bg-muted flex overflow-hidden">
+            {enacted > 0 && (
+              <div
+                className="h-3 bg-emerald-500 rounded-l"
+                style={{ width: `${(enacted / sponsoredCount) * 100}%` }}
+                title={`成立: ${enacted}件`}
+              />
+            )}
+            <div
+              className="h-3 bg-orange-300"
+              style={{ width: `${((sponsoredCount - enacted) / sponsoredCount) * 100}%` }}
+              title={`未成立: ${sponsoredCount - enacted}件`}
+            />
+          </div>
+          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />成立</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-orange-300" />未成立</span>
+          </div>
+        </div>
       )}
       {d.bills_sponsored?.length > 0 && (
         <div className="mt-2">
@@ -207,7 +238,10 @@ export function ScoreBreakdown({ breakdown, scores }: ScoreBreakdownProps) {
               {breakdown?.[key] && (
                 <div className="mt-2 ml-1 border-l-2 border-muted pl-3">
                   {key === "legislative_activity" && (
-                    <LegislativeDetail d={breakdown.legislative_activity} />
+                    <LegislativeDetail
+                      d={breakdown.legislative_activity}
+                      enactedCount={breakdown.policy_influence?.enacted_count}
+                    />
                   )}
                   {key === "voting_behavior" && (
                     <VotingDetail d={breakdown.voting_behavior} />
