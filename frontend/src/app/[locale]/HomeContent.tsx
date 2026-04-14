@@ -352,6 +352,22 @@ export default function HomeContent() {
                       <p className="text-xl font-bold">{entry.score.total.toFixed(1)}</p>
                     </div>
                   </div>
+                  <div className="mt-3 grid grid-cols-5 gap-1">
+                    {([
+                      { key: "legislative_activity" as const, label: "立法", color: "bg-violet-500" },
+                      { key: "voting_behavior" as const, label: "投票", color: "bg-sky-500" },
+                      { key: "policy_influence" as const, label: "影響", color: "bg-emerald-500" },
+                      { key: "transparency" as const, label: "透明", color: "bg-amber-500" },
+                      { key: "question_quality" as const, label: "質問", color: "bg-rose-500" },
+                    ]).map(({ key, label, color }) => (
+                      <div key={key} className="text-center">
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${color}`} style={{ width: `${entry.score[key]}%` }} />
+                        </div>
+                        <span className="text-[9px] text-muted-foreground">{label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             );

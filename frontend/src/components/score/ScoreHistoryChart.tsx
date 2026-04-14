@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceArea,
 } from "recharts";
 import type { ScoreDetail } from "@/lib/types";
 
@@ -44,6 +45,11 @@ export function ScoreHistoryChart({ scores }: ScoreHistoryChartProps) {
   return (
     <ResponsiveContainer width="100%" height={350}>
       <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+        <ReferenceArea y1={80} y2={100} fill="#10b981" fillOpacity={0.06} />
+        <ReferenceArea y1={60} y2={80} fill="#3b82f6" fillOpacity={0.06} />
+        <ReferenceArea y1={40} y2={60} fill="#eab308" fillOpacity={0.06} />
+        <ReferenceArea y1={20} y2={40} fill="#f97316" fillOpacity={0.06} />
+        <ReferenceArea y1={0} y2={20} fill="#ef4444" fillOpacity={0.06} />
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis
           dataKey="session_number"

@@ -781,7 +781,15 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                 );
               })}
             </div>
-            <div className="mt-3 text-right">
+            <div className="mt-3 flex items-center justify-between">
+              {sameDistrictMembers.length >= 1 && (
+                <Link
+                  href={`/compare?ids=${[memberId, ...sameDistrictMembers.slice(0, 3).map((m) => m.id)].join(",")}`}
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  この選挙区の議員を比較 →
+                </Link>
+              )}
               <Link href={`/members?district=${encodeURIComponent(member.district)}&sort_by=total&sort_order=desc`} className="text-xs text-blue-600 hover:underline">
                 全議員を見る →
               </Link>
