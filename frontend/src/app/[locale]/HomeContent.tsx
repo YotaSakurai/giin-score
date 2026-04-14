@@ -13,6 +13,7 @@ import { CHAMBER_LABELS, GRADE_COLORS } from "@/lib/types";
 import { useRanking, useStats, useSessions } from "@/lib/hooks";
 import { ShareButton } from "@/components/ShareButton";
 import { buildQuery } from "@/lib/api";
+import { SCORE_DESCRIPTIONS, GRADE_DESCRIPTIONS } from "@/lib/constants";
 
 const COMPARE_STORAGE_KEY = "giin-score-compare-ids";
 const MAX_COMPARE = 4;
@@ -33,13 +34,33 @@ function setStoredCompareIds(ids: number[]) {
   localStorage.setItem(COMPARE_STORAGE_KEY, JSON.stringify(ids));
 }
 
+function ScoreTooltip({ axis }: { axis: string }) {
+  const desc = SCORE_DESCRIPTIONS[axis];
+  if (!desc) return null;
+  return (
+    <span className="group relative inline-flex ml-1 cursor-help">
+      <svg className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <circle cx="12" cy="12" r="10" />
+        <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
+      </svg>
+      <span className="invisible group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-lg bg-popover border border-border p-3 text-xs text-popover-foreground shadow-lg z-50">
+        {desc.short}
+      </span>
+    </span>
+  );
+}
+
 export default function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const chamber = searchParams.get("chamber") || "all";
   const sessionParam = searchParams.get("session") || "";
+  const sortOrder = searchParams.get("sort") || "desc";
+  const [districtSearch, setDistrictSearch] = useState("");
 
   const [compareIds, setCompareIds] = useState<number[]>(() => getStoredCompareIds());
+  const [showGuide, setShowGuide] = useState(false);
 
   const toggleCompare = useCallback((memberId: number) => {
     setCompareIds((prev) => {
@@ -62,7 +83,6 @@ export default function HomeContent() {
 
   const goToCompare = useCallback(() => {
     if (compareIds.length >= 2) {
-      // 遷移後にlocalStorageをクリアしない（比較ページでも参照可能にするため）
       router.push(`/compare?ids=${compareIds.join(",")}`);
     }
   }, [compareIds, router]);
@@ -77,7 +97,7 @@ export default function HomeContent() {
     error: rankingError,
     isLoading: rankingLoading,
     mutate: mutateRanking,
-  } = useRanking({ chamber: chamberParam, session_number: sessionNumber, limit: 100 });
+  } = useRanking({ chamber: chamberParam, session_number: sessionNumber, sort_order: sortOrder, limit: 100 });
 
   const {
     data: stats,
@@ -116,10 +136,20 @@ export default function HomeContent() {
     [updateHomeParams],
   );
 
+  const toggleSortOrder = useCallback(() => {
+    updateHomeParams({ sort: sortOrder === "desc" ? "asc" : undefined });
+  }, [updateHomeParams, sortOrder]);
+
   const handleRetry = useCallback(() => {
     mutateRanking();
     mutateStats();
   }, [mutateRanking, mutateStats]);
+
+  const handleDistrictSearch = useCallback(() => {
+    if (districtSearch.trim()) {
+      router.push(`/members?district=${encodeURIComponent(districtSearch.trim())}&sort_by=total&sort_order=desc`);
+    }
+  }, [districtSearch, router]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -130,15 +160,50 @@ export default function HomeContent() {
         </p>
       </div>
 
+      {/* 選挙区検索CTA */}
+      <Card className="mb-8 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex-1">
+              <h2 className="text-lg font-bold text-foreground mb-1">あなたの選挙区の議員を調べる</h2>
+              <p className="text-sm text-muted-foreground">選挙区名を入力すると、その地域の国会議員のスコアを確認できます</p>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <input
+                type="text"
+                placeholder="例: 東京1区、北海道"
+                value={districtSearch}
+                onChange={(e) => setDistrictSearch(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleDistrictSearch()}
+                className="flex-1 sm:w-56 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <Button onClick={handleDistrictSearch} disabled={!districtSearch.trim()}>
+                <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="M21 21l-4.35-4.35" />
+                </svg>
+                検索
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* ヘッダー */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-2xl font-bold text-foreground">議員活動ランキング</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {sortOrder === "asc" ? "議員活動ワーストランキング" : "議員活動ランキング"}
+          </h1>
           <ShareButton
             title="議員活動ランキング | GiinScore - 国会議員の活動スコアを可視化"
           />
         </div>
-        <p className="text-sm text-muted-foreground">国会における議員の活動スコアランキング</p>
+        <p className="text-sm text-muted-foreground">
+          {sortOrder === "asc"
+            ? "国会活動が低い議員のランキング — スコアが低い議員ほど議会での活動が少ないことを示します"
+            : "国会における議員の活動スコアランキング"}
+        </p>
       </div>
 
       {/* 統計概要 */}
@@ -153,7 +218,7 @@ export default function HomeContent() {
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-blue-600">{stats.average_score.toFixed(1)}</p>
-              <p className="text-xs text-muted-foreground">平均スコア</p>
+              <p className="text-xs text-muted-foreground">平均スコア<ScoreTooltip axis="total" /></p>
             </CardContent>
           </Card>
           <Card>
@@ -178,11 +243,11 @@ export default function HomeContent() {
       )}
 
       {/* TOP3 ハイライト */}
-      {ranking.length >= 3 && (
+      {sortOrder === "desc" && ranking.length >= 3 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           {ranking.slice(0, 3).map((entry, idx) => {
             const colors = ["border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30", "border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50", "border-amber-600 bg-amber-50 dark:bg-amber-950/30"];
-            const medals = ["🥇", "🥈", "🥉"];
+            const medals = ["\u{1F947}", "\u{1F948}", "\u{1F949}"];
             const gradeColor = GRADE_COLORS[entry.score.grade] || "bg-gray-300";
             return (
               <Card key={entry.member.id} className={`border-2 ${colors[idx]}`}>
@@ -236,6 +301,36 @@ export default function HomeContent() {
             </SelectContent>
           </Select>
         )}
+        <Button
+          variant={sortOrder === "asc" ? "default" : "outline"}
+          size="sm"
+          onClick={toggleSortOrder}
+          aria-label={sortOrder === "asc" ? "高スコア順に切替" : "低スコア順に切替"}
+        >
+          {sortOrder === "asc" ? (
+            <>
+              <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+              </svg>
+              低スコア順
+            </>
+          ) : (
+            <>
+              <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
+              </svg>
+              高スコア順
+            </>
+          )}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setShowGuide(!showGuide)}>
+          <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          スコアの見方
+        </Button>
         <a
           href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/scores/export/csv${buildQuery({ chamber: chamberParam, session_number: sessionNumber })}`}
           download
@@ -248,6 +343,53 @@ export default function HomeContent() {
           </Button>
         </a>
       </div>
+
+      {/* スコアガイド */}
+      {showGuide && (
+        <Card className="mb-6 bg-slate-50 dark:bg-slate-900/50">
+          <CardHeader>
+            <CardTitle className="text-base">スコアの見方ガイド</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold mb-2">グレード</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                {(["A", "B", "C", "D", "F"] as const).map((g) => (
+                  <div key={g} className="flex items-center gap-2">
+                    <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold ${GRADE_COLORS[g]}`}>
+                      {g}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{GRADE_DESCRIPTIONS[g]}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold mb-2">スコアの5軸</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {(["legislative_activity", "voting_behavior", "policy_influence", "transparency", "question_quality"] as const).map((axis) => {
+                  const labels: Record<string, string> = {
+                    legislative_activity: "立法活動",
+                    voting_behavior: "投票行動",
+                    policy_influence: "政策影響力",
+                    transparency: "透明性",
+                    question_quality: "質問品質",
+                  };
+                  return (
+                    <div key={axis} className="rounded-lg border p-3 bg-background">
+                      <p className="text-sm font-medium mb-1">{labels[axis]}</p>
+                      <p className="text-xs text-muted-foreground">{SCORE_DESCRIPTIONS[axis].short}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              スコアは同じ院・同じ役職の議員同士でパーセンタイルランク（0-100）に変換しています。50が平均的な位置です。
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* コンテンツ */}
       {loading ? (
@@ -316,7 +458,9 @@ export default function HomeContent() {
         {/* デスクトップテーブルビュー */}
         <Card className="hidden sm:block">
           <CardHeader>
-            <CardTitle className="text-base">TOP {ranking.length}</CardTitle>
+            <CardTitle className="text-base">
+              {sortOrder === "asc" ? "WORST" : "TOP"} {ranking.length}
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -329,12 +473,12 @@ export default function HomeContent() {
                     <th scope="col" className="p-3">政党</th>
                     <th scope="col" className="p-3 hidden md:table-cell">院</th>
                     <th scope="col" className="p-3 text-center">グレード</th>
-                    <th scope="col" className="p-3 text-right">スコア</th>
-                    <th scope="col" className="p-3 hidden lg:table-cell text-right">立法</th>
-                    <th scope="col" className="p-3 hidden lg:table-cell text-right">投票</th>
-                    <th scope="col" className="p-3 hidden lg:table-cell text-right">影響</th>
-                    <th scope="col" className="p-3 hidden lg:table-cell text-right">透明</th>
-                    <th scope="col" className="p-3 hidden lg:table-cell text-right">質問</th>
+                    <th scope="col" className="p-3 text-right">スコア<ScoreTooltip axis="total" /></th>
+                    <th scope="col" className="p-3 hidden lg:table-cell text-right">立法<ScoreTooltip axis="legislative_activity" /></th>
+                    <th scope="col" className="p-3 hidden lg:table-cell text-right">投票<ScoreTooltip axis="voting_behavior" /></th>
+                    <th scope="col" className="p-3 hidden lg:table-cell text-right">影響<ScoreTooltip axis="policy_influence" /></th>
+                    <th scope="col" className="p-3 hidden lg:table-cell text-right">透明<ScoreTooltip axis="transparency" /></th>
+                    <th scope="col" className="p-3 hidden lg:table-cell text-right">質問<ScoreTooltip axis="question_quality" /></th>
                   </tr>
                 </thead>
                 <tbody>

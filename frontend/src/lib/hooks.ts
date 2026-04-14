@@ -22,6 +22,7 @@ export function useRanking(params?: {
   party?: string;
   session_number?: number;
   sort_by?: string;
+  sort_order?: string;
   limit?: number;
   offset?: number;
 }) {

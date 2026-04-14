@@ -15,12 +15,94 @@ import { ScoreCard } from "@/components/score/ScoreCard";
 import { ScoreBreakdown } from "@/components/score/ScoreBreakdown";
 import { ShareButton } from "@/components/ShareButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
-import { CHAMBER_LABELS, AXIS_LABELS } from "@/lib/types";
-import { VOTE_LABELS, VOTE_COLORS } from "@/lib/constants";
-import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern, useSpeechQuality, useWrittenQuestions } from "@/lib/hooks";
+import { CHAMBER_LABELS, AXIS_LABELS, GRADE_COLORS } from "@/lib/types";
+import { VOTE_LABELS, VOTE_COLORS, SCORE_DESCRIPTIONS, GRADE_DESCRIPTIONS } from "@/lib/constants";
+import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern, useSpeechQuality, useWrittenQuestions, useStats } from "@/lib/hooks";
 
 interface MemberDetailContentProps {
   params: Promise<{ id: string }>;
+}
+
+/** 各軸のスコアを全体平均と比較して差分情報を返す */
+function useScoreComparison(
+  scores: { legislative_activity: number; voting_behavior: number; policy_influence: number; transparency: number; question_quality: number; total: number } | null,
+  chamber?: string,
+) {
+  const { data: stats } = useStats(chamber ? { chamber } : undefined);
+  return useMemo(() => {
+    if (!scores || !stats) return null;
+    const avg = stats.average_score;
+    const axes = [
+      { key: "legislative_activity" as const, label: "立法活動" },
+      { key: "voting_behavior" as const, label: "投票行動" },
+      { key: "policy_influence" as const, label: "政策影響力" },
+      { key: "transparency" as const, label: "透明性" },
+      { key: "question_quality" as const, label: "質問品質" },
+    ];
+    // Overall average is total score average; for per-axis we use 50 as the expected center since they're percentile ranks
+    const comparisons = axes.map((a) => ({
+      ...a,
+      value: scores[a.key],
+      avgDiff: scores[a.key] - 50,
+    }));
+    return {
+      totalDiff: scores.total - avg,
+      axes: comparisons,
+    };
+  }, [scores, stats]);
+}
+
+/** スコアパターンから議員の特徴を自動生成するテキスト */
+function generateMemberSummary(
+  scores: { legislative_activity: number; voting_behavior: number; policy_influence: number; transparency: number; question_quality: number; total: number; grade: string },
+): string[] {
+  const lines: string[] = [];
+
+  // 総合評価
+  if (scores.grade === "A") {
+    lines.push("全体的に非常に活発な議会活動を行っています。");
+  } else if (scores.grade === "B") {
+    lines.push("平均以上の議会活動を行っています。");
+  } else if (scores.grade === "F") {
+    lines.push("議会活動が全体の中で非常に低い水準にあります。");
+  }
+
+  // 強み（70以上）
+  const axes = [
+    { key: "legislative_activity", label: "立法活動", value: scores.legislative_activity },
+    { key: "voting_behavior", label: "投票行動", value: scores.voting_behavior },
+    { key: "policy_influence", label: "政策影響力", value: scores.policy_influence },
+    { key: "transparency", label: "透明性", value: scores.transparency },
+    { key: "question_quality", label: "質問品質", value: scores.question_quality },
+  ];
+  const strengths = axes.filter((a) => a.value >= 70).map((a) => a.label);
+  const weaknesses = axes.filter((a) => a.value < 30).map((a) => a.label);
+
+  if (strengths.length > 0) {
+    lines.push(`強み: ${strengths.join("・")}が高水準です。`);
+  }
+  if (weaknesses.length > 0) {
+    lines.push(`課題: ${weaknesses.join("・")}が低水準です。`);
+  }
+
+  // 特徴的なパターン
+  if (scores.legislative_activity >= 70 && scores.policy_influence < 30) {
+    lines.push("法案提出は活発ですが、成立に至る成果が少ない傾向があります。");
+  }
+  if (scores.policy_influence >= 70 && scores.legislative_activity < 40) {
+    lines.push("法案の成立率が高く、少数精鋭の提案で成果を出すタイプです。");
+  }
+  if (scores.question_quality >= 70 && scores.voting_behavior >= 70) {
+    lines.push("質問の質が高く、投票にも積極的に参加しており、堅実な議員活動を行っています。");
+  }
+  if (scores.voting_behavior < 30) {
+    lines.push("投票への参加率が低く、採決に出席していない可能性があります。");
+  }
+  if (scores.question_quality < 20 && scores.legislative_activity < 20) {
+    lines.push("質疑・立法とも活動量が非常に少ない状態です。");
+  }
+
+  return lines;
 }
 
 export default function MemberDetailContent({ params }: MemberDetailContentProps) {
@@ -93,6 +175,33 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
 
   const customGrade = customTotal >= 80 ? "A" : customTotal >= 60 ? "B" : customTotal >= 40 ? "C" : customTotal >= 20 ? "D" : "F";
 
+  // 平均比較
+  const comparison = useScoreComparison(
+    latestScore ? {
+      legislative_activity: latestScore.legislative_activity,
+      voting_behavior: latestScore.voting_behavior,
+      policy_influence: latestScore.policy_influence,
+      transparency: latestScore.transparency,
+      question_quality: latestScore.question_quality,
+      total: latestScore.total,
+    } : null,
+    member?.chamber,
+  );
+
+  // 特徴サマリー
+  const summaryLines = useMemo(() => {
+    if (!latestScore) return [];
+    return generateMemberSummary({
+      legislative_activity: latestScore.legislative_activity,
+      voting_behavior: latestScore.voting_behavior,
+      policy_influence: latestScore.policy_influence,
+      transparency: latestScore.transparency,
+      question_quality: latestScore.question_quality,
+      total: latestScore.total,
+      grade: latestScore.grade,
+    });
+  }, [latestScore]);
+
   if (isLoading) return <div className="mx-auto max-w-7xl px-4 py-8"><LoadingSpinner /></div>;
   if (error) return <div className="mx-auto max-w-7xl px-4 py-8"><ErrorMessage message={error instanceof Error ? error.message : "データの取得に失敗しました"} onRetry={() => mutate()} /></div>;
   if (!member) return <div className="mx-auto max-w-7xl px-4 py-8">議員が見つかりません</div>;
@@ -125,10 +234,14 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
               <ShareButton title={shareTitle} url={shareUrl} />
             </div>
             {member.name_reading && <p className="text-sm text-muted-foreground">{member.name_reading}</p>}
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-2 mt-2 flex-wrap">
               <Badge variant="outline">{CHAMBER_LABELS[member.chamber]}</Badge>
               <Badge variant="secondary">{member.party ?? "無所属"}</Badge>
-              {member.district && <Badge variant="secondary">{member.district}</Badge>}
+              {member.district && (
+                <Link href={`/members?district=${encodeURIComponent(member.district)}`}>
+                  <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{member.district}</Badge>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -136,10 +249,34 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
 
       {latestScore ? (
         <>
+          {/* 議員特徴サマリー */}
+          {summaryLines.length > 0 && (
+            <Card className="mb-8 border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/20">
+              <CardContent className="p-4">
+                <h2 className="text-sm font-semibold text-foreground mb-2">この議員の特徴</h2>
+                <ul className="space-y-1">
+                  {summaryLines.map((line, i) => (
+                    <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0" />
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
           {/* スコア概要 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div>
               <ScoreCard total={customTotal} grade={customGrade} label="総合スコア" />
+              {comparison && (
+                <div className="mt-2 text-center">
+                  <span className={`text-sm font-medium ${comparison.totalDiff >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                    全体平均{comparison.totalDiff >= 0 ? "+" : ""}{comparison.totalDiff.toFixed(1)}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="md:col-span-2">
               <Card>
@@ -154,6 +291,69 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                 </CardContent>
               </Card>
             </div>
+          </div>
+
+          {/* 5軸の平均比較 */}
+          {comparison && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="text-base">全体平均との比較</CardTitle>
+                <p className="text-xs text-muted-foreground">50が同条件の議員の中央値です。50を超えていれば平均以上、下回っていれば平均以下です。</p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {comparison.axes.map((axis) => {
+                    const pct = Math.min(axis.value, 100);
+                    const isAbove = axis.value >= 50;
+                    return (
+                      <div key={axis.key} className="flex items-center gap-3">
+                        <span className="text-sm w-20 shrink-0">{axis.label}</span>
+                        <div className="flex-1 relative h-6">
+                          {/* 背景バー */}
+                          <div className="absolute inset-0 rounded-full bg-muted" />
+                          {/* 中央線 */}
+                          <div className="absolute top-0 bottom-0 left-1/2 w-px bg-border z-10" />
+                          {/* スコアバー */}
+                          <div
+                            className={`absolute top-0 bottom-0 rounded-full ${isAbove ? "bg-emerald-500/30" : "bg-red-500/30"}`}
+                            style={{
+                              left: isAbove ? "50%" : `${pct}%`,
+                              width: `${Math.abs(pct - 50)}%`,
+                            }}
+                          />
+                          {/* ドット */}
+                          <div
+                            className={`absolute top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-2 border-white shadow ${isAbove ? "bg-emerald-500" : "bg-red-500"}`}
+                            style={{ left: `calc(${pct}% - 8px)` }}
+                          />
+                        </div>
+                        <span className={`text-sm font-medium w-12 text-right ${isAbove ? "text-emerald-600" : "text-red-500"}`}>
+                          {axis.value.toFixed(0)}
+                        </span>
+                        <span className="group relative cursor-help">
+                          <svg className="h-3.5 w-3.5 text-muted-foreground/50 hover:text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                          </svg>
+                          <span className="invisible group-hover:visible absolute bottom-full right-0 mb-2 w-56 rounded-lg bg-popover border border-border p-2 text-xs text-popover-foreground shadow-lg z-50">
+                            {SCORE_DESCRIPTIONS[axis.key]?.short}
+                          </span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* グレード解説 */}
+          <div className="mb-8 flex items-center gap-3 text-sm">
+            <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-white text-sm font-bold ${GRADE_COLORS[latestScore.grade] || "bg-gray-300"}`}>
+              {latestScore.grade}
+            </span>
+            <span className="text-muted-foreground">{GRADE_DESCRIPTIONS[latestScore.grade]}</span>
           </div>
 
           {/* 重みカスタマイズスライダー */}

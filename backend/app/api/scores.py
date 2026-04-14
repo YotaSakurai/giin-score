@@ -68,6 +68,7 @@ def get_ranking(
         "transparency",
         "question_quality",
     ] = "total",
+    sort_order: Literal["asc", "desc"] = "desc",
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
@@ -99,9 +100,10 @@ def get_ranking(
 
     # データクエリ（OFFSET/LIMIT でページング）
     sort_column = RANKING_SORT_FIELDS[sort_by]
+    order_expr = sort_column.asc() if sort_order == "asc" else sort_column.desc()
     data_query = (
         base_query.options(selectinload(MemberScore.member))
-        .order_by(sort_column.desc())
+        .order_by(order_expr)
         .offset(offset)
         .limit(limit)
     )
