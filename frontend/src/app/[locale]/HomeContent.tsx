@@ -556,6 +556,7 @@ export default function HomeContent() {
                     <th scope="col" className="p-3">議員名</th>
                     <th scope="col" className="p-3">政党</th>
                     <th scope="col" className="p-3 hidden md:table-cell">院</th>
+                    <th scope="col" className="p-3 hidden md:table-cell">選挙区</th>
                     <th scope="col" className="p-3 text-center">グレード</th>
                     <th scope="col" className="p-3 text-right">スコア<ScoreTooltip axis="total" /></th>
                     <th scope="col" className="p-3 hidden lg:table-cell text-right">立法<ScoreTooltip axis="legislative_activity" /></th>
@@ -611,6 +612,9 @@ export default function HomeContent() {
                             {CHAMBER_LABELS[entry.member.chamber]}
                           </Badge>
                         </td>
+                        <td className="p-3 hidden md:table-cell text-xs text-muted-foreground truncate max-w-[120px]">
+                          {entry.member.district ?? "-"}
+                        </td>
                         <td className="p-3 text-center">
                           <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-white text-xs font-bold ${gradeColor}`}>
                             {entry.score.grade}
@@ -627,7 +631,7 @@ export default function HomeContent() {
                   })}
                   {ranking.length === 0 && (
                     <tr>
-                      <td colSpan={12} className="p-8 text-center text-sm text-muted-foreground">
+                      <td colSpan={13} className="p-8 text-center text-sm text-muted-foreground">
                         スコアデータがまだありません
                       </td>
                     </tr>

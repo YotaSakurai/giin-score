@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 
 interface ShareButtonProps {
@@ -46,8 +47,36 @@ function FacebookIcon({ className }: { className?: string }) {
   );
 }
 
+function CopyIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className} aria-hidden="true">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+
 export function ShareButton({ title, url }: ShareButtonProps) {
   const shareUrl = url || (typeof window !== "undefined" ? window.location.href : "");
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(`${title}\n${shareUrl}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+    }
+  }, [title, shareUrl]);
 
   const xShareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(shareUrl)}`;
   const lineShareUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}`;
@@ -87,6 +116,15 @@ export function ShareButton({ title, url }: ShareButtonProps) {
         <a href={fbShareUrl} target="_blank" rel="noopener noreferrer">
           <FacebookIcon className="size-4" />
         </a>
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className={`text-muted-foreground hover:text-foreground hover:bg-muted ${copied ? "text-emerald-500" : ""}`}
+        aria-label="クリップボードにコピー"
+        onClick={handleCopy}
+      >
+        {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
       </Button>
     </div>
   );

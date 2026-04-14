@@ -11,6 +11,20 @@ import { AXIS_LABELS, GRADE_COLORS } from "@/lib/types";
 import { usePartyStats } from "@/lib/hooks";
 import { ShareButton } from "@/components/ShareButton";
 import { PartyBarChart } from "@/components/score/PartyBarChart";
+import dynamic from "next/dynamic";
+
+const CompareRadarChart = dynamic(
+  () => import("@/components/score/CompareRadarChart").then(m => ({ default: m.CompareRadarChart })),
+  { loading: () => <LoadingSpinner /> },
+);
+
+const PARTY_COLORS = [
+  { stroke: "#3b82f6", fill: "#3b82f6" },
+  { stroke: "#ef4444", fill: "#ef4444" },
+  { stroke: "#10b981", fill: "#10b981" },
+  { stroke: "#f59e0b", fill: "#f59e0b" },
+  { stroke: "#8b5cf6", fill: "#8b5cf6" },
+];
 
 type SortKey =
   | "average_score"
@@ -130,6 +144,36 @@ export default function PartyStatsContent() {
               <PartyBarChart items={sortedItems} />
             </CardContent>
           </Card>
+
+          {/* 政党レーダーチャート (TOP5) */}
+          {sortedItems.length >= 2 && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-base">上位政党の5軸比較</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-4 mb-4 justify-center">
+                  {sortedItems.slice(0, 5).map((entry, idx) => (
+                    <div key={entry.party} className="flex items-center gap-2">
+                      <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: PARTY_COLORS[idx].stroke }} />
+                      <span className="text-sm text-foreground/80">{entry.party}</span>
+                    </div>
+                  ))}
+                </div>
+                <CompareRadarChart
+                  members={sortedItems.slice(0, 5).map((entry, idx) => ({
+                    name: entry.party,
+                    legislative_activity: entry.average_legislative_activity,
+                    voting_behavior: entry.average_voting_behavior,
+                    policy_influence: entry.average_policy_influence,
+                    transparency: entry.average_transparency,
+                    question_quality: entry.average_question_quality,
+                    color: PARTY_COLORS[idx],
+                  }))}
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {/* テーブル */}
           <Card>
