@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AXIS_LABELS } from "@/lib/types";
+import { AXIS_LABELS, AXIS_DESCRIPTIONS } from "@/lib/types";
 import type {
   ScoreBreakdownData,
   LegislativeActivityBreakdown,
@@ -224,8 +224,9 @@ export function ScoreBreakdown({ breakdown, scores }: ScoreBreakdownProps) {
           return (
             <div key={key}>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-foreground/80">
+                <span className="text-sm font-medium text-foreground/80" title={AXIS_DESCRIPTIONS[key]}>
                   {AXIS_LABELS[key]}
+                  <abbr className="no-underline text-muted-foreground/60 ml-0.5 cursor-help" title={AXIS_DESCRIPTIONS[key]}>ⓘ</abbr>
                 </span>
                 <span className="text-sm font-bold text-foreground">{score.toFixed(1)}</span>
               </div>

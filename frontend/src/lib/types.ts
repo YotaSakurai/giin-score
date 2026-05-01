@@ -299,6 +299,14 @@ export const AXIS_LABELS: Record<string, string> = {
   question_quality: "質問品質",
 };
 
+export const AXIS_DESCRIPTIONS: Record<string, string> = {
+  legislative_activity: "発言回数・法案発議・委員会活動など立法プロセスへの参加度合い",
+  voting_behavior: "本会議投票への参加率・独自判断の有無",
+  policy_influence: "発議法案の成立数・質問主意書の政策影響度",
+  transparency: "委員会への参加多様性・情報公開への貢献",
+  question_quality: "国会質問の具体性・建設性をAIで分析した品質スコア",
+};
+
 export interface ReviewResponse {
   id: number;
   member_id: number;

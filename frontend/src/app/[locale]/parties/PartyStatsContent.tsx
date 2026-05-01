@@ -248,8 +248,48 @@ export default function PartyStatsContent() {
             </Card>
           )}
 
-          {/* テーブル */}
-          <Card>
+          {/* モバイルカードビュー */}
+          <div className="grid grid-cols-1 gap-3 sm:hidden mb-6">
+            {sortedItems.map((entry, idx) => {
+              const lowGradeCount = (entry.grade_distribution["D"] ?? 0) + (entry.grade_distribution["F"] ?? 0);
+              const lowGradeRate = entry.member_count > 0 ? (lowGradeCount / entry.member_count * 100) : 0;
+              return (
+                <Card key={entry.party} className={lowGradeRate > 50 ? "border-red-200 dark:border-red-900/30" : ""}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">#{idx + 1}</span>
+                        <Link
+                          href={`/members?party=${encodeURIComponent(entry.party)}`}
+                          className="text-sm font-bold text-primary hover:underline"
+                        >
+                          {entry.party}
+                        </Link>
+                        <span className="text-xs text-muted-foreground">{entry.member_count}名</span>
+                      </div>
+                      <span className="text-lg font-bold">{entry.average_score.toFixed(1)}</span>
+                    </div>
+                    <GradeBadges distribution={entry.grade_distribution} />
+                    <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
+                      <div><span className="text-muted-foreground">立法</span> <span className="font-medium">{entry.average_legislative_activity.toFixed(1)}</span></div>
+                      <div><span className="text-muted-foreground">投票</span> <span className="font-medium">{entry.average_voting_behavior.toFixed(1)}</span></div>
+                      <div><span className="text-muted-foreground">影響</span> <span className="font-medium">{entry.average_policy_influence.toFixed(1)}</span></div>
+                      <div><span className="text-muted-foreground">透明</span> <span className="font-medium">{entry.average_transparency.toFixed(1)}</span></div>
+                      <div><span className="text-muted-foreground">質問</span> <span className="font-medium">{entry.average_question_quality.toFixed(1)}</span></div>
+                      <div><span className="text-muted-foreground">中央</span> <span className="font-medium">{entry.median_score.toFixed(1)}</span></div>
+                    </div>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                      <span>最高 <span className="text-emerald-600 font-medium">{entry.max_score.toFixed(1)}</span></span>
+                      <span>最低 <span className="text-red-500 font-medium">{entry.min_score.toFixed(1)}</span></span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* テーブル (sm以上) */}
+          <Card className="hidden sm:block">
             <CardHeader>
               <CardTitle className="text-base">政党別詳細</CardTitle>
             </CardHeader>
