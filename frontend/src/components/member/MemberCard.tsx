@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { Link } from "@/i18n/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,10 +27,18 @@ function getWarningFlags(score: NonNullable<MemberWithScore["latest_score"]>): s
   return flags;
 }
 
+function getBalanceType(score: NonNullable<MemberWithScore["latest_score"]>): string {
+  const vals = [score.legislative_activity, score.voting_behavior, score.policy_influence, score.transparency, score.question_quality];
+  const mean = vals.reduce((a, b) => a + b) / vals.length;
+  const stdDev = Math.sqrt(vals.reduce((sum, v) => sum + (v - mean) ** 2, 0) / vals.length);
+  return stdDev < 10 ? "バランス型" : stdDev < 20 ? "準バランス型" : "特化型";
+}
+
 export const MemberCard = memo(function MemberCard({ member }: MemberCardProps) {
   const score = member.latest_score;
   const gradeColor = score ? GRADE_COLORS[score.grade] : "bg-gray-300";
-  const warnings = score ? getWarningFlags(score) : [];
+  const warnings = useMemo(() => score ? getWarningFlags(score) : [], [score]);
+  const balanceType = useMemo(() => score ? getBalanceType(score) : null, [score]);
 
   return (
     <Link href={`/members/${member.id}`}>
@@ -91,12 +99,7 @@ export const MemberCard = memo(function MemberCard({ member }: MemberCardProps) 
               ))}
               <div className="flex items-center justify-between mt-1">
                 <span className="text-[10px] text-muted-foreground">
-                  {(() => {
-                    const vals = [score.legislative_activity, score.voting_behavior, score.policy_influence, score.transparency, score.question_quality];
-                    const mean = vals.reduce((a, b) => a + b) / vals.length;
-                    const stdDev = Math.sqrt(vals.reduce((sum, v) => sum + (v - mean) ** 2, 0) / vals.length);
-                    return stdDev < 10 ? "バランス型" : stdDev < 20 ? "準バランス型" : "特化型";
-                  })()}
+                  {balanceType}
                 </span>
                 <p className="text-sm font-bold text-foreground">
                   総合: {score.total.toFixed(1)}

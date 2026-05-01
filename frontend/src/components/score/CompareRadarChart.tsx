@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import {
   PolarAngleAxis,
   PolarGrid,
@@ -9,20 +8,7 @@ import {
   RadarChart,
   ResponsiveContainer,
 } from "recharts";
-
-function useIsDark() {
-  const [dark, setDark] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const check = () => setDark(document.documentElement.classList.contains("dark") || mq.matches);
-    check();
-    const obs = new MutationObserver(check);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    mq.addEventListener("change", check);
-    return () => { obs.disconnect(); mq.removeEventListener("change", check); };
-  }, []);
-  return dark;
-}
+import { useIsDark } from "@/lib/hooks";
 
 interface MemberScore {
   name: string;

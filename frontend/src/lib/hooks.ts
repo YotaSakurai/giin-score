@@ -1,5 +1,21 @@
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { swrFetcher, buildQuery } from "./api";
+
+// ---- ダークモード検出 ----
+export function useIsDark() {
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const check = () => setDark(document.documentElement.classList.contains("dark") || mq.matches);
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    mq.addEventListener("change", check);
+    return () => { obs.disconnect(); mq.removeEventListener("change", check); };
+  }, []);
+  return dark;
+}
 import type {
   RankingEntry,
   Stats,

@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   LineChart,
   Line,
@@ -13,6 +12,7 @@ import {
   ReferenceArea,
 } from "recharts";
 import type { ScoreDetail } from "@/lib/types";
+import { useIsDark } from "@/lib/hooks";
 
 interface ScoreHistoryChartProps {
   scores: ScoreDetail[];
@@ -26,20 +26,6 @@ const LINE_CONFIG = [
   { dataKey: "transparency", name: "透明性", color: "#dc2626", strokeWidth: 1.5 },
   { dataKey: "question_quality", name: "質問品質", color: "#0891b2", strokeWidth: 1.5 },
 ] as const;
-
-function useIsDark() {
-  const [dark, setDark] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const check = () => setDark(document.documentElement.classList.contains("dark") || mq.matches);
-    check();
-    const obs = new MutationObserver(check);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    mq.addEventListener("change", check);
-    return () => { obs.disconnect(); mq.removeEventListener("change", check); };
-  }, []);
-  return dark;
-}
 
 export function ScoreHistoryChart({ scores }: ScoreHistoryChartProps) {
   const isDark = useIsDark();

@@ -17,6 +17,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { MemberScorePoint } from "@/lib/types";
 import { SCORE_AXIS_OPTIONS, CHAMBER_LABELS } from "@/lib/types";
+import { useIsDark } from "@/lib/hooks";
 
 type ColorBy = "party" | "grade" | "chamber";
 
@@ -90,6 +91,10 @@ export function MemberScatterPlot({
   onColorByChange,
 }: MemberScatterPlotProps) {
   const router = useRouter();
+  const dark = useIsDark();
+  const gridColor = dark ? "#334155" : "#e2e8f0";
+  const tickColor = dark ? "#94a3b8" : "#475569";
+  const labelColor = dark ? "#94a3b8" : "#6b7280";
 
   // 回帰直線の傾き・切片（最小二乗法）
   const regression = useMemo(() => {
@@ -217,20 +222,22 @@ export function MemberScatterPlot({
       <div role="img" aria-label={`散布図: X軸=${SCORE_AXIS_OPTIONS.find(o => o.value === xAxis)?.label ?? xAxis}, Y軸=${SCORE_AXIS_OPTIONS.find(o => o.value === yAxis)?.label ?? yAxis}`}>
       <ResponsiveContainer width="100%" height={500}>
         <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" />
+          <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
           <XAxis
             type="number"
             dataKey={(d: MemberScorePoint) => getVal(d, xAxis)}
             name={getAxisLabel(xAxis)}
             domain={[0, 100]}
-            label={{ value: getAxisLabel(xAxis), position: "bottom", offset: 0 }}
+            tick={{ fill: tickColor }}
+            label={{ value: getAxisLabel(xAxis), position: "bottom", offset: 0, fill: tickColor }}
           />
           <YAxis
             type="number"
             dataKey={(d: MemberScorePoint) => getVal(d, yAxis)}
             name={getAxisLabel(yAxis)}
             domain={[0, 100]}
-            label={{ value: getAxisLabel(yAxis), angle: -90, position: "insideLeft" }}
+            tick={{ fill: tickColor }}
+            label={{ value: getAxisLabel(yAxis), angle: -90, position: "insideLeft", fill: tickColor }}
           />
           <Tooltip content={<CustomTooltip xAxis={xAxis} yAxis={yAxis} />} />
           <Legend />
@@ -263,12 +270,12 @@ export function MemberScatterPlot({
                 dataKey="name"
                 position="top"
                 offset={8}
-                style={{ fontSize: 10, fill: "#6b7280" }}
+                style={{ fontSize: 10, fill: labelColor }}
                 content={({ x, y, value, index }) => {
                   const point = group.data[index as number];
                   if (!point || !outlierIds.has(point.id)) return null;
                   return (
-                    <text x={x as number} y={(y as number) - 8} textAnchor="middle" fontSize={10} fill="#6b7280">
+                    <text x={x as number} y={(y as number) - 8} textAnchor="middle" fontSize={10} fill={labelColor}>
                       {value}
                     </text>
                   );
