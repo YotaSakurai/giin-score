@@ -136,3 +136,21 @@ export async function getStats(params?: {
 export async function getSessions(): Promise<DietSession[]> {
   return fetchApi("/sessions");
 }
+
+export async function postApi<T>(path: string, body: unknown): Promise<T> {
+  return fetchApi<T>(path, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function putApi<T>(path: string, body: unknown): Promise<T> {
+  return fetchApi<T>(path, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteApi<T>(path: string): Promise<T> {
+  return fetchApi<T>(path, { method: "DELETE" });
+}

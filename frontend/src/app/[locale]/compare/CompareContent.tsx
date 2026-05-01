@@ -1,14 +1,16 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import useSWR from "swr";
-import { swrFetcher } from "@/lib/api";
-import type { MemberDetail } from "@/lib/types";
+import { swrFetcher, buildQuery } from "@/lib/api";
+import type { MemberDetail, MemberWithScore, PaginatedResponse } from "@/lib/types";
 import { CHAMBER_LABELS, GRADE_COLORS, AXIS_LABELS } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
 import { ShareButton } from "@/components/ShareButton";
@@ -57,6 +59,91 @@ function ScoreBar({ value, maxInGroup, color }: { value: number; maxInGroup: num
   );
 }
 
+/** 議員検索フォーム for 比較ページ */
+function CompareSearchInput({
+  existingIds,
+  onAdd,
+}: {
+  existingIds: number[];
+  onAdd: (id: number) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    setQuery(v);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setDebouncedQuery(v), 300);
+    setShowSuggestions(v.length >= 1);
+  };
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  const { data: suggestions } = useSWR<PaginatedResponse<MemberWithScore>>(
+    debouncedQuery.length >= 1
+      ? `/members${buildQuery({ search: debouncedQuery, per_page: 8 })}`
+      : null,
+    swrFetcher,
+    { revalidateOnFocus: false, dedupingInterval: 1000 },
+  );
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const items = (suggestions?.items ?? []).filter((m) => !existingIds.includes(m.id));
+
+  return (
+    <div ref={containerRef} className="relative w-full sm:w-72">
+      <Input
+        placeholder="議員名で検索して追加..."
+        value={query}
+        onChange={handleChange}
+        onFocus={() => query.length >= 1 && setShowSuggestions(true)}
+        disabled={existingIds.length >= 4}
+      />
+      {showSuggestions && items.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
+          {items.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              className="w-full px-3 py-2 text-left hover:bg-muted/50 flex items-center gap-2 text-sm"
+              onClick={() => {
+                onAdd(m.id);
+                setQuery("");
+                setDebouncedQuery("");
+                setShowSuggestions(false);
+              }}
+            >
+              <span className="font-medium">{m.name}</span>
+              <span className="text-xs text-muted-foreground">{m.party ?? "無所属"}</span>
+              {m.latest_score && (
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {m.latest_score.grade} {m.latest_score.total.toFixed(1)}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+      {existingIds.length >= 4 && (
+        <p className="text-xs text-muted-foreground mt-1">最大4名まで比較できます</p>
+      )}
+    </div>
+  );
+}
+
 function useMemberDetail(id: number | null) {
   return useSWR<MemberDetail>(
     id !== null ? `/members/${id}` : null,
@@ -65,6 +152,7 @@ function useMemberDetail(id: number | null) {
 }
 
 export default function CompareContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const idsParam = searchParams.get("ids") || "";
   const ids = idsParam
@@ -72,6 +160,27 @@ export default function CompareContent() {
     .map((s) => parseInt(s, 10))
     .filter((n) => !isNaN(n))
     .slice(0, 4);
+
+  const addMember = useCallback(
+    (id: number) => {
+      if (ids.includes(id) || ids.length >= 4) return;
+      const newIds = [...ids, id];
+      router.push(`/compare?ids=${newIds.join(",")}`);
+    },
+    [ids, router],
+  );
+
+  const removeMember = useCallback(
+    (id: number) => {
+      const newIds = ids.filter((x) => x !== id);
+      if (newIds.length === 0) {
+        router.push("/compare");
+      } else {
+        router.push(`/compare?ids=${newIds.join(",")}`);
+      }
+    },
+    [ids, router],
+  );
 
   // 最大4名分の議員データを並列取得
   const member0 = useMemberDetail(ids[0] ?? null);
@@ -112,12 +221,15 @@ export default function CompareContent() {
               />
             </svg>
             <p className="text-muted-foreground font-medium mb-2">
-              比較する議員が選択されていません
+              比較する議員を検索してください
             </p>
-            <p className="text-sm text-muted-foreground mb-6">
-              ランキングページから議員を選択してください
+            <div className="mb-4">
+              <CompareSearchInput existingIds={ids} onAdd={addMember} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              またはランキングページから議員を選択できます
             </p>
-            <Button asChild>
+            <Button variant="outline" size="sm" className="mt-2" asChild>
               <Link href="/">ランキングページへ</Link>
             </Button>
           </CardContent>
@@ -156,21 +268,51 @@ export default function CompareContent() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-2xl font-bold text-foreground">議員比較</h1>
-            <ShareButton
-              title={`議員比較: ${members.map((m) => m.name).join(" vs ")} | GiinScore`}
-            />
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-2xl font-bold text-foreground">議員比較</h1>
+              <ShareButton
+                title={`議員比較: ${members.map((m) => m.name).join(" vs ")} | GiinScore`}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {members.map((m) => m.name).join(" / ")} の活動スコアを比較
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {members.map((m) => m.name).join(" / ")} の活動スコアを比較
-          </p>
+          <Button variant="outline" asChild>
+            <Link href="/">戻る</Link>
+          </Button>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/">戻る</Link>
-        </Button>
+
+        {/* 議員追加/削除 */}
+        <div className="flex flex-wrap items-center gap-2 mt-4">
+          {memberScores.map((ms, idx) => (
+            <Badge
+              key={ms.member.id}
+              variant="outline"
+              className="flex items-center gap-1.5 py-1 px-2.5"
+            >
+              <span
+                className="inline-block h-2 w-2 rounded-full"
+                style={{ backgroundColor: COMPARE_COLORS[idx].stroke }}
+              />
+              <span className="text-sm">{ms.member.name}</span>
+              <button
+                type="button"
+                className="ml-1 text-muted-foreground hover:text-foreground"
+                onClick={() => removeMember(ms.member.id)}
+                aria-label={`${ms.member.name}を削除`}
+              >
+                &times;
+              </button>
+            </Badge>
+          ))}
+          {ids.length < 4 && (
+            <CompareSearchInput existingIds={ids} onAdd={addMember} />
+          )}
+        </div>
       </div>
 
       {/* レーダーチャート */}

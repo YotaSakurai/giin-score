@@ -1,6 +1,7 @@
 from app.models.bill import Bill, BillSponsor
 from app.models.member import Member
 from app.models.pipeline import PipelineRun
+from app.models.review import ReviewLike, UserReview
 from app.models.score import MemberScore
 from app.models.session import DietSession
 from app.models.speech import Speech
@@ -20,4 +21,6 @@ __all__ = [
     "MemberScore",
     "PipelineRun",
     "WrittenQuestion",
+    "UserReview",
+    "ReviewLike",
 ]

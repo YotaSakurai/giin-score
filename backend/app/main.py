@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.api import bills, data_quality, members, scores, sessions
+from app.api import bills, data_quality, members, reviews, scores, sessions
 from app.config import settings
 from app.database import get_db
 
@@ -23,6 +23,9 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
             path = request.url.path
             if "/export/" in path:
                 # CSVエクスポートはキャッシュしない
+                pass
+            elif "/reviews" in path or "/review-summary" in path:
+                # レビュー系はキャッシュしない
                 pass
             elif "/health" in path:
                 pass
@@ -100,7 +103,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins.split(","),
     allow_credentials=True,
-    allow_methods=["GET", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -109,6 +112,7 @@ app.include_router(bills.router, prefix="/api/v1")
 app.include_router(scores.router, prefix="/api/v1")
 app.include_router(sessions.router, prefix="/api/v1")
 app.include_router(data_quality.router, prefix="/api/v1")
+app.include_router(reviews.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health")

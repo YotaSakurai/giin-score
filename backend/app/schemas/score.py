@@ -74,3 +74,23 @@ class PartyStatsResponse(BaseModel):
     items: list[PartyStatsEntry]
     chamber: str | None = None
     session_number: int | None = None
+
+
+class PartyTrendPoint(BaseModel):
+    average_score: float
+    member_count: int
+    average_legislative_activity: float = 0.0
+    average_voting_behavior: float = 0.0
+    average_policy_influence: float = 0.0
+    average_transparency: float = 0.0
+    average_question_quality: float = 0.0
+
+
+class PartyTrendSession(BaseModel):
+    session_number: int
+    parties: dict[str, PartyTrendPoint]
+
+
+class PartyTrendResponse(BaseModel):
+    sessions: list[PartyTrendSession]
+    chamber: str | None = None

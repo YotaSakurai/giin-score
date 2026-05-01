@@ -299,6 +299,55 @@ export const AXIS_LABELS: Record<string, string> = {
   question_quality: "質問品質",
 };
 
+export interface ReviewResponse {
+  id: number;
+  member_id: number;
+  reviewer_id: string;
+  display_name: string | null;
+  legislative_activity: number;
+  voting_behavior: number;
+  policy_influence: number;
+  transparency: number;
+  question_quality: number;
+  total: number;
+  comment: string | null;
+  like_count: number;
+  is_liked: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewSummary {
+  member_id: number;
+  review_count: number;
+  average_legislative_activity: number;
+  average_voting_behavior: number;
+  average_policy_influence: number;
+  average_transparency: number;
+  average_question_quality: number;
+  average_total: number;
+}
+
+export interface PartyTrendPoint {
+  average_score: number;
+  member_count: number;
+  average_legislative_activity: number;
+  average_voting_behavior: number;
+  average_policy_influence: number;
+  average_transparency: number;
+  average_question_quality: number;
+}
+
+export interface PartyTrendSession {
+  session_number: number;
+  parties: Record<string, PartyTrendPoint>;
+}
+
+export interface PartyTrendResponse {
+  sessions: PartyTrendSession[];
+  chamber: string | null;
+}
+
 export const SCORE_AXIS_OPTIONS: { value: string; label: string }[] = [
   { value: "total", label: "総合スコア" },
   { value: "legislative_activity", label: "立法活動" },

@@ -209,3 +209,24 @@ export function useRoleCategories(chamber?: string) {
   const key = `/members/role-categories${buildQuery({ chamber })}`;
   return useSWR<string[]>(key, swrFetcher);
 }
+
+// ---- 政党スコア推移 ----
+export function usePartyTrend(params?: { chamber?: string }) {
+  const key = `/scores/party-trend${buildQuery(params)}`;
+  return useSWR<import("./types").PartyTrendResponse>(key, swrFetcher);
+}
+
+// ---- レビュー一覧 ----
+export function useReviews(
+  memberId: number,
+  params?: { sort?: string; page?: number; per_page?: number; liker_id?: string },
+) {
+  const key = `/members/${memberId}/reviews${buildQuery(params)}`;
+  return useSWR<import("./types").PaginatedResponse<import("./types").ReviewResponse>>(key, swrFetcher);
+}
+
+// ---- レビューサマリー ----
+export function useReviewSummary(memberId: number) {
+  const key = `/members/${memberId}/review-summary`;
+  return useSWR<import("./types").ReviewSummary>(key, swrFetcher);
+}

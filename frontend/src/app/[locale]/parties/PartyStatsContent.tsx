@@ -8,13 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LoadingSpinner } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
 import { AXIS_LABELS, GRADE_COLORS } from "@/lib/types";
-import { usePartyStats } from "@/lib/hooks";
+import type { PartyTrendResponse } from "@/lib/types";
+import { usePartyStats, usePartyTrend } from "@/lib/hooks";
 import { ShareButton } from "@/components/ShareButton";
 import { PartyBarChart } from "@/components/score/PartyBarChart";
 import dynamic from "next/dynamic";
 
 const CompareRadarChart = dynamic(
   () => import("@/components/score/CompareRadarChart").then(m => ({ default: m.CompareRadarChart })),
+  { loading: () => <LoadingSpinner /> },
+);
+
+const PartyTrendChart = dynamic(
+  () => import("@/components/score/PartyTrendChart").then(m => ({ default: m.PartyTrendChart })),
   { loading: () => <LoadingSpinner /> },
 );
 
@@ -62,6 +68,8 @@ export default function PartyStatsContent() {
     isLoading,
     mutate,
   } = usePartyStats({ chamber: chamberParam });
+
+  const { data: trendData } = usePartyTrend({ chamber: chamberParam });
 
   const setChamber = useCallback(
     (value: string) => {
@@ -170,6 +178,22 @@ export default function PartyStatsContent() {
                     question_quality: entry.average_question_quality,
                     color: PARTY_COLORS[idx],
                   }))}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 政党スコア推移チャート */}
+          {trendData && trendData.sessions.length >= 2 && sortedItems.length > 0 && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-base">政党平均スコア推移</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PartyTrendChart
+                  trendData={trendData}
+                  topParties={sortedItems.slice(0, 5).map((e) => e.party)}
+                  colors={PARTY_COLORS}
                 />
               </CardContent>
             </Card>

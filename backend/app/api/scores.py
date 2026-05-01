@@ -16,6 +16,9 @@ from app.schemas.member import MemberResponse
 from app.schemas.score import (
     PartyStatsEntry,
     PartyStatsResponse,
+    PartyTrendPoint,
+    PartyTrendResponse,
+    PartyTrendSession,
     RankingEntry,
     RankingResponse,
     ScoreDistribution,
@@ -242,6 +245,65 @@ def get_party_stats(
     items.sort(key=lambda x: x.average_score, reverse=True)
 
     return PartyStatsResponse(items=items, chamber=chamber, session_number=session_number)
+
+
+@router.get("/party-trend", response_model=PartyTrendResponse, summary="政党別スコア推移取得")
+def get_party_trend(
+    chamber: Literal["representatives", "councillors"] | None = None,
+    db: Session = Depends(get_db),
+):
+    """政党の平均スコアを会期別に返す。"""
+    scored_sessions = (
+        db.execute(
+            select(DietSession)
+            .where(DietSession.id.in_(select(MemberScore.session_id).distinct()))
+            .order_by(DietSession.session_number)
+        )
+        .scalars()
+        .all()
+    )
+
+    sessions_data: list[PartyTrendSession] = []
+    for session in scored_sessions:
+        query = select(MemberScore).join(Member).where(MemberScore.session_id == session.id)
+        if chamber:
+            query = query.where(Member.chamber == chamber)
+
+        scores = db.execute(query.options(selectinload(MemberScore.member))).scalars().all()
+
+        party_map: dict[str, list[MemberScore]] = {}
+        for s in scores:
+            party = s.member.party or "無所属"
+            party_map.setdefault(party, []).append(s)
+
+        parties: dict[str, PartyTrendPoint] = {}
+        for party, party_scores in party_map.items():
+            totals = [s.total for s in party_scores]
+            parties[party] = PartyTrendPoint(
+                average_score=round(statistics.mean(totals), 1),
+                member_count=len(totals),
+                average_legislative_activity=round(
+                    statistics.mean([s.legislative_activity for s in party_scores]), 1
+                ),
+                average_voting_behavior=round(
+                    statistics.mean([s.voting_behavior for s in party_scores]), 1
+                ),
+                average_policy_influence=round(
+                    statistics.mean([s.policy_influence for s in party_scores]), 1
+                ),
+                average_transparency=round(
+                    statistics.mean([s.transparency for s in party_scores]), 1
+                ),
+                average_question_quality=round(
+                    statistics.mean([s.question_quality for s in party_scores]), 1
+                ),
+            )
+
+        sessions_data.append(
+            PartyTrendSession(session_number=session.session_number, parties=parties)
+        )
+
+    return PartyTrendResponse(sessions=sessions_data, chamber=chamber)
 
 
 @router.get("/export/csv", summary="ランキングCSVエクスポート")

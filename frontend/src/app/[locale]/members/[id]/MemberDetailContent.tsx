@@ -18,7 +18,8 @@ import { ShareButton } from "@/components/ShareButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { CHAMBER_LABELS, AXIS_LABELS, GRADE_COLORS } from "@/lib/types";
 import { VOTE_LABELS, VOTE_COLORS, SCORE_DESCRIPTIONS, GRADE_DESCRIPTIONS } from "@/lib/constants";
-import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern, useSpeechQuality, useWrittenQuestions, useStats, useMembers } from "@/lib/hooks";
+import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern, useSpeechQuality, useWrittenQuestions, useStats, useMembers, useReviewSummary } from "@/lib/hooks";
+import { UserReviewSection } from "@/components/review/UserReviewSection";
 
 interface MemberDetailContentProps {
   params: Promise<{ id: string }>;
@@ -228,6 +229,9 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
     return sameDistrictData.items.filter((m) => m.id !== memberId);
   }, [sameDistrictData, memberId]);
 
+  // レビューサマリー
+  const { data: reviewSummary } = useReviewSummary(memberId);
+
   // 特徴サマリー
   const summaryLines = useMemo(() => {
     if (!latestScore) return [];
@@ -336,6 +340,11 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                     transparency={latestScore.transparency}
                     question_quality={latestScore.question_quality}
                   />
+                  {reviewSummary && reviewSummary.review_count > 0 && (
+                    <div className="mt-2 text-center text-sm text-muted-foreground">
+                      レビュー {reviewSummary.review_count}件 | ユーザー平均 {reviewSummary.average_total.toFixed(1)}点
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -470,6 +479,7 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
           <TabsTrigger value="votes">投票記録</TabsTrigger>
           <TabsTrigger value="vote-pattern">投票パターン</TabsTrigger>
           <TabsTrigger value="written-questions">質問主意書</TabsTrigger>
+          <TabsTrigger value="user-reviews">市民評価</TabsTrigger>
         </TabsList>
 
         <TabsContent value="speeches">
@@ -785,6 +795,10 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="user-reviews">
+          <UserReviewSection memberId={memberId} aiScores={latestScore} />
         </TabsContent>
       </Tabs>
 
