@@ -263,7 +263,8 @@ export default function CompareContent() {
   // 各議員の最新スコアを取得
   const memberScores = members.map((m) => {
     const latest = m.scores.length > 0 ? m.scores[0] : null;
-    return { member: m, score: latest };
+    const prev = m.scores.length > 1 ? m.scores[1] : null;
+    return { member: m, score: latest, prevScore: prev };
   });
 
   return (
@@ -431,14 +432,22 @@ export default function CompareContent() {
                   <td className="p-3 text-sm font-bold text-foreground">
                     総合スコア
                   </td>
-                  {memberScores.map((ms) => (
-                    <td
-                      key={ms.member.id}
-                      className="p-3 text-center text-lg font-bold"
-                    >
-                      {ms.score ? ms.score.total.toFixed(1) : "-"}
-                    </td>
-                  ))}
+                  {memberScores.map((ms) => {
+                    const diff = ms.score && ms.prevScore ? ms.score.total - ms.prevScore.total : null;
+                    return (
+                      <td
+                        key={ms.member.id}
+                        className="p-3 text-center text-lg font-bold"
+                      >
+                        {ms.score ? ms.score.total.toFixed(1) : "-"}
+                        {diff !== null && diff !== 0 && (
+                          <span className={`ml-1 text-xs font-medium ${diff > 0 ? "text-emerald-600" : "text-red-500"}`}>
+                            {diff > 0 ? "+" : ""}{diff.toFixed(1)}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
 
                 {/* 各軸スコア */}
@@ -459,6 +468,8 @@ export default function CompareContent() {
                       </td>
                       {memberScores.map((ms) => {
                         const value = ms.score?.[axis] ?? null;
+                        const prevValue = ms.prevScore?.[axis] ?? null;
+                        const diff = value !== null && prevValue !== null ? value - prevValue : null;
                         const isMax =
                           value !== null &&
                           maxValue !== null &&
@@ -473,6 +484,11 @@ export default function CompareContent() {
                             {isMax && (
                               <span className="ml-1 text-xs text-blue-400">
                                 &#9650;
+                              </span>
+                            )}
+                            {diff !== null && Math.abs(diff) >= 1 && (
+                              <span className={`ml-1 text-[10px] ${diff > 0 ? "text-emerald-500" : "text-red-400"}`}>
+                                {diff > 0 ? "\u2191" : "\u2193"}{Math.abs(diff).toFixed(0)}
                               </span>
                             )}
                           </td>

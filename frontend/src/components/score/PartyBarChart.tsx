@@ -28,6 +28,7 @@ export function PartyBarChart({ items }: PartyBarChartProps) {
   const data = items.map((item) => ({
     name: item.party.length > 6 ? item.party.slice(0, 6) + "…" : item.party,
     fullName: item.party,
+    member_count: item.member_count,
     平均スコア: item.average_score,
     立法活動: item.average_legislative_activity,
     投票行動: item.average_voting_behavior,
@@ -46,8 +47,8 @@ export function PartyBarChart({ items }: PartyBarChartProps) {
           formatter={(value) => [(value as number).toFixed(1)]}
           labelFormatter={(_label, payload) => {
             if (payload && payload.length > 0) {
-              const item = payload[0].payload as { fullName: string };
-              return item.fullName;
+              const item = payload[0].payload as { fullName: string; member_count: number };
+              return `${item.fullName} (${item.member_count}名)`;
             }
             return String(_label);
           }}

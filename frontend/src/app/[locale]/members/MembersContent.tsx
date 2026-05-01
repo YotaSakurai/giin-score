@@ -7,8 +7,10 @@ import { Pagination } from "@/components/ui/pagination";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMembers, useMembersScatter } from "@/lib/hooks";
+import { CHAMBER_LABELS, AXIS_LABELS } from "@/lib/types";
 import { AdvancedMemberFilter, type AdvancedFilterState } from "@/components/member/AdvancedMemberFilter";
 import { ViewModeToggle, type ViewMode } from "@/components/member/ViewModeToggle";
 import dynamic from "next/dynamic";
@@ -222,6 +224,51 @@ export default function MembersContent() {
       </div>
 
       <AdvancedMemberFilter state={filterState} onChange={handleFilterChange} />
+
+      {/* アクティブフィルタサマリー */}
+      {(() => {
+        const tags: { label: string; clear: () => void }[] = [];
+        if (filterState.search) tags.push({ label: `検索: ${filterState.search}`, clear: () => handleFilterChange({ ...filterState, search: "" }) });
+        if (filterState.chamber !== "all") tags.push({ label: CHAMBER_LABELS[filterState.chamber] || filterState.chamber, clear: () => handleFilterChange({ ...filterState, chamber: "all" }) });
+        if (filterState.party !== "all") tags.push({ label: filterState.party, clear: () => handleFilterChange({ ...filterState, party: "all" }) });
+        if (filterState.district) tags.push({ label: `選挙区: ${filterState.district}`, clear: () => handleFilterChange({ ...filterState, district: "" }) });
+        if (filterState.grades.length > 0) tags.push({ label: `グレード: ${filterState.grades.join(",")}`, clear: () => handleFilterChange({ ...filterState, grades: [] }) });
+        if (isRangeActive(filterState.scoreRange)) tags.push({ label: `スコア: ${filterState.scoreRange[0]}-${filterState.scoreRange[1]}`, clear: () => handleFilterChange({ ...filterState, scoreRange: [0, 100] }) });
+        const axisRanges: { key: keyof AdvancedFilterState; axis: string }[] = [
+          { key: "laRange", axis: "legislative_activity" },
+          { key: "vbRange", axis: "voting_behavior" },
+          { key: "piRange", axis: "policy_influence" },
+          { key: "trRange", axis: "transparency" },
+          { key: "qqRange", axis: "question_quality" },
+        ];
+        for (const { key, axis } of axisRanges) {
+          const range = filterState[key] as [number, number];
+          if (isRangeActive(range)) tags.push({ label: `${AXIS_LABELS[axis]}: ${range[0]}-${range[1]}`, clear: () => handleFilterChange({ ...filterState, [key]: [0, 100] }) });
+        }
+        if (tags.length === 0) return null;
+        return (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {tags.map((tag) => (
+              <Badge key={tag.label} variant="secondary" className="flex items-center gap-1 text-xs py-0.5">
+                {tag.label}
+                <button type="button" onClick={tag.clear} className="ml-0.5 hover:text-foreground" aria-label={`${tag.label}を解除`}>&times;</button>
+              </Badge>
+            ))}
+            {tags.length > 1 && (
+              <button
+                type="button"
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => handleFilterChange({
+                  search: "", chamber: "all", party: "all", roleCategory: "all", district: "", grades: [],
+                  scoreRange: [0, 100], laRange: [0, 100], vbRange: [0, 100], piRange: [0, 100], trRange: [0, 100], qqRange: [0, 100],
+                })}
+              >
+                全解除
+              </button>
+            )}
+          </div>
+        );
+      })()}
 
       {!isScatterView && (
         <div className="flex items-center justify-between mb-4">

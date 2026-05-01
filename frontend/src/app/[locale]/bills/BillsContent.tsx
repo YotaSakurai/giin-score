@@ -11,6 +11,7 @@ import { ErrorMessage } from "@/components/ui/error";
 import { BillList } from "@/components/bill/BillList";
 import { useBills, useSessions } from "@/lib/hooks";
 import { ShareButton } from "@/components/ShareButton";
+import { STATUS_COLORS } from "@/lib/constants";
 
 export default function BillsContent() {
   const router = useRouter();
@@ -87,6 +88,15 @@ export default function BillsContent() {
 
   const enactedCount = useMemo(() => bills.filter((b) => b.status === "成立").length, [bills]);
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const b of bills) {
+      const s = b.status || "不明";
+      counts[s] = (counts[s] ?? 0) + 1;
+    }
+    return counts;
+  }, [bills]);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="flex items-center gap-3 mb-6">
@@ -152,6 +162,36 @@ export default function BillsContent() {
           <span key={kind} className="text-xs text-muted-foreground">{kind}: {count}件</span>
         ))}
       </div>
+
+      {/* ステータス分布バー */}
+      {bills.length > 0 && Object.keys(statusCounts).length > 1 && (
+        <div className="mb-6">
+          <div className="flex h-4 rounded-full overflow-hidden">
+            {Object.entries(statusCounts).map(([s, count]) => {
+              const pct = (count / bills.length) * 100;
+              const colorClass = STATUS_COLORS[s] ?? "bg-muted text-muted-foreground";
+              return (
+                <div
+                  key={s}
+                  className={`${colorClass} flex items-center justify-center text-[9px] font-medium`}
+                  style={{ width: `${pct}%` }}
+                  title={`${s}: ${count}件 (${pct.toFixed(0)}%)`}
+                >
+                  {pct >= 10 ? s : ""}
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground flex-wrap">
+            {Object.entries(statusCounts).map(([s, count]) => (
+              <span key={s} className="flex items-center gap-1">
+                <span className={`h-2 w-2 rounded-sm ${(STATUS_COLORS[s] ?? "bg-muted").split(" ")[0]}`} />
+                {s} {count}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <LoadingSpinner />
