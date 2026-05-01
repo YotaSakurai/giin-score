@@ -916,6 +916,23 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                 <p className="text-sm text-muted-foreground text-center py-4">質問主意書データがありません</p>
               ) : (
                 <>
+                  {(() => {
+                    const answeredCount = wqItems.filter((q) => q.has_answer).length;
+                    const answerRate = wqItems.length > 0 ? Math.round((answeredCount / wqItems.length) * 100) : 0;
+                    return (
+                      <div className="mb-4 rounded-lg border bg-muted/20 p-3 flex items-center gap-4">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">質問主意書 {wqItems.length}件中 {answeredCount}件答弁済</p>
+                          <div className="mt-1.5 h-2 w-full rounded-full bg-muted overflow-hidden">
+                            <div className="h-2 rounded-full bg-emerald-500" style={{ width: `${answerRate}%` }} />
+                          </div>
+                        </div>
+                        <span className={`text-lg font-bold ${answerRate >= 80 ? "text-emerald-600" : answerRate >= 50 ? "text-yellow-600" : "text-red-500"}`}>
+                          {answerRate}%
+                        </span>
+                      </div>
+                    );
+                  })()}
                   <div className="space-y-3">
                     {wqItems.map((q) => (
                       <div key={q.id} className={`border-l-4 ${q.has_answer ? "border-l-emerald-500" : "border-l-muted"} rounded-r-lg border p-3`}>

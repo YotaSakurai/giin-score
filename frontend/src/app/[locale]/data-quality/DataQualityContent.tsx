@@ -102,6 +102,28 @@ export default function DataQualityContent() {
         </Card>
       </div>
 
+      {/* 追加統計 */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-foreground">{aggregated.totalVoteRecords.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">総投票記録数</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-foreground">{aggregated.scoredSessions}</p>
+            <p className="text-xs text-muted-foreground">スコア算出済み会期</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-foreground">{aggregated.maxScoredMembers.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">最大スコア対象議員数</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* データカバレッジ概要 */}
       <Card className="mb-6">
         <CardHeader>

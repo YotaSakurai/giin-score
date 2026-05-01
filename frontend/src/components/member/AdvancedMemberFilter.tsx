@@ -238,8 +238,17 @@ function MemberSearchInput({
   );
 }
 
+const FILTER_OPEN_KEY = "giin-score-filter-open";
+
 export function AdvancedMemberFilter({ state, onChange }: AdvancedMemberFilterProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(FILTER_OPEN_KEY) === "1";
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem(FILTER_OPEN_KEY, open ? "1" : "0"); } catch { /* ignore */ }
+  }, [open]);
   const chamberParam = state.chamber === "all" ? undefined : state.chamber;
   const { data: parties } = useParties(chamberParam);
   const { data: roleCategories } = useRoleCategories(chamberParam);
