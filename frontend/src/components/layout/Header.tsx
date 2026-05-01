@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { usePathname } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -23,6 +24,15 @@ const navKeys = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const t = useTranslations("nav");
+  const pathname = usePathname();
+
+  // パスが /ja/members/123 のような場合、/members にマッチさせる
+  const isActive = (href: string) => {
+    // ロケールプレフィックスを除去して比較
+    const stripped = pathname.replace(/^\/(ja|en)/, "") || "/";
+    if (href === "/") return stripped === "/";
+    return stripped.startsWith(href);
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
@@ -36,7 +46,12 @@ export function Header() {
             <Link
               key={item.href}
               href={item.href}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className={`text-sm font-medium transition-colors ${
+                isActive(item.href)
+                  ? "text-foreground border-b-2 border-blue-600 pb-0.5"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              aria-current={isActive(item.href) ? "page" : undefined}
             >
               {t(item.key)}
             </Link>
@@ -62,8 +77,13 @@ export function Header() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="text-base font-medium text-foreground/80 hover:text-primary"
+                    className={`text-base font-medium ${
+                      isActive(item.href)
+                        ? "text-primary font-bold"
+                        : "text-foreground/80 hover:text-primary"
+                    }`}
                     onClick={() => setOpen(false)}
+                    aria-current={isActive(item.href) ? "page" : undefined}
                   >
                     {t(item.key)}
                   </Link>

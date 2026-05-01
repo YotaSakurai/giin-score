@@ -229,7 +229,14 @@ export function ScoreBreakdown({ breakdown, scores }: ScoreBreakdownProps) {
                 </span>
                 <span className="text-sm font-bold text-foreground">{score.toFixed(1)}</span>
               </div>
-              <div className="h-2 w-full rounded-full bg-muted">
+              <div
+                className="h-2 w-full rounded-full bg-muted"
+                role="progressbar"
+                aria-valuenow={Math.round(score)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`${AXIS_LABELS[key]} ${score.toFixed(1)}点`}
+              >
                 <div
                   className={`h-2 rounded-full ${color} transition-all`}
                   style={{ width: `${Math.min(score, 100)}%` }}

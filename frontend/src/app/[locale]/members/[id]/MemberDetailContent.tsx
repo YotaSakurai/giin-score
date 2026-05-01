@@ -19,7 +19,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { CHAMBER_LABELS, AXIS_LABELS, GRADE_COLORS } from "@/lib/types";
 import { VOTE_LABELS, VOTE_COLORS, SCORE_DESCRIPTIONS, GRADE_DESCRIPTIONS } from "@/lib/constants";
-import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern, useSpeechQuality, useWrittenQuestions, useStats, useMembers, useReviewSummary, useSimilarMembers } from "@/lib/hooks";
+import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern, useSpeechQuality, useWrittenQuestions, useStats, useMembers, useReviewSummary, useSimilarMembers, useRanking } from "@/lib/hooks";
 import { UserReviewSection } from "@/components/review/UserReviewSection";
 
 interface MemberDetailContentProps {
@@ -230,6 +230,19 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
     return sameDistrictData.items.filter((m) => m.id !== memberId);
   }, [sameDistrictData, memberId]);
 
+  // 政党内順位
+  const { data: partyRankingData } = useRanking(
+    member?.party
+      ? { party: member.party, sort_by: "total", sort_order: "desc", limit: 100 }
+      : undefined,
+  );
+  const partyRank = useMemo(() => {
+    if (!partyRankingData?.items) return null;
+    const entry = partyRankingData.items.find((e) => e.member.id === memberId);
+    if (!entry) return null;
+    return { rank: entry.rank, total: partyRankingData.total };
+  }, [partyRankingData, memberId]);
+
   // レビューサマリー
   const { data: reviewSummary } = useReviewSummary(memberId);
 
@@ -311,6 +324,11 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                 <Link href={`/members?district=${encodeURIComponent(member.district)}`}>
                   <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{member.district}</Badge>
                 </Link>
+              )}
+              {partyRank && (
+                <Badge variant="outline" className="text-xs">
+                  {member.party ?? "無所属"}内 {partyRank.rank}/{partyRank.total}位
+                </Badge>
               )}
             </div>
           </div>

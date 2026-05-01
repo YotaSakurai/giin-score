@@ -9,19 +9,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LoadingSpinner } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
 import { CHAMBER_LABELS, GRADE_COLORS } from "@/lib/types";
-import { useRanking } from "@/lib/hooks";
+import { useRanking, useParties } from "@/lib/hooks";
 import { ShareButton } from "@/components/ShareButton";
 
 export default function QualityRankingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const chamber = searchParams.get("chamber") || "all";
+  const party = searchParams.get("party") || "all";
   const sortBy = searchParams.get("sort_by") || "question_quality";
 
   const chamberParam = chamber === "all" ? undefined : chamber;
+  const partyParam = party === "all" ? undefined : party;
+
+  const { data: parties } = useParties(chamberParam);
 
   const { data, error, isLoading, mutate } = useRanking({
     chamber: chamberParam,
+    party: partyParam,
     sort_by: sortBy,
     sort_order: "desc",
     limit: 100,
@@ -67,6 +72,17 @@ export default function QualityRankingContent() {
             <SelectItem value="all">全て</SelectItem>
             <SelectItem value="representatives">衆議院</SelectItem>
             <SelectItem value="councillors">参議院</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={party} onValueChange={(v) => updateParams({ party: v === "all" ? undefined : v })}>
+          <SelectTrigger className="w-48" aria-label="政党を選択">
+            <SelectValue placeholder="政党を選択" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全政党</SelectItem>
+            {(parties ?? []).map((p) => (
+              <SelectItem key={p} value={p}>{p}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={sortBy} onValueChange={(v) => updateParams({ sort_by: v === "question_quality" ? undefined : v })}>
