@@ -18,7 +18,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { CHAMBER_LABELS, AXIS_LABELS, GRADE_COLORS } from "@/lib/types";
 import { VOTE_LABELS, VOTE_COLORS, SCORE_DESCRIPTIONS, GRADE_DESCRIPTIONS } from "@/lib/constants";
-import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern, useSpeechQuality, useWrittenQuestions, useStats, useMembers, useReviewSummary } from "@/lib/hooks";
+import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern, useSpeechQuality, useWrittenQuestions, useStats, useMembers, useReviewSummary, useSimilarMembers } from "@/lib/hooks";
 import { UserReviewSection } from "@/components/review/UserReviewSection";
 
 interface MemberDetailContentProps {
@@ -231,6 +231,9 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
 
   // レビューサマリー
   const { data: reviewSummary } = useReviewSummary(memberId);
+
+  // 類似議員
+  const { data: similarMembers } = useSimilarMembers(memberId, 6);
 
   // 特徴サマリー
   const summaryLines = useMemo(() => {
@@ -845,6 +848,53 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                 全議員を見る →
               </Link>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 類似議員 */}
+      {similarMembers && similarMembers.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-base">スコアが似ている議員</CardTitle>
+            <p className="text-xs text-muted-foreground">5軸スコアのパターンが近い議員です（政党・院を問わず）</p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {similarMembers.map((m) => {
+                const s = m.latest_score;
+                const gc = s ? (GRADE_COLORS[s.grade] || "bg-gray-300") : "bg-gray-300";
+                return (
+                  <Link key={m.id} href={`/members/${m.id}`}>
+                    <div className="rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold ${gc}`}>
+                          {s?.grade ?? "-"}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-blue-600 truncate">{m.name}</p>
+                          <p className="text-xs text-muted-foreground">{m.party ?? "無所属"}</p>
+                        </div>
+                        <div className="text-right">
+                          {s && <p className="text-sm font-bold">{s.total.toFixed(1)}</p>}
+                          {m.district && <p className="text-[10px] text-muted-foreground truncate max-w-20">{m.district}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+            {similarMembers.length >= 2 && (
+              <div className="mt-3">
+                <Link
+                  href={`/compare?ids=${[memberId, ...similarMembers.slice(0, 3).map((m) => m.id)].join(",")}`}
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  類似議員と比較 →
+                </Link>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

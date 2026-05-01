@@ -1,3 +1,4 @@
+import math
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -447,6 +448,102 @@ def get_member_scores(member_id: int, db: Session = Depends(get_db)):
             )
         )
     return result
+
+
+@router.get(
+    "/{member_id}/similar",
+    response_model=list[MemberWithScore],
+    summary="類似議員取得",
+)
+def get_similar_members(
+    member_id: int,
+    limit: int = Query(5, ge=1, le=20),
+    db: Session = Depends(get_db),
+):
+    """5軸スコアのユークリッド距離で類似議員を返す。"""
+    # 対象議員の最新スコアを取得
+    target_score = (
+        db.execute(
+            select(MemberScore)
+            .where(MemberScore.member_id == member_id)
+            .order_by(MemberScore.session_id.desc())
+            .limit(1)
+        )
+        .scalar_one_or_none()
+    )
+    if not target_score:
+        raise HTTPException(status_code=404, detail="Score not found for member")
+
+    target_vec = [
+        target_score.legislative_activity,
+        target_score.voting_behavior,
+        target_score.policy_influence,
+        target_score.transparency,
+        target_score.question_quality,
+    ]
+
+    # 全議員の最新スコアを取得
+    latest_sq = (
+        select(
+            MemberScore.member_id,
+            func.max(MemberScore.session_id).label("max_sid"),
+        )
+        .group_by(MemberScore.member_id)
+        .subquery()
+    )
+    all_scores = (
+        db.execute(
+            select(MemberScore)
+            .join(
+                latest_sq,
+                (MemberScore.member_id == latest_sq.c.member_id)
+                & (MemberScore.session_id == latest_sq.c.max_sid),
+            )
+            .where(MemberScore.member_id != member_id)
+            .options(selectinload(MemberScore.member))
+        )
+        .scalars()
+        .all()
+    )
+
+    # ユークリッド距離計算
+    scored = []
+    for s in all_scores:
+        vec = [
+            s.legislative_activity, s.voting_behavior, s.policy_influence,
+            s.transparency, s.question_quality,
+        ]
+        dist = math.sqrt(sum((a - b) ** 2 for a, b in zip(target_vec, vec)))
+        scored.append((dist, s))
+
+    scored.sort(key=lambda x: x[0])
+
+    items = []
+    for _, s in scored[:limit]:
+        m = s.member
+        items.append(
+            MemberWithScore(
+                id=m.id,
+                name=m.name,
+                name_reading=m.name_reading,
+                chamber=m.chamber,
+                party=m.party,
+                faction=m.faction,
+                district=m.district,
+                role_category=m.role_category,
+                latest_score=ScoreSummary(
+                    total=s.total,
+                    grade=s.grade,
+                    legislative_activity=s.legislative_activity,
+                    voting_behavior=s.voting_behavior,
+                    policy_influence=s.policy_influence,
+                    transparency=s.transparency,
+                    question_quality=s.question_quality,
+                ),
+            )
+        )
+
+    return items
 
 
 @router.get(

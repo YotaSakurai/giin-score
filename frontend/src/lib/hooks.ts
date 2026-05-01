@@ -210,6 +210,12 @@ export function useRoleCategories(chamber?: string) {
   return useSWR<string[]>(key, swrFetcher);
 }
 
+// ---- 類似議員 ----
+export function useSimilarMembers(memberId: number, limit = 5) {
+  const key = `/members/${memberId}/similar${buildQuery({ limit })}`;
+  return useSWR<import("./types").MemberWithScore[]>(key, swrFetcher);
+}
+
 // ---- 政党スコア推移 ----
 export function usePartyTrend(params?: { chamber?: string }) {
   const key = `/scores/party-trend${buildQuery(params)}`;

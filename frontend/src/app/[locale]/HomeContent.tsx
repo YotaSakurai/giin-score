@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LoadingSpinner } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
 import { CHAMBER_LABELS, GRADE_COLORS } from "@/lib/types";
-import { useRanking, useStats, useSessions } from "@/lib/hooks";
+import { useRanking, useStats, useSessions, useLastUpdated } from "@/lib/hooks";
 import { ShareButton } from "@/components/ShareButton";
 import { buildQuery } from "@/lib/api";
 import { SCORE_DESCRIPTIONS, GRADE_DESCRIPTIONS } from "@/lib/constants";
@@ -96,6 +96,7 @@ export default function HomeContent() {
   const sessionNumber = sessionParam ? Number(sessionParam) : undefined;
 
   const { data: sessions } = useSessions();
+  const { data: lastUpdated } = useLastUpdated();
 
   const {
     data: rankingData,
@@ -257,38 +258,46 @@ export default function HomeContent() {
 
       {/* 統計概要 */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-foreground">{stats.total_members}</p>
-              <p className="text-xs text-muted-foreground">対象議員数</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-blue-600">{stats.average_score.toFixed(1)}</p>
-              <p className="text-xs text-muted-foreground">平均スコア<ScoreTooltip axis="total" /></p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-foreground">{stats.median_score.toFixed(1)}</p>
-              <p className="text-xs text-muted-foreground">中央値</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-emerald-600">{stats.max_score.toFixed(1)}</p>
-              <p className="text-xs text-muted-foreground">最高スコア</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-red-500">{stats.min_score.toFixed(1)}</p>
-              <p className="text-xs text-muted-foreground">最低スコア</p>
-            </CardContent>
-          </Card>
-        </div>
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+            <Card>
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{stats.total_members}</p>
+                <p className="text-xs text-muted-foreground">対象議員数</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-blue-600">{stats.average_score.toFixed(1)}</p>
+                <p className="text-xs text-muted-foreground">平均スコア<ScoreTooltip axis="total" /></p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{stats.median_score.toFixed(1)}</p>
+                <p className="text-xs text-muted-foreground">中央値</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-emerald-600">{stats.max_score.toFixed(1)}</p>
+                <p className="text-xs text-muted-foreground">最高スコア</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-red-500">{stats.min_score.toFixed(1)}</p>
+                <p className="text-xs text-muted-foreground">最低スコア</p>
+              </CardContent>
+            </Card>
+          </div>
+          {lastUpdated?.last_updated && (
+            <p className="text-xs text-muted-foreground mb-8 text-right">
+              最終更新: {new Date(lastUpdated.last_updated).toLocaleString("ja-JP")}
+            </p>
+          )}
+          {!lastUpdated?.last_updated && <div className="mb-8" />}
+        </>
       )}
 
       {/* グレード分布 */}

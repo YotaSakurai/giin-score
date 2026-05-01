@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pagination } from "@/components/ui/pagination";
@@ -9,6 +10,7 @@ import { LoadingSpinner } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
 import { BillList } from "@/components/bill/BillList";
 import { useBills } from "@/lib/hooks";
+import { ShareButton } from "@/components/ShareButton";
 
 export default function BillsContent() {
   const router = useRouter();
@@ -65,9 +67,23 @@ export default function BillsContent() {
     [updateParams],
   );
 
+  // 法案種別ごとの件数 (全データ集計は表示中ページのみ)
+  const kindCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const b of bills) {
+      counts[b.bill_kind] = (counts[b.bill_kind] ?? 0) + 1;
+    }
+    return counts;
+  }, [bills]);
+
+  const enactedCount = useMemo(() => bills.filter((b) => b.status === "成立").length, [bills]);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-foreground mb-6">法案一覧</h1>
+      <div className="flex items-center gap-3 mb-6">
+        <h1 className="text-2xl font-bold text-foreground">法案一覧</h1>
+        <ShareButton title="法案一覧 | GiinScore" />
+      </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <Input
@@ -102,7 +118,16 @@ export default function BillsContent() {
         </Select>
       </div>
 
-      <p className="text-sm text-muted-foreground mb-4">{total}件の法案</p>
+      {/* 件数サマリー */}
+      <div className="flex items-center gap-4 mb-4 flex-wrap">
+        <p className="text-sm text-muted-foreground">{total}件の法案</p>
+        {enactedCount > 0 && (
+          <span className="text-xs text-emerald-600 font-medium">成立 {enactedCount}件</span>
+        )}
+        {Object.entries(kindCounts).map(([kind, count]) => (
+          <span key={kind} className="text-xs text-muted-foreground">{kind}: {count}件</span>
+        ))}
+      </div>
 
       {isLoading ? (
         <LoadingSpinner />
