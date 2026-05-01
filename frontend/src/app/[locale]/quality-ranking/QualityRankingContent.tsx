@@ -223,7 +223,14 @@ export default function QualityRankingContent() {
                               {entry.score.grade}
                             </span>
                           </td>
-                          <td className="p-3 text-right text-sm font-bold text-rose-600">{entry.score.question_quality.toFixed(1)}</td>
+                          <td className="p-3 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="w-16 h-1.5 rounded-full bg-muted hidden xl:block">
+                                <div className="h-1.5 rounded-full bg-rose-500" style={{ width: `${Math.min(entry.score.question_quality, 100)}%` }} />
+                              </div>
+                              <span className="text-sm font-bold text-rose-600">{entry.score.question_quality.toFixed(1)}</span>
+                            </div>
+                          </td>
                           <td className="p-3 text-right text-sm text-muted-foreground">{entry.score.total.toFixed(1)}</td>
                           <td className="p-3 hidden lg:table-cell text-right text-xs text-muted-foreground">{entry.score.legislative_activity.toFixed(0)}</td>
                           <td className="p-3 hidden lg:table-cell text-right text-xs text-muted-foreground">{entry.score.policy_influence.toFixed(0)}</td>

@@ -253,6 +253,13 @@ export function MemberTable({ members, sortBy, sortOrder, onSortChange }: Member
                       ) : (
                         "-"
                       )
+                    ) : col.key === "total" && member.latest_score ? (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-12 h-1.5 rounded-full bg-muted">
+                          <div className="h-1.5 rounded-full bg-blue-500" style={{ width: `${Math.min(member.latest_score.total, 100)}%` }} />
+                        </div>
+                        <span className="font-bold">{member.latest_score.total.toFixed(1)}</span>
+                      </div>
                     ) : (
                       getScoreValue(member, col.key)
                     )}

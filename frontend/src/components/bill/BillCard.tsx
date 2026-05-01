@@ -40,10 +40,14 @@ export const BillCard = memo(function BillCard({ bill }: BillCardProps) {
               <span className="text-xs text-muted-foreground">第{bill.bill_number}号</span>
             )}
             {bill.proposer_type && (
-              <span className="text-xs text-muted-foreground">{bill.proposer_type}</span>
+              <span className="text-xs text-muted-foreground">
+                {bill.proposer_type === "cabinet" ? "内閣提出" : bill.proposer_type === "member" ? "議員提出" : bill.proposer_type}
+              </span>
             )}
             {bill.result && bill.result !== bill.status && (
-              <span className="text-xs text-muted-foreground">{bill.result}</span>
+              <span className={`text-xs ${bill.result === "成立" ? "text-emerald-600 font-medium" : "text-muted-foreground"}`}>
+                {bill.result}
+              </span>
             )}
           </div>
         </CardContent>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { CopyButton } from "@/components/CopyButton";
 
 export const metadata: Metadata = {
   title: "API ドキュメント",
@@ -65,7 +66,10 @@ function Endpoint({ method, path, summary, description, params, responseExample 
 
         {responseExample && (
           <div>
-            <p className="font-medium text-foreground text-xs mb-2">レスポンス例</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-medium text-foreground text-xs">レスポンス例</p>
+              <CopyButton text={`curl "${API_BASE}${path}"`} />
+            </div>
             <pre className="bg-muted rounded-lg p-3 text-xs overflow-x-auto">
               <code>{responseExample}</code>
             </pre>
