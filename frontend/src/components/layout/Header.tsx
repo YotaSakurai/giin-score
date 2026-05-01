@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
+import { QuickSearch } from "@/components/layout/QuickSearch";
 
 const navKeys = [
   { href: "/", key: "ranking" },
@@ -56,6 +57,7 @@ export function Header() {
               {t(item.key)}
             </Link>
           ))}
+          <QuickSearch />
           <LocaleSwitcher />
           <ThemeToggle />
         </nav>

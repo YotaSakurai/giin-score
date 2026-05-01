@@ -199,6 +199,55 @@ export default function PartyStatsContent() {
             </Card>
           )}
 
+          {/* グレード分布スタックドバー */}
+          {sortedItems.length > 0 && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-base">政党別グレード分布</CardTitle>
+                <p className="text-xs text-muted-foreground">各政党のグレード構成比（%）</p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {sortedItems.map((entry) => {
+                  const total = entry.member_count;
+                  if (total === 0) return null;
+                  return (
+                    <div key={entry.party}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium w-28 truncate">{entry.party}</span>
+                        <span className="text-xs text-muted-foreground">{total}名</span>
+                      </div>
+                      <div className="flex h-5 rounded-full overflow-hidden">
+                        {GRADES.map((grade) => {
+                          const count = entry.grade_distribution[grade] ?? 0;
+                          if (count === 0) return null;
+                          const pct = (count / total) * 100;
+                          return (
+                            <div
+                              key={grade}
+                              className={`${GRADE_COLORS[grade]} flex items-center justify-center text-[9px] font-bold text-white`}
+                              style={{ width: `${pct}%` }}
+                              title={`${grade}: ${count}名 (${pct.toFixed(0)}%)`}
+                            >
+                              {pct >= 8 ? `${grade}${count}` : ""}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                  {GRADES.map((g) => (
+                    <span key={g} className="flex items-center gap-1">
+                      <span className={`h-2.5 w-2.5 rounded-sm ${GRADE_COLORS[g]}`} />
+                      {g}
+                    </span>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* テーブル */}
           <Card>
             <CardHeader>

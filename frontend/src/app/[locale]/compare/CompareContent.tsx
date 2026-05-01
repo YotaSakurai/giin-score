@@ -520,6 +520,38 @@ export default function CompareContent() {
         </CardContent>
       </Card>
 
+      {/* 勝敗サマリー (2名時) */}
+      {memberScores.length === 2 && memberScores.every((ms) => ms.score) && (() => {
+        const [a, b] = memberScores;
+        const axes = [...SCORE_AXES, "total" as const];
+        const aWins = axes.filter((ax) => (a.score?.[ax] ?? 0) > (b.score?.[ax] ?? 0)).length;
+        const bWins = axes.filter((ax) => (b.score?.[ax] ?? 0) > (a.score?.[ax] ?? 0)).length;
+        const draws = axes.length - aWins - bWins;
+        return (
+          <Card className="mb-6">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: COMPARE_COLORS[0].stroke }} />
+                  <span className="text-sm font-medium">{a.member.name}</span>
+                  <span className="text-xl font-bold text-blue-600">{aWins}</span>
+                </div>
+                <div className="text-center">
+                  <span className="text-xs text-muted-foreground">引分</span>
+                  <p className="text-lg font-bold text-muted-foreground">{draws}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl font-bold text-red-500">{bWins}</span>
+                  <span className="text-sm font-medium">{b.member.name}</span>
+                  <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: COMPARE_COLORS[1].stroke }} />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground text-center mt-1">6項目（総合 + 5軸）の優劣</p>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {/* 最大差分ハイライト */}
       {memberScores.length >= 2 && memberScores.every((ms) => ms.score) && (
         <Card className="mt-6">

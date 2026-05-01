@@ -990,13 +990,26 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                         </span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-blue-600 truncate">{m.name}</p>
-                          <p className="text-xs text-muted-foreground">{m.party ?? "無所属"}</p>
+                          <p className="text-xs text-muted-foreground">{m.party ?? "無所属"}{m.district ? ` / ${m.district}` : ""}</p>
                         </div>
                         <div className="text-right">
                           {s && <p className="text-sm font-bold">{s.total.toFixed(1)}</p>}
-                          {m.district && <p className="text-[10px] text-muted-foreground truncate max-w-20">{m.district}</p>}
                         </div>
                       </div>
+                      {s && (
+                        <div className="mt-2 flex gap-1">
+                          {(["legislative_activity", "voting_behavior", "policy_influence", "transparency", "question_quality"] as const).map((axis) => (
+                            <div key={axis} className="flex-1">
+                              <div className="h-1 rounded-full bg-muted overflow-hidden">
+                                <div
+                                  className={`h-1 rounded-full ${axis === "legislative_activity" ? "bg-blue-500" : axis === "voting_behavior" ? "bg-cyan-500" : axis === "policy_influence" ? "bg-amber-500" : axis === "transparency" ? "bg-emerald-500" : "bg-violet-500"}`}
+                                  style={{ width: `${Math.min(s[axis], 100)}%` }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </Link>
                 );
