@@ -544,6 +544,44 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
             />
           </div>
 
+          {/* 投票行動スナップショット */}
+          {votePattern && votePattern.total_votes > 0 && (
+            <Card className="mb-8">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">投票行動サマリー</CardTitle>
+                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => setActiveTab("vote-pattern")}>
+                    詳細を見る →
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">投票参加率</p>
+                    <p className={`text-xl font-bold ${votePattern.participation_rate >= 80 ? "text-emerald-600" : votePattern.participation_rate >= 50 ? "text-yellow-600" : "text-red-500"}`}>
+                      {votePattern.participation_rate}%
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">造反率</p>
+                    <p className="text-xl font-bold text-orange-500">{votePattern.dissent_rate}%</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">投票回数</p>
+                    <p className="text-xl font-bold">{votePattern.total_votes}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">欠席</p>
+                    <p className={`text-xl font-bold ${votePattern.absent_count > 10 ? "text-red-500" : "text-muted-foreground"}`}>
+                      {votePattern.absent_count}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* スコア推移 */}
           {member.scores.length >= 2 && (
             <Card className="mb-8">

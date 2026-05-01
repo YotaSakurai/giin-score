@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   LineChart,
   Line,
@@ -26,7 +27,27 @@ const LINE_CONFIG = [
   { dataKey: "question_quality", name: "質問品質", color: "#0891b2", strokeWidth: 1.5 },
 ] as const;
 
+function useIsDark() {
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const check = () => setDark(document.documentElement.classList.contains("dark") || mq.matches);
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    mq.addEventListener("change", check);
+    return () => { obs.disconnect(); mq.removeEventListener("change", check); };
+  }, []);
+  return dark;
+}
+
 export function ScoreHistoryChart({ scores }: ScoreHistoryChartProps) {
+  const isDark = useIsDark();
+  const gridColor = isDark ? "#334155" : "#e2e8f0";
+  const tickColor = isDark ? "#94a3b8" : "#475569";
+  const tooltipBg = isDark ? "#1e293b" : "#ffffff";
+  const tooltipBorder = isDark ? "#475569" : "#e2e8f0";
+
   // 会期番号の昇順でソート
   const sortedScores = [...scores].sort(
     (a, b) => (a.session_number ?? 0) - (b.session_number ?? 0)
@@ -51,24 +72,25 @@ export function ScoreHistoryChart({ scores }: ScoreHistoryChartProps) {
         <ReferenceArea y1={40} y2={60} fill="#eab308" fillOpacity={0.06} />
         <ReferenceArea y1={20} y2={40} fill="#f97316" fillOpacity={0.06} />
         <ReferenceArea y1={0} y2={20} fill="#ef4444" fillOpacity={0.06} />
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
         <XAxis
           dataKey="session_number"
-          tick={{ fontSize: 12, fill: "#475569" }}
+          tick={{ fontSize: 12, fill: tickColor }}
           tickLine={false}
         />
         <YAxis
           domain={[0, 100]}
-          tick={{ fontSize: 12, fill: "#475569" }}
+          tick={{ fontSize: 12, fill: tickColor }}
           tickLine={false}
           width={40}
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: "#ffffff",
-            border: "1px solid #e2e8f0",
+            backgroundColor: tooltipBg,
+            border: `1px solid ${tooltipBorder}`,
             borderRadius: "8px",
             fontSize: "13px",
+            color: tickColor,
           }}
           formatter={(value: number | undefined, name: string | undefined) => [`${value ?? 0}点`, name ?? ""]}
         />

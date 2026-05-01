@@ -318,7 +318,7 @@ export default function HomeContent() {
                   <Link
                     key={grade}
                     href={`/members?grade=${grade}&sort_by=total&sort_order=desc`}
-                    className="flex-1 flex flex-col items-center gap-1 group cursor-pointer"
+                    className="flex-1 flex flex-col items-center gap-1 group cursor-pointer relative"
                   >
                     <span className="text-xs text-muted-foreground">{count}名</span>
                     <div className="w-full flex justify-center">
@@ -329,6 +329,9 @@ export default function HomeContent() {
                     </div>
                     <span className="text-xs font-medium">{grade}</span>
                     <span className="text-xs text-muted-foreground">{pct}%</span>
+                    <span className="invisible group-hover:visible absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-popover border border-border px-2 py-1 text-[10px] text-popover-foreground shadow-lg z-50">
+                      {GRADE_DESCRIPTIONS[grade]?.split("—")[0]?.trim()}
+                    </span>
                   </Link>
                 );
               })}
