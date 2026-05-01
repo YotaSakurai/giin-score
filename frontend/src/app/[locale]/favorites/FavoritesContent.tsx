@@ -109,6 +109,8 @@ export default function FavoritesContent() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {members.map((member) => {
             const latestScore = member.scores.length > 0 ? member.scores[0] : null;
+            const prevScore = member.scores.length > 1 ? member.scores[1] : null;
+            const scoreDiff = latestScore && prevScore ? latestScore.total - prevScore.total : null;
             const gradeColor = latestScore
               ? GRADE_COLORS[latestScore.grade] || "bg-gray-300"
               : "bg-gray-300";
@@ -176,7 +178,14 @@ export default function FavoritesContent() {
                       </span>
                       <div>
                         <p className="text-lg font-bold">{latestScore.total.toFixed(1)}</p>
-                        <p className="text-xs text-muted-foreground">総合スコア</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground">総合スコア</p>
+                          {scoreDiff !== null && scoreDiff !== 0 && (
+                            <span className={`text-xs font-medium ${scoreDiff > 0 ? "text-emerald-600" : "text-red-500"}`}>
+                              {scoreDiff > 0 ? "+" : ""}{scoreDiff.toFixed(1)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="ml-auto grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         <span>立法 {latestScore.legislative_activity.toFixed(0)}</span>

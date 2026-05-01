@@ -768,23 +768,24 @@ export default function HomeContent() {
         </>
       )}
 
-      {/* 他のランキングへの導線 */}
+      {/* 機能ナビゲーション */}
       {!loading && !error && (
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/quality-ranking">
-            <Button variant="outline" size="sm">
-              質問品質ランキングを見る →
-            </Button>
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Link href="/quality-ranking" className="rounded-lg border p-4 hover:bg-muted/50 transition-colors">
+            <p className="text-sm font-medium mb-1">質問品質ランキング</p>
+            <p className="text-xs text-muted-foreground">国会質疑の生産性を評価・比較</p>
           </Link>
-          <Link href="/parties">
-            <Button variant="outline" size="sm">
-              政党別統計を見る →
-            </Button>
+          <Link href="/parties" className="rounded-lg border p-4 hover:bg-muted/50 transition-colors">
+            <p className="text-sm font-medium mb-1">政党別統計</p>
+            <p className="text-xs text-muted-foreground">政党ごとの平均スコア・グレード分布</p>
           </Link>
-          <Link href="/members?view=scatter">
-            <Button variant="outline" size="sm">
-              散布図で分析する →
-            </Button>
+          <Link href="/members?view=scatter" className="rounded-lg border p-4 hover:bg-muted/50 transition-colors">
+            <p className="text-sm font-medium mb-1">散布図分析</p>
+            <p className="text-xs text-muted-foreground">任意の2軸で議員をプロットして可視化</p>
+          </Link>
+          <Link href="/bills" className="rounded-lg border p-4 hover:bg-muted/50 transition-colors">
+            <p className="text-sm font-medium mb-1">法案一覧</p>
+            <p className="text-xs text-muted-foreground">国会提出法案の検索・閲覧</p>
           </Link>
         </div>
       )}

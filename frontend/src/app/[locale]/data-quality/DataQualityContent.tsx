@@ -21,10 +21,15 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
 }
 
 function CoverageLevel({ value }: { value: number }) {
-  if (value >= 80) return <span className="text-xs font-medium text-emerald-600">充実</span>;
-  if (value >= 50) return <span className="text-xs font-medium text-amber-600">中程度</span>;
-  if (value > 0) return <span className="text-xs font-medium text-orange-500">不足</span>;
-  return <span className="text-xs font-medium text-red-500">なし</span>;
+  const stars = Math.max(1, Math.min(5, Math.ceil(value / 20)));
+  const label = value >= 80 ? "高信頼" : value >= 50 ? "中信頼" : value > 0 ? "低信頼" : "なし";
+  const color = value >= 80 ? "text-emerald-600" : value >= 50 ? "text-amber-600" : value > 0 ? "text-orange-500" : "text-red-500";
+  return (
+    <span className={`text-xs font-medium ${color}`} title={`データ充足度: ${value}%`}>
+      {"★".repeat(stars)}{"☆".repeat(5 - stars)}
+      <span className="ml-1">{label}</span>
+    </span>
+  );
 }
 
 export default function DataQualityContent() {
