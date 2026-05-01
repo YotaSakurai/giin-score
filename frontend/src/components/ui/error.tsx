@@ -13,7 +13,7 @@ export function ErrorMessage({
 }: ErrorMessageProps) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <p className="text-sm text-red-600 mb-4">{message}</p>
+      <p className="text-sm text-red-600 dark:text-red-400 mb-4">{message}</p>
       {onRetry && (
         <Button variant="outline" size="sm" onClick={onRetry}>
           再試行

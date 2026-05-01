@@ -1,6 +1,7 @@
 "use client";
 
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer } from "recharts";
+import { useIsDark } from "@/lib/hooks";
 
 interface ScoreRadarChartProps {
   legislative_activity: number;
@@ -11,6 +12,10 @@ interface ScoreRadarChartProps {
 }
 
 export function ScoreRadarChart({ legislative_activity, voting_behavior, policy_influence, transparency, question_quality }: ScoreRadarChartProps) {
+  const dark = useIsDark();
+  const gridColor = dark ? "#334155" : "#e2e8f0";
+  const tickColor = dark ? "#94a3b8" : "#475569";
+
   const data = [
     { axis: "立法活動", value: legislative_activity },
     { axis: "投票行動", value: voting_behavior },
@@ -25,9 +30,9 @@ export function ScoreRadarChart({ legislative_activity, voting_behavior, policy_
     <div role="img" aria-label={ariaLabel}>
       <ResponsiveContainer width="100%" height={280}>
         <RadarChart data={data} cx="50%" cy="50%" outerRadius="70%">
-          <PolarGrid stroke="#e2e8f0" />
-          <PolarAngleAxis dataKey="axis" tick={{ fontSize: 12, fill: "#475569" }} />
-          <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
+          <PolarGrid stroke={gridColor} />
+          <PolarAngleAxis dataKey="axis" tick={{ fontSize: 12, fill: tickColor }} />
+          <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10, fill: tickColor }} />
           <Radar name="スコア" dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.25} strokeWidth={2} />
         </RadarChart>
       </ResponsiveContainer>

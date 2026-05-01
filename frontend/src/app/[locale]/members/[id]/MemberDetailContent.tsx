@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
-import { LoadingSpinner } from "@/components/ui/loading";
+import { LoadingSpinner, TableSkeleton, CardSkeleton } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
 import { ScoreRadarChart } from "@/components/score/ScoreRadarChart";
 import { ScoreHistoryChart } from "@/components/score/ScoreHistoryChart";
@@ -613,11 +613,11 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
           <TabsTrigger value="user-reviews">市民評価</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="speeches">
+        <TabsContent value="speeches" className="animate-in fade-in-0 duration-200">
           <Card>
             <CardContent className="p-4">
               {speechLoading ? (
-                <LoadingSpinner />
+                <TableSkeleton rows={5} cols={4} />
               ) : speeches.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">発言データがありません</p>
               ) : (
@@ -661,11 +661,11 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
           </Card>
         </TabsContent>
 
-        <TabsContent value="speech-quality">
+        <TabsContent value="speech-quality" className="animate-in fade-in-0 duration-200">
           <Card>
             <CardContent className="p-4">
               {qualityLoading ? (
-                <LoadingSpinner />
+                <CardSkeleton rows={3} />
               ) : qualityItems.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">質問品質データがまだ分析されていません</p>
               ) : (
@@ -748,11 +748,11 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
           </Card>
         </TabsContent>
 
-        <TabsContent value="votes">
+        <TabsContent value="votes" className="animate-in fade-in-0 duration-200">
           <Card>
             <CardContent className="p-4">
               {voteLoading ? (
-                <LoadingSpinner />
+                <TableSkeleton rows={5} cols={2} />
               ) : votes.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">投票データがありません</p>
               ) : (
@@ -784,7 +784,7 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
           </Card>
         </TabsContent>
 
-        <TabsContent value="vote-pattern">
+        <TabsContent value="vote-pattern" className="animate-in fade-in-0 duration-200">
           <Card>
             <CardContent className="p-4">
               {!votePattern ? (
@@ -907,11 +907,11 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
           </Card>
         </TabsContent>
 
-        <TabsContent value="written-questions">
+        <TabsContent value="written-questions" className="animate-in fade-in-0 duration-200">
           <Card>
             <CardContent className="p-4">
               {wqLoading ? (
-                <LoadingSpinner />
+                <CardSkeleton rows={3} />
               ) : wqItems.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">質問主意書データがありません</p>
               ) : (
@@ -972,7 +972,7 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
           </Card>
         </TabsContent>
 
-        <TabsContent value="user-reviews">
+        <TabsContent value="user-reviews" className="animate-in fade-in-0 duration-200">
           <UserReviewSection memberId={memberId} aiScores={latestScore} />
         </TabsContent>
       </Tabs>
