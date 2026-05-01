@@ -202,7 +202,7 @@ export default function BillsContent() {
         />
       ) : (
         <>
-          <BillList bills={bills} />
+          <BillList bills={bills} searchKeyword={search || undefined} />
           <Pagination page={page} pages={pages} onPageChange={setPage} />
         </>
       )}

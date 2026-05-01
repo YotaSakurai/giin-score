@@ -3,9 +3,10 @@ import { BillCard } from "./BillCard";
 
 interface BillListProps {
   bills: Bill[];
+  searchKeyword?: string;
 }
 
-export function BillList({ bills }: BillListProps) {
+export function BillList({ bills, searchKeyword }: BillListProps) {
   if (bills.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -17,7 +18,7 @@ export function BillList({ bills }: BillListProps) {
   return (
     <div className="space-y-3">
       {bills.map((bill) => (
-        <BillCard key={bill.id} bill={bill} />
+        <BillCard key={bill.id} bill={bill} searchKeyword={searchKeyword} />
       ))}
     </div>
   );

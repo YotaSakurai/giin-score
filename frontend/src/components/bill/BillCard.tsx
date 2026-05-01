@@ -7,6 +7,24 @@ import { STATUS_COLORS } from "@/lib/constants";
 
 interface BillCardProps {
   bill: Bill;
+  searchKeyword?: string;
+}
+
+function HighlightText({ text, keyword }: { text: string; keyword?: string }) {
+  if (!keyword || keyword.length < 1) return <>{text}</>;
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = text.split(new RegExp(`(${escaped})`, "gi"));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === keyword.toLowerCase() ? (
+          <mark key={i} className="bg-yellow-200 dark:bg-yellow-800/60 text-inherit rounded-sm px-0.5">{part}</mark>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
 }
 
 const KIND_COLORS: Record<string, string> = {
@@ -15,7 +33,7 @@ const KIND_COLORS: Record<string, string> = {
   参法: "border-amber-500",
 };
 
-export const BillCard = memo(function BillCard({ bill }: BillCardProps) {
+export const BillCard = memo(function BillCard({ bill, searchKeyword }: BillCardProps) {
   const statusClass = STATUS_COLORS[bill.status ?? ""] ?? "bg-muted text-muted-foreground";
   const isEnacted = bill.status === "成立";
   const kindBorder = KIND_COLORS[bill.bill_kind] ?? "border-muted";
@@ -26,7 +44,7 @@ export const BillCard = memo(function BillCard({ bill }: BillCardProps) {
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-medium text-foreground text-sm leading-tight flex-1">
-              {bill.title}
+              <HighlightText text={bill.title} keyword={searchKeyword} />
             </h3>
             {bill.status && (
               <Badge className={statusClass} variant="secondary">

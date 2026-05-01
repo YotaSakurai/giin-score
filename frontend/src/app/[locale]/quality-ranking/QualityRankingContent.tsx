@@ -225,7 +225,7 @@ export default function QualityRankingContent() {
                           </td>
                           <td className="p-3 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <div className="w-16 h-1.5 rounded-full bg-muted hidden xl:block">
+                              <div className="w-16 h-1.5 rounded-full bg-muted hidden md:block">
                                 <div className="h-1.5 rounded-full bg-rose-500" style={{ width: `${Math.min(entry.score.question_quality, 100)}%` }} />
                               </div>
                               <span className="text-sm font-bold text-rose-600">{entry.score.question_quality.toFixed(1)}</span>

@@ -79,10 +79,10 @@ export function Header() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`text-base font-medium ${
+                    className={`text-base font-medium rounded-md px-3 py-1.5 transition-colors ${
                       isActive(item.href)
-                        ? "text-primary font-bold"
-                        : "text-foreground/80 hover:text-primary"
+                        ? "bg-blue-50 dark:bg-blue-950/40 text-primary font-bold border-l-2 border-blue-600"
+                        : "text-foreground/80 hover:text-primary hover:bg-muted/50"
                     }`}
                     onClick={() => setOpen(false)}
                     aria-current={isActive(item.href) ? "page" : undefined}

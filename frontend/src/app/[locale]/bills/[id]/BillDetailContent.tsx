@@ -94,10 +94,15 @@ export default function BillDetailContent({ params }: Props) {
 
       {/* 投票結果 */}
       {bill.vote_results.length > 0 && (
-        <>
-          <h2 className="text-lg font-bold text-foreground mb-4">投票結果</h2>
-          <BillVoteResult voteResults={bill.vote_results} />
-        </>
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base">投票結果</CardTitle>
+            <p className="text-xs text-muted-foreground">各議院での投票結果</p>
+          </CardHeader>
+          <CardContent>
+            <BillVoteResult voteResults={bill.vote_results} />
+          </CardContent>
+        </Card>
       )}
     </div>
   );
