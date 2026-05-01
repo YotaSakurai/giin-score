@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
@@ -249,6 +250,28 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
     });
   }, [latestScore]);
 
+  // 質問品質集計サマリー
+  const qualitySummary = useMemo(() => {
+    if (qualityItems.length === 0) return null;
+    const sum = { policy_relevance: 0, constructiveness: 0, expertise: 0, national_interest: 0, overall: 0 };
+    for (const q of qualityItems) {
+      sum.policy_relevance += q.policy_relevance;
+      sum.constructiveness += q.constructiveness;
+      sum.expertise += q.expertise;
+      sum.national_interest += q.national_interest;
+      sum.overall += q.overall_quality;
+    }
+    const n = qualityItems.length;
+    return {
+      count: n,
+      avg_policy_relevance: sum.policy_relevance / n,
+      avg_constructiveness: sum.constructiveness / n,
+      avg_expertise: sum.expertise / n,
+      avg_national_interest: sum.national_interest / n,
+      avg_overall: sum.overall / n,
+    };
+  }, [qualityItems]);
+
   if (isLoading) return <div className="mx-auto max-w-7xl px-4 py-8"><LoadingSpinner /></div>;
   if (error) return <div className="mx-auto max-w-7xl px-4 py-8"><ErrorMessage message={error instanceof Error ? error.message : "データの取得に失敗しました"} onRetry={() => mutate()} /></div>;
   if (!member) return <div className="mx-auto max-w-7xl px-4 py-8">議員が見つかりません</div>;
@@ -292,6 +315,31 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
             </div>
           </div>
         </div>
+        {/* ヘッダー右側: グレード・スコアバッジ */}
+        {latestScore && (
+          <div className="flex items-center gap-4 md:ml-auto">
+            <div className="flex items-center gap-3 rounded-xl border bg-card px-5 py-3 shadow-sm">
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-full text-white font-bold text-lg ${GRADE_COLORS[latestScore.grade] || "bg-gray-300"}`}
+                role="img"
+                aria-label={`グレード ${latestScore.grade}`}
+              >
+                {latestScore.grade}
+              </div>
+              <div>
+                <p className="text-2xl font-bold leading-tight">{latestScore.total.toFixed(1)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {GRADE_DESCRIPTIONS[latestScore.grade]?.split("—")[0]?.trim() ?? ""}
+                </p>
+              </div>
+              {scoreDiff && (
+                <div className={`text-sm font-medium ${scoreDiff.total >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                  {scoreDiff.total >= 0 ? "+" : ""}{scoreDiff.total.toFixed(1)}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {latestScore ? (
@@ -423,6 +471,30 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
               <p className="text-xs text-muted-foreground">各軸の重みを調整して、あなた独自の評価基準でスコアを算出できます</p>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-2 mb-2">
+                {[
+                  { label: "標準", w: { legislative_activity: 25, voting_behavior: 20, policy_influence: 20, transparency: 15, question_quality: 20 } },
+                  { label: "立法重視", w: { legislative_activity: 50, voting_behavior: 10, policy_influence: 20, transparency: 5, question_quality: 15 } },
+                  { label: "質問品質重視", w: { legislative_activity: 15, voting_behavior: 10, policy_influence: 15, transparency: 10, question_quality: 50 } },
+                  { label: "投票参加重視", w: { legislative_activity: 15, voting_behavior: 50, policy_influence: 15, transparency: 10, question_quality: 10 } },
+                  { label: "成果重視", w: { legislative_activity: 15, voting_behavior: 10, policy_influence: 50, transparency: 5, question_quality: 20 } },
+                ].map((preset) => {
+                  const isActive = Object.entries(preset.w).every(
+                    ([k, v]) => weights[k as keyof typeof weights] === v,
+                  );
+                  return (
+                    <Button
+                      key={preset.label}
+                      variant={isActive ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setWeights(preset.w)}
+                    >
+                      {preset.label}
+                    </Button>
+                  );
+                })}
+              </div>
               {(Object.keys(weights) as Array<keyof typeof weights>).map((key) => (
                 <div key={key} className="flex items-center gap-4">
                   <span className="text-sm text-foreground/80 w-24">{AXIS_LABELS[key]}</span>
@@ -542,6 +614,33 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                 <p className="text-sm text-muted-foreground text-center py-4">質問品質データがまだ分析されていません</p>
               ) : (
                 <>
+                  {/* 質問品質 集計サマリー */}
+                  {qualitySummary && (
+                    <div className="mb-6 rounded-lg border bg-muted/20 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold">質問品質の平均 ({qualitySummary.count}件分析済み)</h3>
+                        <span className="text-lg font-bold">{qualitySummary.avg_overall.toFixed(1)}<span className="text-xs text-muted-foreground font-normal ml-1">/ 100</span></span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {[
+                          { label: "政策関連", value: qualitySummary.avg_policy_relevance, color: "bg-blue-500" },
+                          { label: "建設性", value: qualitySummary.avg_constructiveness, color: "bg-emerald-500" },
+                          { label: "専門性", value: qualitySummary.avg_expertise, color: "bg-amber-500" },
+                          { label: "国益", value: qualitySummary.avg_national_interest, color: "bg-violet-500" },
+                        ].map((axis) => (
+                          <div key={axis.label}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs text-muted-foreground">{axis.label}</span>
+                              <span className="text-sm font-bold">{axis.value.toFixed(1)}</span>
+                            </div>
+                            <div className="h-2 w-full rounded-full bg-muted">
+                              <div className={`h-2 rounded-full ${axis.color}`} style={{ width: `${Math.min(axis.value, 100)}%` }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-3">
                     {qualityItems.map((q) => {
                       const bg = q.overall_quality >= 70

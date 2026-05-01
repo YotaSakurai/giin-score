@@ -43,6 +43,7 @@ export function ScoreHistoryChart({ scores }: ScoreHistoryChartProps) {
   }));
 
   return (
+    <div role="img" aria-label={`スコア推移グラフ: ${data.length}会期分のデータ`}>
     <ResponsiveContainer width="100%" height={350}>
       <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
         <ReferenceArea y1={80} y2={100} fill="#10b981" fillOpacity={0.06} />
@@ -88,5 +89,6 @@ export function ScoreHistoryChart({ scores }: ScoreHistoryChartProps) {
         ))}
       </LineChart>
     </ResponsiveContainer>
+    </div>
   );
 }
