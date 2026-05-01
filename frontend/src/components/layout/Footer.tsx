@@ -8,12 +8,16 @@ export function Footer() {
   const t = useTranslations("footer");
   const { data } = useLastUpdated();
 
-  const lastUpdated = data?.last_updated
-    ? new Date(data.last_updated).toLocaleDateString("ja-JP", {
+  const lastUpdatedDate = data?.last_updated ? new Date(data.last_updated) : null;
+  const lastUpdated = lastUpdatedDate
+    ? lastUpdatedDate.toLocaleDateString("ja-JP", {
         year: "numeric",
         month: "long",
         day: "numeric",
       })
+    : null;
+  const daysAgo = lastUpdatedDate
+    ? Math.floor((Date.now() - lastUpdatedDate.getTime()) / (1000 * 60 * 60 * 24))
     : null;
 
   const scrollToTop = () => {
@@ -66,9 +70,20 @@ export function Footer() {
               <Link href="/data-quality" className="text-xs text-muted-foreground hover:text-primary">データ品質</Link>
             </div>
             {lastUpdated && (
-              <p className="text-xs text-muted-foreground/70 mt-2">
-                最終更新: {lastUpdated}
-              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <p className="text-xs text-muted-foreground">
+                  最終更新: {lastUpdated}
+                </p>
+                {daysAgo !== null && (
+                  <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                    daysAgo <= 3 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400"
+                    : daysAgo <= 7 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-950/50 dark:text-yellow-400"
+                    : "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400"
+                  }`}>
+                    {daysAgo === 0 ? "今日" : `${daysAgo}日前`}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </div>

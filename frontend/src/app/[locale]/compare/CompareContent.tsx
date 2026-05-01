@@ -641,6 +641,44 @@ export default function CompareContent() {
           </CardContent>
         </Card>
       )}
+
+      {/* 共通の課題 */}
+      {memberScores.length >= 2 && memberScores.every((ms) => ms.score) && (() => {
+        const weakAxes = SCORE_AXES.filter((axis) => {
+          const values = memberScores.map((ms) => ms.score?.[axis] ?? 0);
+          return values.every((v) => v < 35);
+        });
+        if (weakAxes.length === 0) return null;
+        return (
+          <Card className="mt-6">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">共通の課題</CardTitle>
+              <p className="text-xs text-muted-foreground">すべての候補者が低調な分野</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {weakAxes.map((axis) => {
+                  const values = memberScores.map((ms) => ms.score?.[axis] ?? 0);
+                  const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                  return (
+                    <div key={axis} className="flex items-center gap-3 rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-950/20 p-3">
+                      <svg className="h-4 w-4 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{AXIS_LABELS[axis]}</p>
+                        <p className="text-xs text-muted-foreground">
+                          全候補者が低調（平均 {avg.toFixed(1)}点）
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
     </div>
   );
 }

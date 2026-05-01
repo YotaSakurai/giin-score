@@ -307,7 +307,10 @@ export default function MembersContent() {
         />
       ) : viewMode === "grid" ? (
         <>
-          <MemberList members={members} />
+          <MemberList members={members} onResetFilters={() => handleFilterChange({
+            search: "", chamber: "all", party: "all", roleCategory: "all", district: "", grades: [],
+            scoreRange: [0, 100], laRange: [0, 100], vbRange: [0, 100], piRange: [0, 100], trRange: [0, 100], qqRange: [0, 100],
+          })} />
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <Pagination page={page} pages={pages} onPageChange={setPage} />
             <div className="flex items-center gap-1.5">

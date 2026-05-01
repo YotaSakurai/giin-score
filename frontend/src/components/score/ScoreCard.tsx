@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { GRADE_COLORS } from "@/lib/types";
+import { GRADE_DESCRIPTIONS } from "@/lib/constants";
 
 interface ScoreCardProps {
   total: number;
@@ -9,6 +10,7 @@ interface ScoreCardProps {
 
 export function ScoreCard({ total, grade, label }: ScoreCardProps) {
   const colorClass = GRADE_COLORS[grade] || "bg-gray-400";
+  const gradeHint = GRADE_DESCRIPTIONS[grade]?.split("—")[0]?.trim();
 
   return (
     <Card>
@@ -24,6 +26,9 @@ export function ScoreCard({ total, grade, label }: ScoreCardProps) {
           {label && <p className="text-xs text-muted-foreground">{label}</p>}
           <p className="text-2xl font-bold text-foreground">{total.toFixed(1)}</p>
           <p className="text-xs text-muted-foreground">/ 100</p>
+          {gradeHint && (
+            <p className="text-[10px] text-muted-foreground/70 mt-0.5">{gradeHint}</p>
+          )}
         </div>
       </CardContent>
     </Card>
