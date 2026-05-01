@@ -27,18 +27,20 @@ function getWarningFlags(score: NonNullable<MemberWithScore["latest_score"]>): s
   return flags;
 }
 
-function getBalanceType(score: NonNullable<MemberWithScore["latest_score"]>): string {
+function getBalanceInfo(score: NonNullable<MemberWithScore["latest_score"]>): { label: string; tooltip: string } {
   const vals = [score.legislative_activity, score.voting_behavior, score.policy_influence, score.transparency, score.question_quality];
   const mean = vals.reduce((a, b) => a + b) / vals.length;
   const stdDev = Math.sqrt(vals.reduce((sum, v) => sum + (v - mean) ** 2, 0) / vals.length);
-  return stdDev < 10 ? "バランス型" : stdDev < 20 ? "準バランス型" : "特化型";
+  if (stdDev < 10) return { label: "バランス型", tooltip: `5軸のばらつきが小さい（σ=${stdDev.toFixed(1)}）` };
+  if (stdDev < 20) return { label: "準バランス型", tooltip: `5軸にやや偏りあり（σ=${stdDev.toFixed(1)}��` };
+  return { label: "特化型", tooltip: `特定の軸に集中した活動パターン（σ=${stdDev.toFixed(1)}）` };
 }
 
 export const MemberCard = memo(function MemberCard({ member }: MemberCardProps) {
   const score = member.latest_score;
   const gradeColor = score ? GRADE_COLORS[score.grade] : "bg-gray-300";
   const warnings = useMemo(() => score ? getWarningFlags(score) : [], [score]);
-  const balanceType = useMemo(() => score ? getBalanceType(score) : null, [score]);
+  const balance = useMemo(() => score ? getBalanceInfo(score) : null, [score]);
 
   return (
     <Link href={`/members/${member.id}`}>
@@ -98,8 +100,8 @@ export const MemberCard = memo(function MemberCard({ member }: MemberCardProps) 
                 </div>
               ))}
               <div className="flex items-center justify-between mt-1">
-                <span className="text-[10px] text-muted-foreground">
-                  {balanceType}
+                <span className="text-[10px] text-muted-foreground cursor-help" title={balance?.tooltip}>
+                  {balance?.label}
                 </span>
                 <p className="text-sm font-bold text-foreground">
                   総合: {score.total.toFixed(1)}

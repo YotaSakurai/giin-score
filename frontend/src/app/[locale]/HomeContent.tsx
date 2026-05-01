@@ -306,7 +306,7 @@ export default function HomeContent() {
         <Card className="mb-8">
           <CardContent className="p-4">
             <h3 className="text-sm font-semibold mb-3">グレード分布</h3>
-            <div className="flex items-end gap-2 h-24">
+            <div className="flex items-end gap-2 h-24" role="img" aria-label={`グレード分布: ${stats.distribution.map((d) => `${d.grade}=${d.count}名(${d.percentage}%)`).join(", ")}`}>
               {(["A", "B", "C", "D", "F"] as const).map((grade) => {
                 const dist = stats.distribution.find((d) => d.grade === grade);
                 const count = dist?.count ?? 0;

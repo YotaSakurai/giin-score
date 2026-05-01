@@ -536,6 +536,36 @@ export default function CompareContent() {
         </CardContent>
       </Card>
 
+      {/* 各軸リーダー (3名以上) */}
+      {memberScores.length >= 3 && memberScores.every((ms) => ms.score) && (
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">各軸の最高得点者</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {(["total", ...SCORE_AXES] as ScoreAxis[]).map((axis) => {
+                const label = axis === "total" ? "総合" : AXIS_LABELS[axis];
+                const best = memberScores.reduce((acc, ms, idx) => {
+                  const val = ms.score?.[axis] ?? 0;
+                  return val > acc.value ? { name: ms.member.name, value: val, idx } : acc;
+                }, { name: "", value: -1, idx: 0 });
+                return (
+                  <div key={axis} className="rounded-lg border p-2.5">
+                    <p className="text-xs text-muted-foreground mb-1">{label}</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-block h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: COMPARE_COLORS[best.idx].stroke }} />
+                      <span className="text-sm font-medium truncate">{best.name}</span>
+                      <span className="text-xs font-bold ml-auto">{best.value.toFixed(1)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* 勝敗サマリー (2名時) */}
       {memberScores.length === 2 && memberScores.every((ms) => ms.score) && (() => {
         const [a, b] = memberScores;

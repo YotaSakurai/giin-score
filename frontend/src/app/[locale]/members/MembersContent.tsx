@@ -271,8 +271,22 @@ export default function MembersContent() {
       })()}
 
       {!isScatterView && (
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm text-muted-foreground">{total}名の議員</p>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-muted-foreground">{total}名の議員</p>
+            {(() => {
+              const hasActiveFilter = filterState.search || filterState.chamber !== "all" || filterState.party !== "all"
+                || filterState.roleCategory !== "all" || filterState.district || filterState.grades.length > 0
+                || isRangeActive(filterState.scoreRange) || isRangeActive(filterState.laRange) || isRangeActive(filterState.vbRange)
+                || isRangeActive(filterState.piRange) || isRangeActive(filterState.trRange) || isRangeActive(filterState.qqRange);
+              if (!hasActiveFilter || total === 0) return null;
+              return (
+                <Badge variant="outline" className="text-xs text-muted-foreground">
+                  フィルタ適用中
+                </Badge>
+              );
+            })()}
+          </div>
           {filterState.district && total > 0 && total <= 10 && (
             <p className="text-xs text-blue-600">
               「{filterState.district}」の議員 — スコアを比較して投票の参考にしましょう
