@@ -263,7 +263,7 @@ export default function AboutPage() {
 
       {/* 限界 */}
       <h2 className="text-xl font-bold text-foreground mb-4">スコアの限界</h2>
-      <Card>
+      <Card className="mb-8">
         <CardContent className="p-6 text-sm text-muted-foreground space-y-2">
           <ul className="list-disc pl-5 space-y-2">
             <li>量的指標のみを計測しており、政策の質・妥当性・影響力の深さは評価できません</li>
@@ -275,6 +275,42 @@ export default function AboutPage() {
           </ul>
         </CardContent>
       </Card>
+
+      <Separator className="my-8" />
+
+      {/* FAQ */}
+      <h2 className="text-xl font-bold text-foreground mb-4">よくある質問</h2>
+      <div className="space-y-4">
+        {[
+          {
+            q: "総合スコアと各軸の値が合わないように見えるのはなぜ？",
+            a: "総合スコアは5軸の重み付き平均ですが、各軸は同じ役職カテゴリ内でのパーセンタイルランクに変換されています。そのため単純な算術平均とは一致しません。また、デフォルトの重みは立法25%・投票20%・影響20%・透明15%・質問20%です。",
+          },
+          {
+            q: "スキャンダルや人格の問題はスコアに影響しないの？",
+            a: "影響しません。GiinScoreは「能力至上主義」の原則に基づき、立法・政策立案における実質的な成果のみを評価します。個人的なスキャンダルがあっても、国会での活動量と質が高ければ高スコアになります。",
+          },
+          {
+            q: "異なる会期のスコアは比較できる？",
+            a: "各会期のスコアは、その会期内での相対的な位置（パーセンタイルランク）なので、同一議員の会期間の推移を見ることは可能です。ただし、会期ごとに比較群が変わるため、完全に同じ基準での比較ではない点にご注意ください。",
+          },
+          {
+            q: "自分の価値観で重みを変えられる？",
+            a: "議員詳細ページの「スコアの重みカスタマイズ」セクションで、5軸それぞれの重みをスライダーで自由に変更できます。例えば質問品質を重視したい場合は、その軸の重みを上げてください。",
+          },
+          {
+            q: "閣僚や党幹部のスコアが低いのはなぜ？",
+            a: "閣僚は立場上、法案発議や委員会質疑の機会が一般議員と異なります。role_category（閣僚/与党一般/野党幹部等）で比較群を分けて正規化していますが、それでも構造的な差が残る場合があります。",
+          },
+        ].map((item) => (
+          <Card key={item.q}>
+            <CardContent className="p-4">
+              <p className="text-sm font-medium text-foreground mb-2">{item.q}</p>
+              <p className="text-sm text-muted-foreground">{item.a}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

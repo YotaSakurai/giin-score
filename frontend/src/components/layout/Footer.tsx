@@ -16,9 +16,26 @@ export function Footer() {
       })
     : null;
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <footer className="border-t bg-muted/50 mt-auto">
       <div className="mx-auto max-w-7xl px-4 py-6">
+        <div className="flex justify-end mb-4">
+          <button
+            type="button"
+            onClick={scrollToTop}
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+            aria-label="ページトップへ戻る"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+            </svg>
+            ページトップへ
+          </button>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
           <div>
             <p className="text-sm font-semibold text-foreground mb-2">GiinScore</p>

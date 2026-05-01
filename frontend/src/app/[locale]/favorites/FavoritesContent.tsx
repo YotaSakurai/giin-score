@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { getFavorites, setFavorites } from "@/lib/favorites";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { Download } from "lucide-react";
 
 /** 複数IDの議員データを一括取得するカスタムフック */
 function useFavoriteMembers(ids: number[]) {
@@ -51,6 +52,35 @@ export default function FavoritesContent() {
     setFavoriteIds([]);
     setFavorites([]);
   }, []);
+
+  const handleCsvExport = useCallback(() => {
+    if (members.length === 0) return;
+    const header = "議員名,政党,院,総合スコア,グレード,立法活動,投票行動,政策影響力,透明性,質問品質";
+    const rows = members.map((m) => {
+      const s = m.scores[0];
+      return [
+        m.name,
+        m.party ?? "無所属",
+        CHAMBER_LABELS[m.chamber] || m.chamber,
+        s ? s.total.toFixed(1) : "",
+        s ? s.grade : "",
+        s ? s.legislative_activity.toFixed(1) : "",
+        s ? s.voting_behavior.toFixed(1) : "",
+        s ? s.policy_influence.toFixed(1) : "",
+        s ? s.transparency.toFixed(1) : "",
+        s ? s.question_quality.toFixed(1) : "",
+      ].join(",");
+    });
+    const bom = "\uFEFF";
+    const csv = bom + [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "giin-score-favorites.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [members]);
 
   if (favoriteIds.length === 0) {
     return (
@@ -97,6 +127,10 @@ export default function FavoritesContent() {
               比較する ({compareSelection.length})
             </Button>
           )}
+          <Button variant="outline" size="sm" onClick={handleCsvExport} className="gap-1">
+            <Download className="size-3.5" />
+            CSV
+          </Button>
           <Button variant="outline" size="sm" onClick={handleClearAll}>
             全てクリア
           </Button>
