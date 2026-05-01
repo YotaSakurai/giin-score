@@ -414,6 +414,9 @@ export default function HomeContent() {
                     <div className="text-right">
                       <span className="text-sm font-bold text-emerald-600">+{entry.diff.toFixed(1)}</span>
                       <p className="text-xs text-muted-foreground">{entry.previous_score.toFixed(1)} → {entry.current_score.toFixed(1)}</p>
+                      {entry.current_grade !== entry.previous_grade && (
+                        <span className="text-[10px] text-emerald-500 font-medium">{entry.previous_grade}→{entry.current_grade}</span>
+                      )}
                     </div>
                   </Link>
                 ))}
@@ -443,6 +446,9 @@ export default function HomeContent() {
                     <div className="text-right">
                       <span className="text-sm font-bold text-red-500">{entry.diff.toFixed(1)}</span>
                       <p className="text-xs text-muted-foreground">{entry.previous_score.toFixed(1)} → {entry.current_score.toFixed(1)}</p>
+                      {entry.current_grade !== entry.previous_grade && (
+                        <span className="text-[10px] text-red-400 font-medium">{entry.previous_grade}→{entry.current_grade}</span>
+                      )}
                     </div>
                   </Link>
                 ))}

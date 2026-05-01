@@ -29,6 +29,26 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
                 pass
             elif "/health" in path:
                 pass
+            elif "/by-party" in path or "/party-trend" in path:
+                # 政党統計 - 集計結果なので長めにキャッシュ
+                response.headers["Cache-Control"] = (
+                    "public, max-age=3600, stale-while-revalidate=7200"
+                )
+            elif "/ranking" in path or "/stats" in path:
+                # ランキング・統計 - 中程度
+                response.headers["Cache-Control"] = (
+                    "public, max-age=1800, stale-while-revalidate=3600"
+                )
+            elif "/data-quality" in path:
+                # データ品質 - 頻繁に変わらない
+                response.headers["Cache-Control"] = (
+                    "public, max-age=3600, stale-while-revalidate=7200"
+                )
+            elif "/members/" in path and "/speeches" not in path:
+                # 議員詳細 - 中程度
+                response.headers["Cache-Control"] = (
+                    "public, max-age=600, stale-while-revalidate=1200"
+                )
             else:
                 response.headers["Cache-Control"] = (
                     "public, max-age=300, stale-while-revalidate=600"

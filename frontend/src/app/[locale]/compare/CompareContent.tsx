@@ -232,6 +232,20 @@ export default function CompareContent() {
             <Button variant="outline" size="sm" className="mt-2" asChild>
               <Link href="/">ランキングページへ</Link>
             </Button>
+            <div className="mt-6 border-t pt-4 w-full max-w-md">
+              <p className="text-xs font-medium text-muted-foreground mb-3">クイック比較テンプレート</p>
+              <div className="flex flex-col gap-2">
+                <Button variant="outline" size="sm" className="text-xs justify-start" asChild>
+                  <Link href="/members?grade=A&sort_by=total&sort_order=desc">Aグレード議員から選ぶ →</Link>
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs justify-start" asChild>
+                  <Link href="/members?sort_by=question_quality&sort_order=desc">質問品質TOP議員から選ぶ →</Link>
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs justify-start" asChild>
+                  <Link href="/favorites">お気に入りから比較 →</Link>
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

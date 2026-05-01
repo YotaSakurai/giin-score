@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { MemberList } from "@/components/member/MemberList";
 import { Pagination } from "@/components/ui/pagination";
@@ -13,7 +13,19 @@ import { useMembers, useMembersScatter } from "@/lib/hooks";
 import { CHAMBER_LABELS, AXIS_LABELS } from "@/lib/types";
 import { AdvancedMemberFilter, type AdvancedFilterState } from "@/components/member/AdvancedMemberFilter";
 import { ViewModeToggle, type ViewMode } from "@/components/member/ViewModeToggle";
+import { Bookmark } from "lucide-react";
 import dynamic from "next/dynamic";
+
+const FILTER_PRESETS_KEY = "giin-score-filter-presets";
+interface SavedPreset { name: string; params: Record<string, string> }
+
+function loadPresets(): SavedPreset[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(FILTER_PRESETS_KEY) || "[]"); } catch { return []; }
+}
+function savePresets(presets: SavedPreset[]) {
+  try { localStorage.setItem(FILTER_PRESETS_KEY, JSON.stringify(presets.slice(0, 5))); } catch { /* ignore */ }
+}
 
 const MemberTable = dynamic(() => import("@/components/member/MemberTable").then(m => ({ default: m.MemberTable })), {
   loading: () => <LoadingSpinner />,
@@ -185,6 +197,9 @@ export default function MembersContent() {
         <h1 className="text-2xl font-bold text-foreground">議員一覧</h1>
         <ViewModeToggle value={viewMode} onChange={handleViewChange} />
       </div>
+
+      {/* 保存済みフィルタ */}
+      <SavedFilterPresets searchParams={searchParams} router={router} />
 
       {/* クイックフィルタプリセット */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -363,6 +378,80 @@ export default function MembersContent() {
           onYAxisChange={(v) => updateParams({ sy: v === "question_quality" ? undefined : v })}
           onColorByChange={(v) => updateParams({ sc: v === "party" ? undefined : v })}
         />
+      )}
+    </div>
+  );
+}
+
+function SavedFilterPresets({ searchParams, router }: { searchParams: ReturnType<typeof useSearchParams>; router: ReturnType<typeof useRouter> }) {
+  const [presets, setPresetsState] = useState<SavedPreset[]>(() => loadPresets());
+  const [showSave, setShowSave] = useState(false);
+  const [presetName, setPresetName] = useState("");
+
+  const hasParams = searchParams.toString().length > 0;
+
+  const handleSave = () => {
+    if (!presetName.trim()) return;
+    const params: Record<string, string> = {};
+    searchParams.forEach((v, k) => { params[k] = v; });
+    const next = [...presets.filter((p) => p.name !== presetName.trim()), { name: presetName.trim(), params }].slice(-5);
+    setPresetsState(next);
+    savePresets(next);
+    setPresetName("");
+    setShowSave(false);
+  };
+
+  const handleLoad = (preset: SavedPreset) => {
+    const qs = new URLSearchParams(preset.params).toString();
+    router.push(qs ? `/members?${qs}` : "/members");
+  };
+
+  const handleDelete = (name: string) => {
+    const next = presets.filter((p) => p.name !== name);
+    setPresetsState(next);
+    savePresets(next);
+  };
+
+  if (presets.length === 0 && !hasParams) return null;
+
+  return (
+    <div className="flex items-center gap-2 mb-3 flex-wrap">
+      {presets.length > 0 && (
+        <>
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <Bookmark className="size-3" />
+            保存済み:
+          </span>
+          {presets.map((p) => (
+            <span key={p.name} className="inline-flex items-center gap-1">
+              <Button variant="outline" size="sm" className="h-6 text-xs px-2" onClick={() => handleLoad(p)}>
+                {p.name}
+              </Button>
+              <button type="button" onClick={() => handleDelete(p.name)} className="text-muted-foreground/50 hover:text-red-400 text-xs" aria-label={`${p.name}を削除`}>×</button>
+            </span>
+          ))}
+        </>
+      )}
+      {hasParams && !showSave && (
+        <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" onClick={() => setShowSave(true)}>
+          <Bookmark className="size-3" />
+          現在の条件を保存
+        </Button>
+      )}
+      {showSave && (
+        <span className="inline-flex items-center gap-1">
+          <input
+            type="text"
+            placeholder="プリセット名"
+            value={presetName}
+            onChange={(e) => setPresetName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSave()}
+            className="h-6 w-28 rounded border border-border bg-background px-2 text-xs"
+            maxLength={20}
+          />
+          <Button variant="default" size="sm" className="h-6 text-xs px-2" onClick={handleSave}>保存</Button>
+          <Button variant="ghost" size="sm" className="h-6 text-xs px-1" onClick={() => setShowSave(false)}>×</Button>
+        </span>
       )}
     </div>
   );
