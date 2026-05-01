@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LoadingSpinner } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
 import { CHAMBER_LABELS, GRADE_COLORS } from "@/lib/types";
-import { useRanking, useStats, useSessions, useLastUpdated } from "@/lib/hooks";
+import { useRanking, useStats, useSessions, useLastUpdated, useScoreMovers } from "@/lib/hooks";
 import { ShareButton } from "@/components/ShareButton";
 import { buildQuery } from "@/lib/api";
 import { SCORE_DESCRIPTIONS, GRADE_DESCRIPTIONS } from "@/lib/constants";
@@ -97,6 +97,7 @@ export default function HomeContent() {
 
   const { data: sessions } = useSessions();
   const { data: lastUpdated } = useLastUpdated();
+  const { data: moversData } = useScoreMovers({ chamber: chamberParam, limit: 5 });
 
   const {
     data: rankingData,
@@ -381,6 +382,70 @@ export default function HomeContent() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* スコア変動注目議員 */}
+      {moversData && (moversData.risers.length > 0 || moversData.fallers.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          {moversData.risers.length > 0 && (
+            <Card className="border-emerald-200 dark:border-emerald-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                  スコア上昇TOP5
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {moversData.risers.map((entry) => (
+                  <Link key={entry.member.id} href={`/members/${entry.member.id}`} className="flex items-center gap-2 rounded-lg p-2 hover:bg-muted/50 transition-colors">
+                    <span className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold ${GRADE_COLORS[entry.current_grade] || "bg-gray-300"}`}>
+                      {entry.current_grade}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{entry.member.name}</p>
+                      <p className="text-xs text-muted-foreground">{entry.member.party ?? "無所属"}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-bold text-emerald-600">+{entry.diff.toFixed(1)}</span>
+                      <p className="text-xs text-muted-foreground">{entry.previous_score.toFixed(1)} → {entry.current_score.toFixed(1)}</p>
+                    </div>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+          {moversData.fallers.length > 0 && (
+            <Card className="border-red-200 dark:border-red-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-red-700 dark:text-red-400 flex items-center gap-2">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                  </svg>
+                  スコア下降TOP5
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {moversData.fallers.map((entry) => (
+                  <Link key={entry.member.id} href={`/members/${entry.member.id}`} className="flex items-center gap-2 rounded-lg p-2 hover:bg-muted/50 transition-colors">
+                    <span className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold ${GRADE_COLORS[entry.current_grade] || "bg-gray-300"}`}>
+                      {entry.current_grade}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{entry.member.name}</p>
+                      <p className="text-xs text-muted-foreground">{entry.member.party ?? "無所属"}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-bold text-red-500">{entry.diff.toFixed(1)}</span>
+                      <p className="text-xs text-muted-foreground">{entry.previous_score.toFixed(1)} → {entry.current_score.toFixed(1)}</p>
+                    </div>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 

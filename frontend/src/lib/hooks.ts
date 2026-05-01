@@ -222,6 +222,12 @@ export function usePartyTrend(params?: { chamber?: string }) {
   return useSWR<import("./types").PartyTrendResponse>(key, swrFetcher);
 }
 
+// ---- スコア変動議員 ----
+export function useScoreMovers(params?: { chamber?: string; limit?: number }) {
+  const key = `/scores/movers${buildQuery(params)}`;
+  return useSWR<import("./types").ScoreMoversResponse>(key, swrFetcher);
+}
+
 // ---- レビュー一覧 ----
 export function useReviews(
   memberId: number,

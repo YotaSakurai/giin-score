@@ -739,10 +739,10 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                 <div className="space-y-6">
                   {/* サマリーカード with visual gauges */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="rounded-lg border p-4 text-center">
+                    <div className="rounded-lg border p-4 text-center" role="group" aria-label={`投票参加率 ${votePattern.participation_rate}%`}>
                       <p className="text-xs text-muted-foreground mb-2">投票参加率</p>
-                      <div className="relative inline-flex items-center justify-center">
-                        <svg className="h-20 w-20" viewBox="0 0 36 36">
+                      <div className="relative inline-flex items-center justify-center" role="img" aria-label={`投票参加率 ${votePattern.participation_rate}%のゲージ`}>
+                        <svg className="h-20 w-20" viewBox="0 0 36 36" aria-hidden="true">
                           <path
                             d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                             fill="none"
@@ -771,10 +771,10 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
                         </p>
                       )}
                     </div>
-                    <div className="rounded-lg border p-4 text-center">
+                    <div className="rounded-lg border p-4 text-center" role="group" aria-label={`造反率 ${votePattern.dissent_rate}%`}>
                       <p className="text-xs text-muted-foreground mb-2">造反率</p>
-                      <div className="relative inline-flex items-center justify-center">
-                        <svg className="h-20 w-20" viewBox="0 0 36 36">
+                      <div className="relative inline-flex items-center justify-center" role="img" aria-label={`造反率 ${votePattern.dissent_rate}%のゲージ`}>
+                        <svg className="h-20 w-20" viewBox="0 0 36 36" aria-hidden="true">
                           <path
                             d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                             fill="none"

@@ -348,6 +348,21 @@ export interface PartyTrendResponse {
   chamber: string | null;
 }
 
+export interface ScoreMoverEntry {
+  member: Member;
+  current_score: number;
+  previous_score: number;
+  diff: number;
+  current_grade: string;
+  previous_grade: string;
+}
+
+export interface ScoreMoversResponse {
+  risers: ScoreMoverEntry[];
+  fallers: ScoreMoverEntry[];
+  chamber: string | null;
+}
+
 export const SCORE_AXIS_OPTIONS: { value: string; label: string }[] = [
   { value: "total", label: "総合スコア" },
   { value: "legislative_activity", label: "立法活動" },

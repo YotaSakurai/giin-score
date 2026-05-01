@@ -94,3 +94,18 @@ class PartyTrendSession(BaseModel):
 class PartyTrendResponse(BaseModel):
     sessions: list[PartyTrendSession]
     chamber: str | None = None
+
+
+class ScoreMoverEntry(BaseModel):
+    member: MemberResponse
+    current_score: float
+    previous_score: float
+    diff: float
+    current_grade: str
+    previous_grade: str
+
+
+class ScoreMoversResponse(BaseModel):
+    risers: list[ScoreMoverEntry]
+    fallers: list[ScoreMoverEntry]
+    chamber: str | None = None

@@ -22,6 +22,8 @@ from app.schemas.score import (
     RankingEntry,
     RankingResponse,
     ScoreDistribution,
+    ScoreMoverEntry,
+    ScoreMoversResponse,
     ScoreResponse,
     StatsResponse,
 )
@@ -304,6 +306,86 @@ def get_party_trend(
         )
 
     return PartyTrendResponse(sessions=sessions_data, chamber=chamber)
+
+
+@router.get(
+    "/movers",
+    response_model=ScoreMoversResponse,
+    summary="スコア変動議員取得",
+)
+def get_score_movers(
+    chamber: Literal["representatives", "councillors"] | None = None,
+    limit: int = Query(5, ge=1, le=20),
+    db: Session = Depends(get_db),
+):
+    """前会期比でスコアが最も上昇/下降した議員を返す。"""
+    scored_sessions = (
+        db.execute(
+            select(DietSession)
+            .where(
+                DietSession.id.in_(
+                    select(MemberScore.session_id).distinct()
+                )
+            )
+            .order_by(DietSession.session_number.desc())
+            .limit(2)
+        )
+        .scalars()
+        .all()
+    )
+
+    if len(scored_sessions) < 2:
+        return ScoreMoversResponse(
+            risers=[], fallers=[], chamber=chamber
+        )
+
+    current_session = scored_sessions[0]
+    previous_session = scored_sessions[1]
+
+    # 現在会期のスコア
+    cur_q = (
+        select(MemberScore)
+        .join(Member)
+        .where(MemberScore.session_id == current_session.id)
+        .options(selectinload(MemberScore.member))
+    )
+    if chamber:
+        cur_q = cur_q.where(Member.chamber == chamber)
+    current_scores = db.execute(cur_q).scalars().all()
+
+    # 前会期のスコアをdict化
+    prev_q = select(MemberScore).where(
+        MemberScore.session_id == previous_session.id
+    )
+    prev_scores = db.execute(prev_q).scalars().all()
+    prev_map = {s.member_id: s for s in prev_scores}
+
+    diffs: list[tuple[MemberScore, MemberScore, float]] = []
+    for cur in current_scores:
+        prev = prev_map.get(cur.member_id)
+        if prev:
+            diffs.append((cur, prev, cur.total - prev.total))
+
+    diffs.sort(key=lambda x: x[2], reverse=True)
+
+    def to_entry(
+        cur: MemberScore, prev: MemberScore, diff: float
+    ) -> ScoreMoverEntry:
+        return ScoreMoverEntry(
+            member=MemberResponse.model_validate(cur.member),
+            current_score=round(cur.total, 1),
+            previous_score=round(prev.total, 1),
+            diff=round(diff, 1),
+            current_grade=cur.grade,
+            previous_grade=prev.grade,
+        )
+
+    risers = [to_entry(*d) for d in diffs[:limit]]
+    fallers = [to_entry(*d) for d in reversed(diffs[-limit:])]
+
+    return ScoreMoversResponse(
+        risers=risers, fallers=fallers, chamber=chamber
+    )
 
 
 @router.get("/export/csv", summary="ランキングCSVエクスポート")
