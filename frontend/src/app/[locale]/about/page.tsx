@@ -23,6 +23,47 @@ export default function AboutPage() {
         </p>
       </div>
 
+      {/* 評価の原則 */}
+      <h2 className="text-xl font-bold text-foreground mb-4">評価の原則</h2>
+      <div className="space-y-4 mb-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">能力至上主義</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            政治家の評価は立法・政策立案における実質的な能力と成果で決まります。
+            スキャンダル・金銭問題・品性の問題は、能力の評価とは独立しています。
+            能力の高い政治家は、個人的問題があってもスコアが高くなります。
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">質疑時間の生産性</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <p>国会の質疑時間は有限の国家資源です。以下は非生産的な時間の消費とみなします:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>スキャンダル追及のみの質問（制度改善提案を伴わないもの）</li>
+              <li>公開情報の確認だけの質問</li>
+              <li>メディア向けのパフォーマンス質問</li>
+              <li>答弁済み内容の繰り返し質問</li>
+            </ul>
+            <p>一方、法案・予算・制度の具体的な改善提案や独自調査に基づく追及は生産的な質問として高評価となります。</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">イデオロギー中立</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            保守/リベラル等の政策の方向性は一切評価しません。与党・野党の立場による有利不利を排除します。
+            評価するのは「何を主張するか」ではなく「どれだけ実質的な政策議論ができているか」です。
+          </CardContent>
+        </Card>
+      </div>
+
+      <Separator className="my-8" />
+
       {/* 5軸スコア説明 */}
       <h2 className="text-xl font-bold text-foreground mb-4">5軸スコア</h2>
       <p className="text-sm text-muted-foreground mb-6">

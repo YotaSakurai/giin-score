@@ -9,7 +9,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
 import { BillList } from "@/components/bill/BillList";
-import { useBills } from "@/lib/hooks";
+import { useBills, useSessions } from "@/lib/hooks";
 import { ShareButton } from "@/components/ShareButton";
 
 export default function BillsContent() {
@@ -19,13 +19,18 @@ export default function BillsContent() {
   const search = searchParams.get("search") || "";
   const billKind = searchParams.get("kind") || "all";
   const status = searchParams.get("status") || "all";
+  const sessionParam = searchParams.get("session") || "";
   const page = Number(searchParams.get("page")) || 1;
   const perPage = 20;
+
+  const { data: sessions } = useSessions();
+  const sessionNumber = sessionParam ? Number(sessionParam) : undefined;
 
   const { data, error, isLoading, mutate } = useBills({
     search: search || undefined,
     bill_kind: billKind === "all" ? undefined : billKind,
     status: status === "all" ? undefined : status,
+    session_number: sessionNumber,
     page,
     per_page: perPage,
   });
@@ -60,6 +65,10 @@ export default function BillsContent() {
   );
   const setStatus = useCallback(
     (v: string) => updateParams({ status: v, page: undefined }),
+    [updateParams],
+  );
+  const setSession = useCallback(
+    (v: string) => updateParams({ session: v === "all" ? undefined : v, page: undefined }),
     [updateParams],
   );
   const setPage = useCallback(
@@ -116,6 +125,21 @@ export default function BillsContent() {
             <SelectItem value="継続">継続</SelectItem>
           </SelectContent>
         </Select>
+        {sessions && sessions.length > 0 && (
+          <Select value={sessionParam || "all"} onValueChange={setSession}>
+            <SelectTrigger className="sm:w-44">
+              <SelectValue placeholder="会期" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全会期</SelectItem>
+              {sessions.map((s) => (
+                <SelectItem key={s.session_number} value={String(s.session_number)}>
+                  第{s.session_number}回 ({s.kind})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* 件数サマリー */}

@@ -33,7 +33,11 @@ export function Footer() {
               <Link href="/members" className="text-xs text-muted-foreground hover:text-primary">議員一覧</Link>
               <Link href="/parties" className="text-xs text-muted-foreground hover:text-primary">政党別統計</Link>
               <Link href="/quality-ranking" className="text-xs text-muted-foreground hover:text-primary">質問品質ランキング</Link>
+              <Link href="/bills" className="text-xs text-muted-foreground hover:text-primary">法案一覧</Link>
+              <Link href="/compare" className="text-xs text-muted-foreground hover:text-primary">議員比較</Link>
+              <Link href="/favorites" className="text-xs text-muted-foreground hover:text-primary">お気に入り</Link>
               <Link href="/about" className="text-xs text-muted-foreground hover:text-primary">スコアについて</Link>
+              <Link href="/api-docs" className="text-xs text-muted-foreground hover:text-primary">API</Link>
             </div>
           </div>
           <div>

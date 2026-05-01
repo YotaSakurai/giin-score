@@ -9,6 +9,7 @@ import { ErrorMessage } from "@/components/ui/error";
 import { BillVoteResult } from "@/components/bill/BillVoteResult";
 import { STATUS_COLORS } from "@/lib/constants";
 import { useBill } from "@/lib/hooks";
+import { ShareButton } from "@/components/ShareButton";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -39,7 +40,10 @@ export default function BillDetailContent({ params }: Props) {
       <Card className="mb-6">
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
-            <CardTitle className="text-lg">{bill.title}</CardTitle>
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <CardTitle className="text-lg">{bill.title}</CardTitle>
+              <ShareButton title={`${bill.title} | GiinScore法案詳細`} />
+            </div>
             {bill.status && (
               <Badge className={statusClass}>{bill.status}</Badge>
             )}
