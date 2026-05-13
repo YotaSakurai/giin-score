@@ -32,6 +32,7 @@ SCHEDULED_PIPELINES: list[str] = [
     "profiles",
     "speech_quality",
     "scoring",
+    "analyze",
 ]
 
 
@@ -133,6 +134,15 @@ def run_speech_quality(db, session_number: int):
     return count
 
 
+def run_analyze(db, session_number: int):
+    from app.pipeline.analyze import analyze_data_quality
+
+    logger.info(f"=== Running data quality analysis (session {session_number}) ===")
+    count = analyze_data_quality(db, session_number)
+    logger.info(f"Analysis complete (reports sent: {count})")
+    return count
+
+
 def run_all(db, session_number: int):
     """SCHEDULED_PIPELINES に登録された全パイプラインを順番に実行する。"""
     import time
@@ -185,6 +195,7 @@ PIPELINES: dict[str, object] = {
     "profiles": run_profiles,
     "written_questions": run_written_questions,
     "speech_quality": run_speech_quality,
+    "analyze": run_analyze,
 }
 
 
