@@ -47,6 +47,14 @@ htmlcov/
 *.pem
 *.key
 
+# Terraform
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/terraform.tfvars
+infra/*.auto.tfvars
+infra/.terraform.lock.hcl
+
 # Environment variants (keep .env.example)
 .env.*
 !.env.example
