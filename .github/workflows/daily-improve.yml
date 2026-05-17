@@ -59,20 +59,47 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      - name: Determine today's category
+        id: category
+        run: |
+          # 曜日ローテーション: 0=日,1=月,...,6=土
+          DOW=$(date +%u)
+          case $DOW in
+            1) CAT="frontend_ux" ;;
+            2) CAT="backend_optimize" ;;
+            3) CAT="a11y_dark" ;;
+            4) CAT="test_quality" ;;
+            5) CAT="micro_feature" ;;
+            6) CAT="performance" ;;
+            7) CAT="scoring_pipeline" ;;
+            *) CAT="frontend_ux" ;;
+          esac
+          echo "category=$CAT" >> "$GITHUB_OUTPUT"
+          echo "📋 Today's improvement category: $CAT"
+
       - name: Run Claude Code auto-improvement
         id: improve
         run: |
           PROMPT=$(cat scripts/daily-improve-prompt.md)
+          CATEGORY="${{ steps.category.outputs.category }}"
+          FULL_PROMPT="$PROMPT
+
+          ---
+          ## 本日のカテゴリ: $CATEGORY
+          上記の「category=$CATEGORY」セクションに記載されたタスクリストから選んで実装してください。
+          必ず何かしらの変更を加えること。"
+
           npx -y @anthropic-ai/claude-code \
-            -p "$PROMPT" \
+            -p "$FULL_PROMPT" \
             --allowedTools "Edit,Write,Bash,Read,Glob,Grep" \
-            --max-turns 40 \
+            --max-turns 50 \
             --model claude-sonnet-4-6 \
             > /tmp/claude-output.txt 2>&1 || true
           cat /tmp/claude-output.txt
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           DATABASE_URL: postgresql://giin:giin@localhost:5432/giin_score
+          IMPROVE_CATEGORY: ${{ steps.category.outputs.category }}
 
       - name: Check for changes
         id: changes
@@ -146,9 +173,10 @@ jobs:
         if: steps.changes.outputs.has_changes == 'false'
         run: |
           DATE=$(date +%Y-%m-%d)
+          CAT="${{ steps.category.outputs.category }}"
           curl -s -X POST "$DISCORD_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -d "{\"embeds\":[{\"title\":\"📝 デイリー自動改善 (${DATE})\",\"description\":\"本日は改善点が見つかりませんでした。\",\"color\":9807270}]}" || true
+            -d "{\"embeds\":[{\"title\":\"📝 デイリー自動改善 (${DATE})\",\"description\":\"カテゴリ: ${CAT}\\n変更なしで完了しました。\",\"color\":9807270}]}" || true
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
