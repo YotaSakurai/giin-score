@@ -6,7 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LoadingSpinner } from "@/components/ui/loading";
+import { LoadingSpinner, TableSkeleton } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
 import { CHAMBER_LABELS, GRADE_COLORS } from "@/lib/types";
 import { useRanking, useParties } from "@/lib/hooks";
@@ -109,7 +109,7 @@ export default function QualityRankingContent() {
       </Card>
 
       {isLoading ? (
-        <LoadingSpinner />
+        <TableSkeleton rows={8} cols={5} />
       ) : error ? (
         <ErrorMessage
           message={error instanceof Error ? error.message : "データの取得に失敗しました"}

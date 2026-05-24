@@ -215,37 +215,37 @@ export default function AboutPage() {
                 </tr>
               </thead>
               <tbody className="text-muted-foreground">
-                <tr className="border-b">
+                <tr className="border-b hover:bg-muted/50 transition-colors">
                   <td className="py-2">発言記録</td>
                   <td>国会会議録API (kokkai.ndl.go.jp)</td>
                   <td>REST API</td>
                 </tr>
-                <tr className="border-b">
+                <tr className="border-b hover:bg-muted/50 transition-colors">
                   <td className="py-2">法案情報</td>
                   <td>SmartNews SMRI GitHub (CSV)</td>
                   <td>ダウンロード</td>
                 </tr>
-                <tr className="border-b">
+                <tr className="border-b hover:bg-muted/50 transition-colors">
                   <td className="py-2">議案詳細・提出者</td>
                   <td>衆議院Webサイト (shugiin.go.jp)</td>
                   <td>スクレイピング</td>
                 </tr>
-                <tr className="border-b">
+                <tr className="border-b hover:bg-muted/50 transition-colors">
                   <td className="py-2">投票記録</td>
                   <td>参議院Webサイト (sangiin.go.jp)</td>
                   <td>スクレイピング</td>
                 </tr>
-                <tr className="border-b">
+                <tr className="border-b hover:bg-muted/50 transition-colors">
                   <td className="py-2">質問主意書</td>
                   <td>参議院Webサイト (sangiin.go.jp)</td>
                   <td>スクレイピング</td>
                 </tr>
-                <tr className="border-b">
+                <tr className="border-b hover:bg-muted/50 transition-colors">
                   <td className="py-2">議員プロフィール</td>
                   <td>衆議院・参議院Webサイト</td>
                   <td>スクレイピング</td>
                 </tr>
-                <tr>
+                <tr className="hover:bg-muted/50 transition-colors">
                   <td className="py-2">質問品質分析</td>
                   <td>Claude Haiku (AI分析)</td>
                   <td>LLM API</td>

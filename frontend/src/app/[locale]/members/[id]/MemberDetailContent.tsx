@@ -619,7 +619,13 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
               {speechLoading ? (
                 <TableSkeleton rows={5} cols={4} />
               ) : speeches.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">発言データがありません</p>
+                <div className="flex flex-col items-center py-8 text-center">
+                  <svg className="h-10 w-10 text-muted-foreground/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <p className="text-sm text-muted-foreground">この会期の発言データはまだ登録されていません</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">パイプライン実行後に表示されます</p>
+                </div>
               ) : (
                 <>
                   <table className="w-full">
@@ -667,7 +673,13 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
               {qualityLoading ? (
                 <CardSkeleton rows={3} />
               ) : qualityItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">質問品質データがまだ分析されていません</p>
+                <div className="flex flex-col items-center py-8 text-center">
+                  <svg className="h-10 w-10 text-muted-foreground/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+                  </svg>
+                  <p className="text-sm text-muted-foreground">質問品質のAI分析がまだ実行されていません</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">日次パイプラインで順次分析されます</p>
+                </div>
               ) : (
                 <>
                   {/* 質問品質 集計サマリー */}
@@ -754,7 +766,13 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
               {voteLoading ? (
                 <TableSkeleton rows={5} cols={2} />
               ) : votes.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">投票データがありません</p>
+                <div className="flex flex-col items-center py-8 text-center">
+                  <svg className="h-10 w-10 text-muted-foreground/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm text-muted-foreground">この会期の投票記録はまだ登録されていません</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">参議院・衆議院の採決データを収集後に表示されます</p>
+                </div>
               ) : (
                 <>
                   <table className="w-full">
@@ -790,7 +808,13 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
               {!votePattern ? (
                 <LoadingSpinner />
               ) : votePattern.total_votes === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">投票パターンデータがありません</p>
+                <div className="flex flex-col items-center py-8 text-center">
+                  <svg className="h-10 w-10 text-muted-foreground/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                  </svg>
+                  <p className="text-sm text-muted-foreground">投票パターンのデータがありません</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">採決データが収集されると自動で表示されます</p>
+                </div>
               ) : (
                 <div className="space-y-6">
                   {/* サマリーカード with visual gauges */}
@@ -913,7 +937,13 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
               {wqLoading ? (
                 <CardSkeleton rows={3} />
               ) : wqItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">質問主意書データがありません</p>
+                <div className="flex flex-col items-center py-8 text-center">
+                  <svg className="h-10 w-10 text-muted-foreground/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                  </svg>
+                  <p className="text-sm text-muted-foreground">質問主意書の提出記録がありません</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">この議員がまだ質問主意書を提出していない可能性があります</p>
+                </div>
               ) : (
                 <>
                   {(() => {

@@ -399,7 +399,7 @@ export default function CompareContent() {
               </thead>
               <tbody>
                 {/* 基本情報 */}
-                <tr className="border-b">
+                <tr className="border-b hover:bg-muted/50 transition-colors">
                   <td className="p-3 text-sm font-medium text-foreground/80">政党</td>
                   {memberScores.map((ms) => (
                     <td
@@ -410,7 +410,7 @@ export default function CompareContent() {
                     </td>
                   ))}
                 </tr>
-                <tr className="border-b">
+                <tr className="border-b hover:bg-muted/50 transition-colors">
                   <td className="p-3 text-sm font-medium text-foreground/80">院</td>
                   {memberScores.map((ms) => (
                     <td key={ms.member.id} className="p-3 text-center">

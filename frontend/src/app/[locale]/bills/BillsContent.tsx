@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pagination } from "@/components/ui/pagination";
-import { LoadingSpinner } from "@/components/ui/loading";
+import { CardSkeleton } from "@/components/ui/loading";
 import { ErrorMessage } from "@/components/ui/error";
 import { BillList } from "@/components/bill/BillList";
 import { useBills, useSessions } from "@/lib/hooks";
@@ -194,7 +194,7 @@ export default function BillsContent() {
       )}
 
       {isLoading ? (
-        <LoadingSpinner />
+        <CardSkeleton rows={5} />
       ) : error ? (
         <ErrorMessage
           message={error instanceof Error ? error.message : "データの取得に失敗しました"}
