@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.models.review import ReviewLike, UserReview
@@ -23,9 +23,13 @@ def _compute_total(la: float, vb: float, pi: float, tr: float, qq: float) -> flo
     return (la + vb + pi + tr + qq) / 5
 
 
-def _to_response(review: UserReview, liker_id: str | None, db: Session) -> dict:
+def _to_response(review: UserReview, liker_id: str | None, db: Session = None) -> dict:
     is_liked = False
-    if liker_id:
+    if liker_id and hasattr(review, "likes") and review.likes is not None:
+        # selectinload済みの場合はメモリで判定 (N+1回避)
+        is_liked = any(like.liker_id == liker_id for like in review.likes)
+    elif liker_id and db is not None:
+        # フォールバック: 個別クエリ
         is_liked = (
             db.query(ReviewLike)
             .filter(
@@ -64,16 +68,23 @@ def get_reviews(
     liker_id: str | None = Query(None),
     db: Session = Depends(get_db),
 ):
-    query = db.query(UserReview).filter(UserReview.member_id == member_id)
+    base_query = db.query(UserReview).filter(UserReview.member_id == member_id)
 
-    total = query.count()
+    total = base_query.count()
 
     if sort == "likes":
-        query = query.order_by(UserReview.like_count.desc(), UserReview.created_at.desc())
+        base_query = base_query.order_by(
+            UserReview.like_count.desc(), UserReview.created_at.desc()
+        )
     else:
-        query = query.order_by(UserReview.created_at.desc())
+        base_query = base_query.order_by(UserReview.created_at.desc())
 
-    reviews = query.offset((page - 1) * per_page).limit(per_page).all()
+    reviews = (
+        base_query.options(selectinload(UserReview.likes))
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+        .all()
+    )
 
     return {
         "items": [_to_response(r, liker_id, db) for r in reviews],

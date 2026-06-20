@@ -146,11 +146,73 @@ def _build_user_message(speech_text: str, meeting_name: str | None) -> str:
     return user_message
 
 
+class LLMQualityTracker:
+    """LLM応答品質のトラッキング。
+
+    フォールバック率（不正応答を50.0に置換した割合）を監視し、
+    閾値を超えた場合に警告・停止を行う。
+    """
+
+    def __init__(self, warn_threshold: float = 0.10, abort_threshold: float = 0.25):
+        self.total_responses = 0
+        self.failed_responses = 0
+        self.fallback_count = 0  # 個別キーのフォールバック
+        self.warn_threshold = warn_threshold
+        self.abort_threshold = abort_threshold
+
+    def record_success(self):
+        self.total_responses += 1
+
+    def record_failure(self):
+        self.total_responses += 1
+        self.failed_responses += 1
+
+    def record_fallback(self, key: str, original_value):
+        """個別キーのフォールバックを記録。"""
+        self.fallback_count += 1
+        logger.warning(
+            f"LLM fallback: {key}={original_value!r} → 50.0 "
+            f"(total_fallbacks={self.fallback_count})"
+        )
+
+    @property
+    def failure_rate(self) -> float:
+        if self.total_responses == 0:
+            return 0.0
+        return self.failed_responses / self.total_responses
+
+    def should_warn(self) -> bool:
+        return self.total_responses >= 10 and self.failure_rate >= self.warn_threshold
+
+    def should_abort(self) -> bool:
+        return self.total_responses >= 20 and self.failure_rate >= self.abort_threshold
+
+    def summary(self) -> str:
+        return (
+            f"total={self.total_responses}, failed={self.failed_responses}, "
+            f"fallbacks={self.fallback_count}, failure_rate={self.failure_rate:.1%}"
+        )
+
+
+# グローバルトラッカー（パイプライン実行ごとにリセット）
+_quality_tracker = LLMQualityTracker()
+
+
+def get_quality_tracker() -> LLMQualityTracker:
+    return _quality_tracker
+
+
+def reset_quality_tracker():
+    global _quality_tracker
+    _quality_tracker = LLMQualityTracker()
+
+
 def _parse_llm_response(text: str) -> dict | None:
     """LLMレスポンスからJSONを抽出・バリデーションする。"""
     text = text.strip()
     if "{" not in text:
         logger.warning(f"No JSON found in response: {text[:100]}")
+        _quality_tracker.record_failure()
         return None
 
     try:
@@ -158,6 +220,7 @@ def _parse_llm_response(text: str) -> dict | None:
         result = json.loads(json_str)
     except (json.JSONDecodeError, ValueError) as e:
         logger.warning(f"JSON parse error: {e}")
+        _quality_tracker.record_failure()
         return None
 
     required_keys = [
@@ -169,10 +232,12 @@ def _parse_llm_response(text: str) -> dict | None:
     for key in required_keys:
         val = result.get(key)
         if not isinstance(val, (int, float)) or val < 0 or val > 100:
+            _quality_tracker.record_fallback(key, val)
             result[key] = 50.0
         else:
             result[key] = float(val)
 
+    _quality_tracker.record_success()
     return result
 
 
@@ -328,6 +393,10 @@ def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
         logger.info(f"No unanalyzed speeches found for session {session_number}")
         return 0
 
+    # 品質トラッカーをリセット
+    reset_quality_tracker()
+    tracker = get_quality_tracker()
+
     backend = LLM_BACKEND.lower()
     logger.info(
         f"Analyzing {total} speeches for session {session_number} "
@@ -479,6 +548,34 @@ def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
                 f"({speed:.1f} speeches/s, ETA: {eta_hours:.1f}h)"
             )
 
+            # LLM品質ゲートチェック
+            if tracker.should_abort():
+                logger.error(
+                    f"LLM quality gate ABORT: {tracker.summary()}"
+                )
+                _send_webhook({
+                    "title": "🚨 LLM品質ゲート: パイプライン停止",
+                    "description": (
+                        f"**会期:** {session_number}\n"
+                        f"**失敗率:** {tracker.failure_rate:.1%}\n"
+                        f"**詳細:** {tracker.summary()}\n\n"
+                        "LLM応答の品質が閾値を超えて低下したため、"
+                        "パイプラインを安全に停止しました。"
+                    ),
+                    "color": 0xE74C3C,
+                })
+                break
+
+            if tracker.should_warn() and batch_count % NOTIFY_EVERY_N_BATCHES == 0:
+                _send_webhook({
+                    "title": "⚠️ LLM品質ゲート: 警告",
+                    "description": (
+                        f"**失敗率:** {tracker.failure_rate:.1%}\n"
+                        f"**詳細:** {tracker.summary()}"
+                    ),
+                    "color": 0xF39C12,
+                })
+
             # Discord途中経過通知
             if batch_count % NOTIFY_EVERY_N_BATCHES == 0:
                 pct = done / total * 100
@@ -507,7 +604,8 @@ def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
             "description": (
                 f"**会期:** {session_number}\n"
                 f"**分析結果:** {processed}/{total}件\n"
-                f"**所要時間:** {elapsed_h:.1f}時間"
+                f"**所要時間:** {elapsed_h:.1f}時間\n"
+                f"**LLM品質:** {tracker.summary()}"
             ),
             "color": 0x2ECC71,
         }

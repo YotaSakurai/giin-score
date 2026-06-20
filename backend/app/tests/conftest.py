@@ -5,8 +5,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from app.api.reviews import limiter as reviews_limiter
 from app.database import Base, get_db
-from app.main import app
+from app.main import app, limiter
 from app.models.member import Member
 from app.models.score import MemberScore
 from app.models.session import DietSession
@@ -23,6 +24,14 @@ def setup_database():
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    """テストごとにslowAPIのレート制限カウンタをリセット"""
+    yield
+    limiter.reset()
+    reviews_limiter.reset()
 
 
 @pytest.fixture()

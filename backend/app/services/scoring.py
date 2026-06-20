@@ -13,10 +13,12 @@ from sqlalchemy.orm import Session
 from app.models.bill import Bill, BillSponsor
 from app.models.member import Member
 from app.models.score import MemberScore
+from app.models.score_audit import ScoreAuditLog
 from app.models.session import DietSession
 from app.models.speech import Speech
 from app.models.speech_quality import SpeechQualityScore
 from app.models.vote import VoteRecord, VoteResult
+from app.models.weight_version import WeightVersion
 from app.models.written_question import WrittenQuestion
 
 logger = logging.getLogger(__name__)
@@ -33,6 +35,33 @@ SPEECH_DENSITY_BASELINE = 3000  # 基準文字数/回
 DENSITY_CAP = 2.0
 
 
+def _get_active_weights(db: Session) -> tuple[dict, str | None]:
+    """DBからアクティブな重みバージョンを取得する。
+
+    Returns:
+        (weights_dict, version_string) — DBにない場合は (DEFAULT_WEIGHTS, None)
+    """
+    active = (
+        db.query(WeightVersion)
+        .filter(WeightVersion.is_active.is_(True))
+        .order_by(WeightVersion.created_at.desc())
+        .first()
+    )
+    if not active:
+        logger.info("No active weight version in DB, using DEFAULT_WEIGHTS")
+        return DEFAULT_WEIGHTS, None
+
+    weights = {
+        "legislative_activity": active.legislative_activity,
+        "voting_behavior": active.voting_behavior,
+        "policy_influence": active.policy_influence,
+        "transparency": active.transparency,
+        "question_quality": active.question_quality,
+    }
+    logger.info(f"Using weight version: {active.version}")
+    return weights, active.version
+
+
 def compute_scores_for_session(db: Session, session_number: int) -> int:
     """指定会期の全議員のスコアを算出する。"""
     diet_session = db.query(DietSession).filter_by(session_number=session_number).first()
@@ -47,7 +76,10 @@ def compute_scores_for_session(db: Session, session_number: int) -> int:
 
     logger.info(f"Computing scores for {len(members)} members in session {session_number}")
 
-    # Phase 0: 質問品質の集約スコアを事前計算
+    # Phase 0: 重みバージョン取得
+    weights, weights_version = _get_active_weights(db)
+
+    # Phase 0.5: 質問品質の集約スコアを事前計算
     quality_scores = _compute_quality_scores_bulk(db, diet_session)
 
     # Phase 1: raw スコア算出
@@ -76,7 +108,7 @@ def compute_scores_for_session(db: Session, session_number: int) -> int:
         raw = raw_scores[mid]
         norm = normalized_scores[mid]
 
-        total = compute_total(norm)
+        total = compute_total(norm, weights)
         grade = compute_grade(total)
         breakdown = raw.get("breakdown", {})
 
@@ -84,6 +116,31 @@ def compute_scores_for_session(db: Session, session_number: int) -> int:
         existing = (
             db.query(MemberScore).filter_by(member_id=mid, session_id=diet_session.id).first()
         )
+
+        # 監査ログ: before 値を記録
+        audit = ScoreAuditLog(
+            member_id=mid,
+            session_number=session_number,
+            prev_total=existing.total if existing else None,
+            prev_grade=existing.grade if existing else None,
+            prev_legislative_activity=existing.legislative_activity if existing else None,
+            prev_voting_behavior=existing.voting_behavior if existing else None,
+            prev_policy_influence=existing.policy_influence if existing else None,
+            prev_transparency=existing.transparency if existing else None,
+            prev_question_quality=existing.question_quality if existing else None,
+            new_total=total,
+            new_grade=grade,
+            new_legislative_activity=norm["legislative_activity"],
+            new_voting_behavior=norm["voting_behavior"],
+            new_policy_influence=norm["policy_influence"],
+            new_transparency=norm["transparency"],
+            new_question_quality=norm["question_quality"],
+            diff_total=round(total - existing.total, 1) if existing else 0.0,
+            reason="scheduled_pipeline",
+            weights_version=weights_version,
+        )
+        db.add(audit)
+
         if existing:
             existing.legislative_activity_raw = raw["legislative_activity"]
             existing.voting_behavior_raw = raw["voting_behavior"]
