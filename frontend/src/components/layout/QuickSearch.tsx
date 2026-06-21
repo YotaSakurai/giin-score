@@ -83,7 +83,6 @@ export function QuickSearch() {
           value={query}
           onChange={handleChange}
           className="h-8 w-40 rounded-md border bg-background px-2 text-sm outline-none focus:ring-1 focus:ring-ring"
-          // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
         />
       ) : (
@@ -105,38 +104,66 @@ export function QuickSearch() {
         </button>
       )}
       {open && debouncedQuery.length >= 1 && items.length > 0 && (
-        <div className="absolute top-full right-0 mt-1 w-72 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-auto">
-          {items.map((m) => {
-            const gc = m.latest_score ? (GRADE_COLORS[m.latest_score.grade] || "bg-gray-300") : "";
-            return (
-              <button
-                key={m.id}
-                type="button"
-                className="w-full px-3 py-2 text-left hover:bg-muted/50 flex items-center gap-2 text-sm"
-                onClick={() => handleSelect(m.id)}
-              >
-                {m.latest_score && (
-                  <span className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white text-[10px] font-bold ${gc}`}>
-                    {m.latest_score.grade}
-                  </span>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{m.name}</p>
-                  <p className="text-xs text-muted-foreground">{m.party ?? "無所属"}</p>
-                </div>
-                {m.latest_score && (
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {m.latest_score.total.toFixed(1)}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        <div className="absolute top-full right-0 mt-1.5 w-80 bg-popover border border-border rounded-xl shadow-xl z-50 max-h-80 overflow-auto animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="p-1">
+            {items.map((m) => {
+              const gc = m.latest_score ? (GRADE_COLORS[m.latest_score.grade] || "bg-gray-300") : "";
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  className="w-full px-3 py-2.5 text-left hover:bg-muted/50 flex items-center gap-2.5 text-sm rounded-lg transition-colors"
+                  onClick={() => handleSelect(m.id)}
+                >
+                  {m.latest_score && (
+                    <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white text-[10px] font-bold ${gc}`}>
+                      {m.latest_score.grade}
+                    </span>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{m.name}</p>
+                    <p className="text-xs text-muted-foreground">{m.party ?? "無所属"}{m.district ? ` · ${m.district}` : ""}</p>
+                  </div>
+                  {m.latest_score && (
+                    <span className="text-xs font-medium text-muted-foreground shrink-0">
+                      {m.latest_score.total.toFixed(1)}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <div className="border-t px-3 py-2">
+            <button
+              type="button"
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              onClick={() => {
+                router.push(`/members?search=${encodeURIComponent(debouncedQuery)}`);
+                setOpen(false);
+                setQuery("");
+                setDebouncedQuery("");
+              }}
+            >
+              「{debouncedQuery}」で全文検索 →
+            </button>
+          </div>
         </div>
       )}
       {open && debouncedQuery.length >= 1 && items.length === 0 && data && (
-        <div className="absolute top-full right-0 mt-1 w-72 bg-popover border border-border rounded-lg shadow-lg z-50 p-4 text-center">
+        <div className="absolute top-full right-0 mt-1.5 w-80 bg-popover border border-border rounded-xl shadow-xl z-50 p-4 text-center animate-in fade-in slide-in-from-top-2 duration-200">
           <p className="text-sm text-muted-foreground">該当する議員が見つかりません</p>
+          <button
+            type="button"
+            className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            onClick={() => {
+              router.push(`/members?search=${encodeURIComponent(debouncedQuery)}`);
+              setOpen(false);
+              setQuery("");
+              setDebouncedQuery("");
+            }}
+          >
+            議員一覧で検索 →
+          </button>
         </div>
       )}
     </div>

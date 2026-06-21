@@ -9,17 +9,21 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { QuickSearch } from "@/components/layout/QuickSearch";
+import {
+  Trophy, Users, Building2, GitCompareArrows, MessageSquareText,
+  Star, FileText, Info, Code,
+} from "lucide-react";
 
 const navKeys = [
-  { href: "/", key: "ranking" },
-  { href: "/members", key: "members" },
-  { href: "/parties", key: "parties" },
-  { href: "/compare", key: "compare" },
-  { href: "/quality-ranking", key: "quality" },
-  { href: "/favorites", key: "favorites" },
-  { href: "/bills", key: "bills" },
-  { href: "/about", key: "about" },
-  { href: "/api-docs", key: "api" },
+  { href: "/", key: "ranking", icon: Trophy },
+  { href: "/members", key: "members", icon: Users },
+  { href: "/parties", key: "parties", icon: Building2 },
+  { href: "/compare", key: "compare", icon: GitCompareArrows },
+  { href: "/quality-ranking", key: "quality", icon: MessageSquareText },
+  { href: "/favorites", key: "favorites", icon: Star },
+  { href: "/bills", key: "bills", icon: FileText },
+  { href: "/about", key: "about", icon: Info },
+  { href: "/api-docs", key: "api", icon: Code },
 ] as const;
 
 export function Header() {
@@ -27,42 +31,51 @@ export function Header() {
   const t = useTranslations("nav");
   const pathname = usePathname();
 
-  // パスが /ja/members/123 のような場合、/members にマッチさせる
   const isActive = (href: string) => {
-    // ロケールプレフィックスを除去して比較
     const stripped = pathname.replace(/^\/(ja|en)/, "") || "/";
     if (href === "/") return stripped === "/";
     return stripped.startsWith(href);
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg text-foreground">
-          <span className="text-blue-600 dark:text-blue-400">GiinScore</span>
+        <Link href="/" className="flex items-center gap-2 font-bold text-lg text-foreground group">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 dark:bg-blue-500 text-white text-sm font-black transition-transform group-hover:scale-105">
+            G
+          </div>
+          <span className="hidden sm:inline text-blue-600 dark:text-blue-400">GiinScore</span>
         </Link>
 
-        <nav aria-label="メインナビゲーション" className="hidden md:flex items-center gap-6">
-          {navKeys.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`text-sm font-medium transition-colors ${
-                isActive(item.href)
-                  ? "text-foreground border-b-2 border-blue-600 pb-0.5"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              aria-current={isActive(item.href) ? "page" : undefined}
-            >
-              {t(item.key)}
-            </Link>
-          ))}
-          <QuickSearch />
-          <LocaleSwitcher />
-          <ThemeToggle />
+        <nav aria-label="メインナビゲーション" className="hidden lg:flex items-center gap-1">
+          {navKeys.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors ${
+                  active
+                    ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+                aria-current={active ? "page" : undefined}
+              >
+                <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                {t(item.key)}
+              </Link>
+            );
+          })}
+          <div className="ml-2 flex items-center gap-1.5">
+            <QuickSearch />
+            <LocaleSwitcher />
+            <ThemeToggle />
+          </div>
         </nav>
 
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
+          <QuickSearch />
           <LocaleSwitcher />
           <ThemeToggle />
           <Sheet open={open} onOpenChange={setOpen}>
@@ -73,23 +86,28 @@ export function Header() {
                 </svg>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-64">
-              <nav aria-label="モバイルナビゲーション" className="flex flex-col gap-4 mt-8">
-                {navKeys.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`text-base font-medium rounded-md px-3 py-1.5 transition-colors ${
-                      isActive(item.href)
-                        ? "bg-blue-50 dark:bg-blue-950/40 text-primary font-bold border-l-2 border-blue-600"
-                        : "text-foreground/80 hover:text-primary hover:bg-muted/50"
-                    }`}
-                    onClick={() => setOpen(false)}
-                    aria-current={isActive(item.href) ? "page" : undefined}
-                  >
-                    {t(item.key)}
-                  </Link>
-                ))}
+            <SheetContent side="right" className="w-72">
+              <nav aria-label="モバイルナビゲーション" className="flex flex-col gap-1 mt-8">
+                {navKeys.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                        active
+                          ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border-l-3 border-blue-600"
+                          : "text-foreground/80 hover:text-foreground hover:bg-muted/50"
+                      }`}
+                      onClick={() => setOpen(false)}
+                      aria-current={active ? "page" : undefined}
+                    >
+                      <Icon className={`h-4 w-4 ${active ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} aria-hidden="true" />
+                      {t(item.key)}
+                    </Link>
+                  );
+                })}
               </nav>
             </SheetContent>
           </Sheet>

@@ -14,6 +14,7 @@ import { useRanking, useStats, useSessions, useLastUpdated, useScoreMovers } fro
 import { ShareButton } from "@/components/ShareButton";
 import { buildQuery } from "@/lib/api";
 import { SCORE_DESCRIPTIONS, GRADE_DESCRIPTIONS } from "@/lib/constants";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 
 const COMPARE_STORAGE_KEY = "giin-score-compare-ids";
 const MAX_COMPARE = 4;
@@ -260,34 +261,34 @@ export default function HomeContent() {
       {/* 統計概要 */}
       {stats && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-            <Card>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4 stagger-fade-in">
+            <Card className="card-hover">
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-foreground">{stats.total_members}</p>
+                <p className="text-2xl font-bold text-foreground"><AnimatedNumber value={stats.total_members} /></p>
                 <p className="text-xs text-muted-foreground">対象議員数</p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="card-hover">
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-blue-600">{stats.average_score.toFixed(1)}</p>
+                <p className="text-2xl font-bold text-blue-600"><AnimatedNumber value={stats.average_score} decimals={1} /></p>
                 <p className="text-xs text-muted-foreground">平均スコア<ScoreTooltip axis="total" /></p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="card-hover">
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-foreground">{stats.median_score.toFixed(1)}</p>
+                <p className="text-2xl font-bold text-foreground"><AnimatedNumber value={stats.median_score} decimals={1} /></p>
                 <p className="text-xs text-muted-foreground">中央値</p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="card-hover">
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-emerald-600">{stats.max_score.toFixed(1)}</p>
+                <p className="text-2xl font-bold text-emerald-600"><AnimatedNumber value={stats.max_score} decimals={1} /></p>
                 <p className="text-xs text-muted-foreground">最高スコア</p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="card-hover">
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-red-500">{stats.min_score.toFixed(1)}</p>
+                <p className="text-2xl font-bold text-red-500"><AnimatedNumber value={stats.min_score} decimals={1} /></p>
                 <p className="text-xs text-muted-foreground">最低スコア</p>
               </CardContent>
             </Card>
@@ -342,17 +343,17 @@ export default function HomeContent() {
 
       {/* TOP3 ハイライト */}
       {sortOrder === "desc" && ranking.length >= 3 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 stagger-fade-in">
           {ranking.slice(0, 3).map((entry, idx) => {
             const colors = ["border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30", "border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50", "border-amber-600 bg-amber-50 dark:bg-amber-950/30"];
             const medals = ["\u{1F947}", "\u{1F948}", "\u{1F949}"];
             const gradeColor = GRADE_COLORS[entry.score.grade] || "bg-gray-300";
             return (
-              <Card key={entry.member.id} className={`border-2 ${colors[idx]}`}>
+              <Card key={entry.member.id} className={`border-2 card-hover ${colors[idx]}`}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{medals[idx]}</span>
-                    <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white text-sm font-bold ${gradeColor}`}>
+                    <span className={`grade-badge inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white text-sm font-bold ${gradeColor}`}>
                       {entry.score.grade}
                     </span>
                     <div className="flex-1 min-w-0">
@@ -375,7 +376,7 @@ export default function HomeContent() {
                     ]).map(({ key, label, color }) => (
                       <div key={key} className="text-center">
                         <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${color}`} style={{ width: `${entry.score[key]}%` }} />
+                          <div className={`h-full rounded-full animate-bar-fill ${color}`} style={{ width: `${entry.score[key]}%` }} />
                         </div>
                         <span className="text-[9px] text-muted-foreground">{label}</span>
                       </div>
@@ -779,21 +780,33 @@ export default function HomeContent() {
 
       {/* 機能ナビゲーション */}
       {!loading && !error && (
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Link href="/quality-ranking" className="rounded-lg border p-4 hover:bg-muted/50 transition-colors">
-            <p className="text-sm font-medium mb-1">質問品質ランキング</p>
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 stagger-fade-in">
+          <Link href="/quality-ranking" className="group rounded-lg border p-4 card-hover hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
+            <div className="flex items-center gap-2 mb-1">
+              <svg className="h-4 w-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+              <p className="text-sm font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">質問品質ランキング</p>
+            </div>
             <p className="text-xs text-muted-foreground">国会質疑の生産性を評価・比較</p>
           </Link>
-          <Link href="/parties" className="rounded-lg border p-4 hover:bg-muted/50 transition-colors">
-            <p className="text-sm font-medium mb-1">政党別統計</p>
+          <Link href="/parties" className="group rounded-lg border p-4 card-hover hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
+            <div className="flex items-center gap-2 mb-1">
+              <svg className="h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+              <p className="text-sm font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">政党別統計</p>
+            </div>
             <p className="text-xs text-muted-foreground">政党ごとの平均スコア・グレード分布</p>
           </Link>
-          <Link href="/members?view=scatter" className="rounded-lg border p-4 hover:bg-muted/50 transition-colors">
-            <p className="text-sm font-medium mb-1">散布図分析</p>
+          <Link href="/members?view=scatter" className="group rounded-lg border p-4 card-hover hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
+            <div className="flex items-center gap-2 mb-1">
+              <svg className="h-4 w-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="7.5" cy="7.5" r="1.5" /><circle cx="16.5" cy="16.5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="16.5" cy="7.5" r="1.5" /><circle cx="7.5" cy="16.5" r="1.5" /></svg>
+              <p className="text-sm font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">散布図分析</p>
+            </div>
             <p className="text-xs text-muted-foreground">任意の2軸で議員をプロットして可視化</p>
           </Link>
-          <Link href="/bills" className="rounded-lg border p-4 hover:bg-muted/50 transition-colors">
-            <p className="text-sm font-medium mb-1">法案一覧</p>
+          <Link href="/bills" className="group rounded-lg border p-4 card-hover hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
+            <div className="flex items-center gap-2 mb-1">
+              <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              <p className="text-sm font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">法案一覧</p>
+            </div>
             <p className="text-xs text-muted-foreground">国会提出法案の検索・閲覧</p>
           </Link>
         </div>

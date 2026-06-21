@@ -40,7 +40,7 @@ export const BillCard = memo(function BillCard({ bill, searchKeyword }: BillCard
 
   return (
     <Link href={`/bills/${bill.id}`}>
-      <Card className={`hover:shadow-md transition-shadow cursor-pointer border-l-4 ${kindBorder} ${isEnacted ? "ring-1 ring-emerald-200 dark:ring-emerald-800" : ""}`}>
+      <Card className={`card-hover cursor-pointer border-l-4 ${kindBorder} ${isEnacted ? "ring-1 ring-emerald-200 dark:ring-emerald-800" : ""}`}>
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-medium text-foreground text-sm leading-tight flex-1">

@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { ScrollProgress } from "@/components/layout/ScrollProgress";
+import { BackToTop } from "@/components/layout/BackToTop";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -62,8 +64,10 @@ export default async function LocaleLayout({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
       />
       <Header />
+      <ScrollProgress />
       <main className="flex-1">{children}</main>
       <Footer />
+      <BackToTop />
     </NextIntlClientProvider>
   );
 }

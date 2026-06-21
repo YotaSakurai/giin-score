@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useLastUpdated } from "@/lib/hooks";
@@ -16,8 +17,9 @@ export function Footer() {
         day: "numeric",
       })
     : null;
+  const [now] = useState(() => Date.now());
   const daysAgo = lastUpdatedDate
-    ? Math.floor((Date.now() - lastUpdatedDate.getTime()) / (1000 * 60 * 60 * 24))
+    ? Math.floor((now - lastUpdatedDate.getTime()) / (1000 * 60 * 60 * 24))
     : null;
 
   const scrollToTop = () => {

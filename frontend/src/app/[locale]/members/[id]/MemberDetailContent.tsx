@@ -17,6 +17,7 @@ import { ScoreCard } from "@/components/score/ScoreCard";
 import { ScoreBreakdown } from "@/components/score/ScoreBreakdown";
 import { ShareButton } from "@/components/ShareButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { CHAMBER_LABELS, AXIS_LABELS, GRADE_COLORS } from "@/lib/types";
 import { VOTE_LABELS, VOTE_COLORS, SCORE_DESCRIPTIONS, GRADE_DESCRIPTIONS } from "@/lib/constants";
 import { useMember, useMemberSpeeches, useMemberVotes, useVotePattern, useSpeechQuality, useWrittenQuestions, useStats, useMembers, useReviewSummary, useSimilarMembers, useRanking } from "@/lib/hooks";
@@ -297,12 +298,10 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      {/* パンくず */}
-      <nav aria-label="パンくずリスト" className="text-sm text-muted-foreground mb-6">
-        <Link href="/members" className="hover:text-primary">議員一覧</Link>
-        <span className="mx-2">/</span>
-        <span className="text-foreground">{member.name}</span>
-      </nav>
+      <Breadcrumb items={[
+        { label: "議員一覧", href: "/members" },
+        { label: member.name },
+      ]} />
 
       {/* 議員情報ヘッダー */}
       <div className="flex flex-col md:flex-row gap-6 mb-8">
@@ -338,7 +337,7 @@ export default function MemberDetailContent({ params }: MemberDetailContentProps
           <div className="flex items-center gap-4 md:ml-auto">
             <div className="flex items-center gap-3 rounded-xl border bg-card px-5 py-3 shadow-sm">
               <div
-                className={`flex h-12 w-12 items-center justify-center rounded-full text-white font-bold text-lg ${GRADE_COLORS[latestScore.grade] || "bg-gray-300"}`}
+                className={`grade-badge flex h-12 w-12 items-center justify-center rounded-full text-white font-bold text-lg ${GRADE_COLORS[latestScore.grade] || "bg-gray-300"}`}
                 role="img"
                 aria-label={`グレード ${latestScore.grade}`}
               >

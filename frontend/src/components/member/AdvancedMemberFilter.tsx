@@ -283,7 +283,7 @@ export function AdvancedMemberFilter({ state, onChange }: AdvancedMemberFilterPr
   };
 
   return (
-    <div className="space-y-3 mb-6">
+    <div className="space-y-3 mb-6 sticky top-14 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 -mx-4 px-4 py-3 border-b border-transparent has-[+*]:border-border">
       {/* 基本フィルタ行 */}
       <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-start">
         <MemberSearchInput

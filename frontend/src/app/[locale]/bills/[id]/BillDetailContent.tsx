@@ -10,6 +10,7 @@ import { BillVoteResult } from "@/components/bill/BillVoteResult";
 import { STATUS_COLORS } from "@/lib/constants";
 import { useBill } from "@/lib/hooks";
 import { ShareButton } from "@/components/ShareButton";
+import { Breadcrumb } from "@/components/layout/Breadcrumb";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -29,12 +30,10 @@ export default function BillDetailContent({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      {/* パンくず */}
-      <nav aria-label="パンくずリスト" className="text-sm text-muted-foreground mb-6">
-        <Link href="/bills" className="hover:text-primary">法案一覧</Link>
-        <span className="mx-2">/</span>
-        <span className="text-foreground">法案詳細</span>
-      </nav>
+      <Breadcrumb items={[
+        { label: "法案一覧", href: "/bills" },
+        { label: bill.title || "法案詳細" },
+      ]} />
 
       {/* 法案情報 */}
       <Card className="mb-6">

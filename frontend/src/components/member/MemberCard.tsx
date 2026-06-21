@@ -44,7 +44,7 @@ export const MemberCard = memo(function MemberCard({ member }: MemberCardProps) 
 
   return (
     <Link href={`/members/${member.id}`}>
-      <Card className={`hover:shadow-md transition-shadow cursor-pointer h-full ${warnings.length > 0 ? "border-red-200 dark:border-red-900" : ""}`}>
+      <Card className={`card-hover cursor-pointer h-full ${warnings.length > 0 ? "border-red-200 dark:border-red-900" : ""}`}>
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-2">
             <div>
@@ -52,7 +52,7 @@ export const MemberCard = memo(function MemberCard({ member }: MemberCardProps) 
               <p className="text-xs text-muted-foreground">{member.party ?? "無所属"}</p>
             </div>
             {score && (
-              <div className={`flex h-10 w-10 items-center justify-center rounded-full text-white font-bold text-sm ${gradeColor}`}>
+              <div className={`grade-badge flex h-10 w-10 items-center justify-center rounded-full text-white font-bold text-sm ${gradeColor}`}>
                 {score.grade}
               </div>
             )}
@@ -92,7 +92,7 @@ export const MemberCard = memo(function MemberCard({ member }: MemberCardProps) 
                   <span className="text-xs text-muted-foreground w-8">{label}</span>
                   <div className="flex-1 h-1.5 rounded-full bg-muted">
                     <div
-                      className={`h-1.5 rounded-full ${value < 20 ? "bg-red-500" : value < 40 ? "bg-orange-400" : "bg-blue-500"}`}
+                      className={`h-1.5 rounded-full animate-bar-fill ${value < 20 ? "bg-red-500" : value < 40 ? "bg-orange-400" : "bg-blue-500"}`}
                       style={{ width: `${Math.min(value, 100)}%` }}
                     />
                   </div>
