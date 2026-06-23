@@ -11,7 +11,7 @@ import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { QuickSearch } from "@/components/layout/QuickSearch";
 import {
   Trophy, Users, Building2, GitCompareArrows, MessageSquareText,
-  Star, FileText, Info, Code,
+  Star, FileText, Info, Code, CircleHelp,
 } from "lucide-react";
 
 const navKeys = [
@@ -23,6 +23,7 @@ const navKeys = [
   { href: "/favorites", key: "favorites", icon: Star },
   { href: "/bills", key: "bills", icon: FileText },
   { href: "/about", key: "about", icon: Info },
+  { href: "/guide", key: "guide", icon: CircleHelp },
   { href: "/api-docs", key: "api", icon: Code },
 ] as const;
 

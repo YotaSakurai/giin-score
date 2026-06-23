@@ -60,6 +60,7 @@ export function Footer() {
               <Link href="/compare" className="text-xs text-muted-foreground hover:text-primary">議員比較</Link>
               <Link href="/favorites" className="text-xs text-muted-foreground hover:text-primary">お気に入り</Link>
               <Link href="/about" className="text-xs text-muted-foreground hover:text-primary">スコアについて</Link>
+              <Link href="/guide" className="text-xs text-muted-foreground hover:text-primary">使い方ガイド</Link>
               <Link href="/api-docs" className="text-xs text-muted-foreground hover:text-primary">API</Link>
             </div>
           </div>
