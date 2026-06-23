@@ -11,7 +11,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.bill import Bill, BillSponsor
+from app.models.committee import CommitteeMembership
 from app.models.member import Member
+from app.models.political_fund import PoliticalFund
 from app.models.score import MemberScore
 from app.models.score_audit import ScoreAuditLog
 from app.models.session import DietSession
@@ -88,10 +90,18 @@ def compute_scores_for_session(db: Session, session_number: int) -> int:
     # Phase 0.6: 居眠りペナルティ事前計算
     sleeping_penalties = _compute_sleeping_penalties_bulk(db, diet_session)
 
+    # Phase 0.7: 委員会所属データの一括取得
+    committee_data = _compute_committee_data_bulk(db, diet_session)
+
+    # Phase 0.8: 政治資金データの一括取得
+    fund_data = _compute_fund_data_bulk(db)
+
     # Phase 1: raw スコア算出
     raw_scores: dict[int, dict] = {}
     for member in members:
-        raw = _compute_raw_scores(db, member, diet_session, quality_scores)
+        raw = _compute_raw_scores(
+            db, member, diet_session, quality_scores, committee_data, fund_data
+        )
         raw_scores[member.id] = raw
 
     # Phase 2: パーセンタイルランク正規化 (比較群: chamber × role_category)
@@ -208,12 +218,16 @@ def _compute_raw_scores(
     member: Member,
     session: DietSession,
     quality_scores: dict[int, tuple[float, int]] | None = None,
+    committee_data: dict[int, dict] | None = None,
+    fund_data: dict[int, dict] | None = None,
 ) -> dict:
     """個別議員のraw スコアを算出する。"""
-    las_raw, las_breakdown = _compute_legislative_activity(db, member, session)
+    las_raw, las_breakdown = _compute_legislative_activity(
+        db, member, session, committee_data
+    )
     vbs_raw, vbs_breakdown = _compute_voting_behavior(db, member, session)
     pis_raw, pis_breakdown = _compute_policy_influence(db, member, session)
-    ts_raw, ts_breakdown = _compute_transparency(db, member, session)
+    ts_raw, ts_breakdown = _compute_transparency(db, member, session, fund_data)
     qq_raw, qq_breakdown = _compute_question_quality(member, quality_scores)
 
     return {
@@ -232,8 +246,18 @@ def _compute_raw_scores(
     }
 
 
+COMMITTEE_ROLE_WEIGHT = {
+    "委員長": 2.0,
+    "理事": 1.5,
+    "委員": 1.0,
+}
+COMMITTEE_MEMBERSHIP_WEIGHT = 0.5  # 委員会所属1件あたりの加算
+COMMITTEE_LEADERSHIP_BONUS = 1.0  # 委員長・理事へのボーナス
+
+
 def _compute_legislative_activity(
-    db: Session, member: Member, session: DietSession
+    db: Session, member: Member, session: DietSession,
+    committee_data: dict[int, dict] | None = None,
 ) -> tuple[float, dict]:
     """立法活動スコア (LAS)"""
     # 法案発議
@@ -251,13 +275,10 @@ def _compute_legislative_activity(
     bills_sponsored = []
     for sp in sponsorships:
         bill = sp.bill
-        # 共同発議者数を取得
         co_count = (
             db.query(func.count(BillSponsor.id)).filter(BillSponsor.bill_id == bill.id).scalar()
         )
         weight = _sponsor_weight(sp.sponsor_type, co_count)
-
-        # LAS は発議の「量」のみ。成立の「質」は PIS で評価。
         score = weight
         bill_score += score
 
@@ -288,7 +309,7 @@ def _compute_legislative_activity(
     density_factor = (
         min(avg_chars / SPEECH_DENSITY_BASELINE, DENSITY_CAP) if speech_count > 0 else 0
     )
-    committee_score = speech_count * density_factor
+    speech_score = speech_count * density_factor
 
     # 質問主意書
     wq_count = (
@@ -308,15 +329,25 @@ def _compute_legislative_activity(
         )
         .scalar()
     ) or 0
-    # 質問主意書1件 = 0.5ポイント（法案発議よりは低い）
     wq_score = wq_count * 0.5
 
-    las_raw = bill_score + committee_score + wq_score
+    # 委員会所属スコア
+    cm_score = 0.0
+    cm_count = 0
+    cm_leadership = 0
+    if committee_data and member.id in committee_data:
+        cm_info = committee_data[member.id]
+        cm_count = cm_info["count"]
+        cm_leadership = cm_info["leadership_count"]
+        cm_score = cm_count * COMMITTEE_MEMBERSHIP_WEIGHT + cm_leadership * COMMITTEE_LEADERSHIP_BONUS
+
+    las_raw = bill_score + speech_score + wq_score + cm_score
 
     breakdown = {
         "bill_score": round(bill_score, 2),
-        "committee_score": round(committee_score, 2),
+        "committee_score": round(speech_score, 2),
         "written_questions_score": round(wq_score, 2),
+        "committee_membership_score": round(cm_score, 2),
         "bills_sponsored": bills_sponsored,
         "speech_count": speech_count,
         "total_speech_chars": total_chars,
@@ -324,6 +355,8 @@ def _compute_legislative_activity(
         "density_factor": round(density_factor, 2),
         "written_questions": wq_count,
         "written_questions_answered": wq_answered,
+        "committees_count": cm_count,
+        "committees_leadership": cm_leadership,
     }
 
     return las_raw, breakdown
@@ -483,13 +516,21 @@ def _bill_kind_weight(title: str, bill_kind: str) -> float:
     return base * 0.7  # 大規模改正
 
 
-def _compute_transparency(db: Session, member: Member, session: DietSession) -> tuple[float, dict]:
-    """透明性スコア (TS) - 多様な委員会への参加率
+FUND_TRANSPARENCY_WEIGHT = 0.3  # 政治資金データの透明性への寄与率
 
-    発言した会議のユニーク数 / 全会議のユニーク数（会期内）で算出。
-    多くの種類の委員会に参加している議員ほど高スコア。
+
+def _compute_transparency(
+    db: Session, member: Member, session: DietSession,
+    fund_data: dict[int, dict] | None = None,
+) -> tuple[float, dict]:
+    """透明性スコア (TS) - 多様な委員会への参加率 + 政治資金の透明性
+
+    1. 活動多様性: 発言した会議の種類の広さ（0-100）
+    2. 資金透明性: 政治資金の個人献金比率・使途明確性（0-100）
+
+    最終スコア = 活動多様性 × (1 - fund_weight) + 資金透明性 × fund_weight
     """
-    # この議員が発言した会議のユニーク数
+    # 活動多様性: この議員が発言した会議のユニーク数
     member_meetings = (
         db.query(func.count(func.distinct(Speech.meeting_name)))
         .filter(
@@ -499,22 +540,44 @@ def _compute_transparency(db: Session, member: Member, session: DietSession) -> 
         .scalar()
     ) or 0
 
-    # 全会議のユニーク数（会期内の全議員）
     total_meetings = (
         db.query(func.count(func.distinct(Speech.meeting_name)))
         .filter(Speech.session_id == session.id)
         .scalar()
-    ) or 1  # ゼロ除算防止
+    ) or 1
 
     diversity_rate = member_meetings / total_meetings * 100
+
+    # 資金透明性
+    fund_score = 0.0
+    fund_breakdown = {}
+
+    if fund_data and member.id in fund_data:
+        fi = fund_data[member.id]
+        fund_score = fi["transparency_score"]
+        fund_breakdown = {
+            "total_income": fi["total_income"],
+            "individual_ratio": fi["individual_ratio"],
+            "corporate_ratio": fi["corporate_ratio"],
+            "fundraising_ratio": fi["fundraising_ratio"],
+            "research_ratio": fi["research_ratio"],
+            "fund_transparency_score": round(fund_score, 1),
+        }
+
+    # 政治資金データがある場合のみブレンド
+    if fund_data and member.id in fund_data:
+        ts_raw = diversity_rate * (1 - FUND_TRANSPARENCY_WEIGHT) + fund_score * FUND_TRANSPARENCY_WEIGHT
+    else:
+        ts_raw = diversity_rate
 
     breakdown = {
         "member_meetings": member_meetings,
         "total_meetings": total_meetings,
         "diversity_rate": round(diversity_rate, 1),
+        **fund_breakdown,
     }
 
-    return diversity_rate, breakdown
+    return ts_raw, breakdown
 
 
 def _compute_sleeping_penalties_bulk(
@@ -577,6 +640,147 @@ def _compute_quality_scores_bulk(db: Session, session: DietSession) -> dict[int,
     except Exception:
         db.rollback()
         logger.info("speech_quality_scores table not available, skipping quality scores")
+        return {}
+
+
+def _compute_committee_data_bulk(
+    db: Session, session: DietSession
+) -> dict[int, dict]:
+    """会期内の全議員の委員会所属データを一括取得する。
+
+    Returns:
+        {member_id: {"count": int, "leadership_count": int, "committees": list}}
+    """
+    try:
+        memberships = (
+            db.query(CommitteeMembership)
+            .filter(CommitteeMembership.session_id == session.id)
+            .all()
+        )
+        result: dict[int, dict] = {}
+        for cm in memberships:
+            if cm.member_id not in result:
+                result[cm.member_id] = {
+                    "count": 0,
+                    "leadership_count": 0,
+                    "committees": [],
+                }
+            info = result[cm.member_id]
+            info["count"] += 1
+            if cm.role in ("委員長", "理事"):
+                info["leadership_count"] += 1
+            info["committees"].append(cm.committee_name)
+        return result
+    except Exception:
+        db.rollback()
+        logger.info("committee_memberships table not available, skipping committee data")
+        return {}
+
+
+def _compute_fund_data_bulk(db: Session) -> dict[int, dict]:
+    """全議員の政治資金データを一括取得し、透明性スコアを計算する。
+
+    透明性スコアの評価基準:
+    - 個人献金比率が高い → 透明性が高い（市民からの支持）
+    - 企業献金・パーティー券依存度が低い → 透明性が高い
+    - 調査研究費比率が高い → 政策立案に投資している
+    - 収支報告書が存在する → 基本的な透明性
+
+    Returns:
+        {member_id: {"transparency_score": float, ...}}
+    """
+    try:
+        # 最新年度のデータを取得（議員ごとに団体を合算）
+        funds = db.query(PoliticalFund).all()
+        if not funds:
+            return {}
+
+        # 議員ごとに最新年度の合算
+        member_funds: dict[int, dict] = {}
+        for f in funds:
+            mid = f.member_id
+            if mid not in member_funds:
+                member_funds[mid] = {
+                    "latest_year": f.report_year,
+                    "total_income": 0.0,
+                    "individual_donations": 0.0,
+                    "corporate_donations": 0.0,
+                    "fundraising_party": 0.0,
+                    "total_expenditure": 0.0,
+                    "research_expenses": 0.0,
+                    "political_activity": 0.0,
+                }
+            info = member_funds[mid]
+            # 同一年度または最新年度のデータを合算
+            if f.report_year >= info["latest_year"]:
+                if f.report_year > info["latest_year"]:
+                    # より新しい年度が見つかった場合はリセット
+                    info["latest_year"] = f.report_year
+                    for key in list(info.keys()):
+                        if key != "latest_year":
+                            info[key] = 0.0
+                info["total_income"] += f.total_income
+                info["individual_donations"] += f.individual_donations
+                info["corporate_donations"] += f.corporate_donations
+                info["fundraising_party"] += f.fundraising_party
+                info["total_expenditure"] += f.total_expenditure
+                info["research_expenses"] += f.research_expenses
+                info["political_activity"] += f.political_activity
+
+        result: dict[int, dict] = {}
+        for mid, info in member_funds.items():
+            income = info["total_income"]
+            if income <= 0:
+                # 収入0の場合、報告書が存在するだけで基本点
+                result[mid] = {
+                    "transparency_score": 30.0,
+                    "total_income": 0.0,
+                    "individual_ratio": 0.0,
+                    "corporate_ratio": 0.0,
+                    "fundraising_ratio": 0.0,
+                    "research_ratio": 0.0,
+                }
+                continue
+
+            individual_ratio = info["individual_donations"] / income
+            corporate_ratio = info["corporate_donations"] / income
+            fundraising_ratio = info["fundraising_party"] / income
+
+            expenditure = info["total_expenditure"]
+            research_ratio = (
+                info["research_expenses"] / expenditure if expenditure > 0 else 0.0
+            )
+
+            # 透明性スコア計算 (0-100)
+            # 1. 基本点: 報告書が存在する = 30点
+            score = 30.0
+            # 2. 個人献金比率ボーナス (最大20点)
+            score += min(individual_ratio * 100, 20.0)
+            # 3. 企業献金・パーティー券低依存ボーナス (最大25点)
+            dependency = corporate_ratio + fundraising_ratio
+            score += max(0, 25.0 - dependency * 50)
+            # 4. 調査研究費比率ボーナス (最大15点)
+            score += min(research_ratio * 100, 15.0)
+            # 5. 収支バランス（支出が収入の範囲内）(最大10点)
+            if expenditure <= income * 1.1:
+                score += 10.0
+            elif expenditure <= income * 1.5:
+                score += 5.0
+
+            score = min(score, 100.0)
+
+            result[mid] = {
+                "transparency_score": round(score, 1),
+                "total_income": income,
+                "individual_ratio": round(individual_ratio, 3),
+                "corporate_ratio": round(corporate_ratio, 3),
+                "fundraising_ratio": round(fundraising_ratio, 3),
+                "research_ratio": round(research_ratio, 3),
+            }
+        return result
+    except Exception:
+        db.rollback()
+        logger.info("political_funds table not available, skipping fund data")
         return {}
 
 

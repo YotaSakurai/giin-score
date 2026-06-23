@@ -1,6 +1,8 @@
 from app.models.bill import Bill, BillSponsor
+from app.models.committee import CommitteeMembership
 from app.models.member import Member
 from app.models.pipeline import PipelineRun
+from app.models.political_fund import PoliticalFund
 from app.models.review import ReviewLike, UserReview
 from app.models.score import MemberScore
 from app.models.score_audit import ScoreAuditLog
@@ -29,4 +31,6 @@ __all__ = [
     "ScoreAuditLog",
     "WeightVersion",
     "SleepingDetection",
+    "CommitteeMembership",
+    "PoliticalFund",
 ]

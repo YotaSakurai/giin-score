@@ -30,6 +30,7 @@ SCHEDULED_PIPELINES: list[str] = [
     "shugiin",
     "written_questions",
     "profiles",
+    "committees",
     "speech_quality",
     "scoring",
     "analyze",
@@ -143,6 +144,33 @@ def run_sleeping(db, session_number: int):
     return count
 
 
+def run_committees(db, session_number: int):
+    from app.pipeline.committee_scraper import scrape_committees
+
+    logger.info(f"=== Scraping committee memberships (session {session_number}) ===")
+    count = scrape_committees(db, session_number)
+    logger.info(f"Scraped {count} committee memberships")
+    return count
+
+
+def run_political_funds(db, session_number: int):
+    from app.pipeline.political_fund_loader import load_political_funds
+
+    logger.info("=== Loading political fund data ===")
+    count = load_political_funds(db, session_number)
+    logger.info(f"Loaded {count} political fund records")
+    return count
+
+
+def run_hakusho(db, session_number: int):
+    from app.pipeline.hakusho_scraper import scrape_hakusho_stats
+
+    logger.info(f"=== Scraping hakusho stats (session {session_number}) ===")
+    count = scrape_hakusho_stats(db, session_number)
+    logger.info(f"Linked {count} members with hakusho data")
+    return count
+
+
 def run_analyze(db, session_number: int):
     from app.pipeline.analyze import analyze_data_quality
 
@@ -205,6 +233,9 @@ PIPELINES: dict[str, object] = {
     "written_questions": run_written_questions,
     "speech_quality": run_speech_quality,
     "sleeping": run_sleeping,
+    "committees": run_committees,
+    "political_funds": run_political_funds,
+    "hakusho": run_hakusho,
     "analyze": run_analyze,
 }
 
