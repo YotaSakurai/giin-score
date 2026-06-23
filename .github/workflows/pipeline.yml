@@ -1,9 +1,8 @@
-name: Pipeline (scheduled)
+name: Pipeline (manual / test)
 
+# 本番パイプラインはローカル cron で実行 (scripts/daily-pipeline.sh)
+# この workflow は手動テスト・CI用途
 on:
-  schedule:
-    # 毎日 AM 3:00 JST (前日 18:00 UTC)
-    - cron: "0 18 * * *"
   workflow_dispatch:
     inputs:
       session_number:

@@ -220,8 +220,8 @@ def main():
     parser.add_argument(
         "--session",
         type=int,
-        default=213,
-        help="Diet session number (default: 213)",
+        default=221,
+        help="Diet session number (default: 221)",
     )
     args = parser.parse_args()
 
