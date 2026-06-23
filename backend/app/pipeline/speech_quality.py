@@ -520,18 +520,28 @@ def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
                     + result["national_interest"]
                 ) / 4.0
 
-                quality_score = SpeechQualityScore(
-                    speech_id=speech.id,
-                    member_id=speech.member_id,
-                    session_id=diet_session.id,
-                    policy_relevance=result["policy_relevance"],
-                    constructiveness=result["constructiveness"],
-                    expertise=result["expertise"],
-                    national_interest=result["national_interest"],
-                    overall_quality=round(overall, 1),
-                    analysis_summary=result.get("summary", ""),
-                )
-                db.add(quality_score)
+                # 既存レコードがあれば更新、なければ新規作成
+                existing = db.query(SpeechQualityScore).filter_by(speech_id=speech.id).first()
+                if existing:
+                    existing.policy_relevance = result["policy_relevance"]
+                    existing.constructiveness = result["constructiveness"]
+                    existing.expertise = result["expertise"]
+                    existing.national_interest = result["national_interest"]
+                    existing.overall_quality = round(overall, 1)
+                    existing.analysis_summary = result.get("summary", "")
+                else:
+                    quality_score = SpeechQualityScore(
+                        speech_id=speech.id,
+                        member_id=speech.member_id,
+                        session_id=diet_session.id,
+                        policy_relevance=result["policy_relevance"],
+                        constructiveness=result["constructiveness"],
+                        expertise=result["expertise"],
+                        national_interest=result["national_interest"],
+                        overall_quality=round(overall, 1),
+                        analysis_summary=result.get("summary", ""),
+                    )
+                    db.add(quality_score)
                 processed += 1
 
                 if backend == "anthropic":
