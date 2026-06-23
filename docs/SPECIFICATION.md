@@ -1,6 +1,6 @@
 # GiinScore サービス仕様書
 
-> **最終更新:** 2026-06-21
+> **最終更新:** 2026-06-24
 > **バージョン:** 1.0.0
 
 ---
@@ -119,6 +119,7 @@ LLMが4観点で発言を分析し、平均値を算出:
 | 8 | `speech_quality` | Ollama / Anthropic API | speech_quality_scores |
 | 9 | `scoring` | 内部計算 | member_scores, score_audit_logs |
 | 10 | `analyze` | 内部計算 | Discord通知 |
+| 11 | `sleeping` | 国会動画 (yt-dlp) | sleeping_detections |
 
 ### 4.2 実行方法
 
@@ -156,6 +157,162 @@ docker compose exec backend python -m app.pipeline.runner --pipeline speeches --
 - 差分 (diff_total)
 - 使用した重みバージョン
 
+### 4.6 居眠り検出パイプライン
+
+国会中継動画から議員の居眠りを自動検出し、管理者レビューを経てスコアに反映する。
+
+#### 検出パターン
+
+| パターン | 判定条件 | 閾値 |
+|---------|---------|------|
+| 前傾（うつむき居眠り） | pitch > FORWARD_ANGLE | 30° |
+| 後傾（仰向け居眠り） | pitch < -BACKWARD_ANGLE | 25° |
+
+#### 判定条件（全て満たす場合のみ候補に）
+
+1. 頭部傾斜角度が閾値を超えている
+2. その状態が **60秒以上** 持続している (`SLEEPING_MIN_DURATION`)
+3. その間の体の動きが少ない (`SLEEPING_MOTION_THRESHOLD=5.0`)
+4. 信頼度が閾値以上 (`SLEEPING_CONFIDENCE_THRESHOLD=0.6`)
+
+#### 信頼度の算出
+
+4要素の加重平均:
+- 持続時間 (30%): 60秒→0.5, 180秒→0.8, 300秒以上→1.0
+- 角度安定性 (25%): pitch標準偏差が小さいほど高い
+- 動きの少なさ (25%): 顔中心座標の移動量が小さいほど高い
+- 角度の大きさ (20%): 閾値からの超過分が大きいほど高い
+
+#### 技術スタック
+
+- フレーム抽出: OpenCV (5秒間隔サンプリング)
+- 顔検出・追跡: MediaPipe Face Mesh (最大20顔)
+- 頭部姿勢推定: solvePnP (6点モデル)
+- 動画ダウンロード: yt-dlp (衆議院TV / 参議院中継)
+- 証拠保存: スクリーンショット(JPEG) + 動画クリップ(前後30秒, ffmpeg)
+
+#### 環境変数
+
+| 変数 | デフォルト | 説明 |
+|------|----------|------|
+| `SLEEPING_FRAME_INTERVAL` | 5 | フレームサンプリング間隔（秒） |
+| `SLEEPING_MIN_DURATION` | 60 | 居眠り判定の最小持続時間（秒） |
+| `SLEEPING_FORWARD_ANGLE` | 30 | 前傾判定角度（度） |
+| `SLEEPING_BACKWARD_ANGLE` | 25 | 後傾判定角度（度） |
+| `SLEEPING_CONFIDENCE_THRESHOLD` | 0.6 | 信頼度の最低閾値 |
+| `SLEEPING_EVIDENCE_DIR` | /data/sleeping_evidence | 証拠ファイル保存先 |
+| `SLEEPING_CLIP_MARGIN` | 30 | 動画クリップのマージン（秒） |
+| `SLEEPING_MOTION_THRESHOLD` | 5.0 | 動き判定閾値（ピクセル） |
+| `SLEEPING_VIDEO_URLS` | (なし) | 処理対象動画URL（カンマ区切り） |
+
+#### 実行方法
+
+```bash
+# 環境変数で動画URLを指定して実行
+SLEEPING_VIDEO_URLS="https://..." \
+  docker compose exec backend python -m app.pipeline.runner --pipeline sleeping --session 221
+
+# optional deps のインストール
+pip install "giin-score-backend[sleeping]"
+```
+
+#### スコアへの反映
+
+| 項目 | 値 |
+|------|-----|
+| ペナルティ/件 | -3.0pt (`SLEEPING_PENALTY_PER_INCIDENT`) |
+| ペナルティ上限 | -15.0pt (`SLEEPING_PENALTY_CAP`) |
+| 適用対象 | 管理者が「承認」したインシデントのみ |
+| 適用タイミング | レビュー承認/却下時に該当会期のスコアを自動再計算 |
+| 記録場所 | `member_scores.breakdown.sleeping_penalty` |
+
+---
+
+### 4.7 居眠り検出 管理画面 (Admin)
+
+#### 概要
+
+AI検出された居眠り候補を管理者がレビュー（承認/却下）する画面。
+承認するとスコアにペナルティが反映され、却下するとペナルティは適用されない。
+
+#### アクセス方法
+
+- URL: `/admin` （ナビゲーションバーには表示されない）
+- 認証: 環境変数 `ADMIN_TOKEN` に設定したトークンでログイン
+- トークンは `localStorage` に保存され、以降は自動ログイン
+
+#### 認証フロー
+
+```
+1. /admin にアクセス → ログイン画面表示
+2. トークン入力 → POST /api/v1/sleeping/auth/verify で検証
+3. 検証OK → localStorage に保存、管理画面表示
+4. 全APIリクエストに Authorization: Bearer <token> ヘッダーを付与
+5. 401応答 → 自動ログアウト
+```
+
+#### 画面構成
+
+| セクション | 内容 |
+|-----------|------|
+| 統計ダッシュボード | 総検出数・未レビュー・承認済み・却下済み・該当議員数 |
+| ステータスフィルタ | 未レビュー / 承認済み / 却下済み / すべて |
+| レビューカード一覧 | 検出結果ごとのレビューUI |
+
+#### レビューカードの情報
+
+- **ステータスバッジ**: 未レビュー(黄) / 承認済み(赤) / 却下済み(灰)
+- **検出タイプ**: 前傾（うつむき）/ 後傾（仰向け）
+- **信頼度**: AI算出の信頼度 (%)
+- **角度**: 平均頭部傾斜角度
+- **議員名**: 特定済みの場合に表示
+- **会議名**: 予算委員会等
+- **時刻**: 動画内の開始〜終了時刻
+- **持続時間**: 居眠りの持続時間
+- **動画リンク**: 元動画への外部リンク
+
+#### レビューアクション
+
+| ボタン | 動作 | スコアへの影響 |
+|--------|------|-------------|
+| 居眠り確定 | status → approved | ペナルティ適用 (-3pt/件) → スコア再計算 |
+| 却下 | status → rejected | ペナルティなし → スコア再計算 |
+
+#### 追加操作
+
+- **議員手動紐付け**: AIで特定できなかった場合、議員IDを入力して手動紐付け
+- **レビューメモ**: 判断の根拠を自由テキストで記録
+- **ステータス変更**: 承認済み/却下済みのステータスを再変更可能
+
+#### API エンドポイント (全て Admin認証必須)
+
+| メソッド | パス | 概要 | レート制限 |
+|---------|------|------|----------|
+| POST | `/sleeping/auth/verify` | トークン検証 | 10/分 |
+| GET | `/sleeping/detections` | 検出一覧 | 60/分 |
+| GET | `/sleeping/detections/{id}` | 検出詳細 | 60/分 |
+| PUT | `/sleeping/detections/{id}/review` | レビュー (承認/却下) | 30/分 |
+| GET | `/sleeping/stats` | 統計情報 | 60/分 |
+| GET | `/sleeping/members/{id}/incidents` | 議員別インシデント | 60/分 |
+
+#### 環境変数
+
+| 変数 | 必須 | 説明 |
+|------|------|------|
+| `ADMIN_TOKEN` | Yes | 管理画面認証トークン（任意の文字列） |
+
+#### セットアップ手順
+
+```bash
+# 1. 環境変数にトークンを設定
+echo "ADMIN_TOKEN=your-secret-token-here" >> .env
+
+# 2. バックエンド再起動
+docker compose restart backend
+
+# 3. ブラウザで /admin にアクセスしてトークンを入力
+```
+
 ---
 
 ## 5. データベースモデル
@@ -173,6 +330,8 @@ members ──< member_scores >── diet_sessions
    ├──< bill_sponsors >── bills
    │
    ├──< written_questions
+   │
+   ├──< sleeping_detections
    │
    └──< user_reviews ──< review_likes
 ```
@@ -195,6 +354,7 @@ members ──< member_scores >── diet_sessions
 | review_likes | レビューいいね | review_id, liker_id |
 | score_audit_logs | スコア監査ログ | member_id, prev/new 5軸+total+grade, diff_total |
 | weight_versions | 重みバージョン | version, 5軸重み, is_active |
+| sleeping_detections | 居眠り検出結果 | member_id, session_id, video_url, start/end_time_sec, detection_type, confidence, review_status |
 | pipeline_runs | パイプライン実行ログ | pipeline_name, status, records_processed |
 
 ---
@@ -256,6 +416,17 @@ http://localhost:8000/api/v1
 | DELETE | `/reviews/{id}` | レビュー削除 | 10/分 |
 | POST | `/reviews/{id}/like` | いいね切替 | 30/分 |
 
+#### 居眠り検出管理 (Admin)
+
+| メソッド | パス | 概要 | 認証 |
+|---------|------|------|------|
+| POST | `/sleeping/auth/verify` | 管理者トークン検証 | 不要 (10/分) |
+| GET | `/sleeping/detections` | 検出一覧 | Bearer |
+| GET | `/sleeping/detections/{id}` | 検出詳細 | Bearer |
+| PUT | `/sleeping/detections/{id}/review` | レビュー (承認/却下) | Bearer (30/分) |
+| GET | `/sleeping/stats` | 統計情報 | Bearer |
+| GET | `/sleeping/members/{id}/incidents` | 議員別検出一覧 | Bearer |
+
 #### その他
 
 | メソッド | パス | 概要 |
@@ -295,6 +466,7 @@ http://localhost:8000/api/v1
 | `/about` | スコア算出方法 | 各軸の説明・グレード基準 |
 | `/data-quality` | データ品質 | 会期別データ収集状況 |
 | `/api-docs` | APIドキュメント | 開発者向けAPI仕様 |
+| `/admin` | 管理画面 | 居眠り検出レビュー (要認証, noindex) |
 
 ### 7.2 主要機能
 
