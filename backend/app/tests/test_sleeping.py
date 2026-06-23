@@ -19,6 +19,20 @@ except ImportError:
 
 requires_cv2 = pytest.mark.skipif(not HAS_CV2, reason="opencv/numpy not installed")
 
+ADMIN_TOKEN = "test-admin-token-12345"
+ADMIN_HEADERS = {"Authorization": f"Bearer {ADMIN_TOKEN}"}
+
+
+@pytest.fixture(autouse=True)
+def _set_admin_token():
+    """テスト用にADMIN_TOKENを設定する"""
+    from app.config import settings
+
+    original = settings.admin_token
+    settings.admin_token = ADMIN_TOKEN
+    yield
+    settings.admin_token = original
+
 
 @pytest.fixture()
 def sleeping_data(db):
@@ -87,46 +101,89 @@ def sleeping_data(db):
     return members, detections
 
 
+class TestAdminAuth:
+    """Admin認証のテスト"""
+
+    def test_no_auth_header_returns_401(self, client, sleeping_data):
+        resp = client.get("/api/v1/sleeping/detections")
+        assert resp.status_code == 401
+
+    def test_invalid_token_returns_401(self, client, sleeping_data):
+        resp = client.get(
+            "/api/v1/sleeping/detections",
+            headers={"Authorization": "Bearer wrong-token"},
+        )
+        assert resp.status_code == 401
+
+    def test_valid_token_returns_200(self, client, sleeping_data):
+        resp = client.get("/api/v1/sleeping/detections", headers=ADMIN_HEADERS)
+        assert resp.status_code == 200
+
+    def test_verify_valid_token(self, client):
+        resp = client.post(
+            "/api/v1/sleeping/auth/verify",
+            json={"token": ADMIN_TOKEN},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["valid"] is True
+
+    def test_verify_invalid_token(self, client):
+        resp = client.post(
+            "/api/v1/sleeping/auth/verify",
+            json={"token": "wrong"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["valid"] is False
+
+
 class TestSleepingAPI:
     """居眠り検出APIのテスト"""
 
     def test_list_detections(self, client, sleeping_data):
-        resp = client.get("/api/v1/sleeping/detections")
+        resp = client.get("/api/v1/sleeping/detections", headers=ADMIN_HEADERS)
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 3
         assert len(data["items"]) == 3
 
     def test_list_detections_filter_status(self, client, sleeping_data):
-        resp = client.get("/api/v1/sleeping/detections?status=pending")
+        resp = client.get(
+            "/api/v1/sleeping/detections?status=pending",
+            headers=ADMIN_HEADERS,
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 1
         assert data["items"][0]["review_status"] == "pending"
 
     def test_list_detections_filter_member(self, client, sleeping_data):
-        resp = client.get("/api/v1/sleeping/detections?member_id=1")
+        resp = client.get(
+            "/api/v1/sleeping/detections?member_id=1",
+            headers=ADMIN_HEADERS,
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 2
 
     def test_get_detection(self, client, sleeping_data):
-        resp = client.get("/api/v1/sleeping/detections/1")
+        resp = client.get("/api/v1/sleeping/detections/1", headers=ADMIN_HEADERS)
         assert resp.status_code == 200
         data = resp.json()
         assert data["id"] == 1
         assert data["detection_type"] == "head_forward"
         assert data["member_name"] == "田中太郎"
         assert data["confidence"] == 0.85
+        assert data["session_number"] == 215
 
     def test_get_detection_not_found(self, client, sleeping_data):
-        resp = client.get("/api/v1/sleeping/detections/999")
+        resp = client.get("/api/v1/sleeping/detections/999", headers=ADMIN_HEADERS)
         assert resp.status_code == 404
 
     def test_review_approve(self, client, sleeping_data):
         resp = client.put(
             "/api/v1/sleeping/detections/1/review",
             json={"status": "approved", "note": "明らかに居眠り"},
+            headers=ADMIN_HEADERS,
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -138,6 +195,7 @@ class TestSleepingAPI:
         resp = client.put(
             "/api/v1/sleeping/detections/1/review",
             json={"status": "rejected", "note": "資料を読んでいる"},
+            headers=ADMIN_HEADERS,
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -148,6 +206,7 @@ class TestSleepingAPI:
         resp = client.put(
             "/api/v1/sleeping/detections/1/review",
             json={"status": "approved", "member_id": 2},
+            headers=ADMIN_HEADERS,
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -158,6 +217,7 @@ class TestSleepingAPI:
         resp = client.put(
             "/api/v1/sleeping/detections/1/review",
             json={"status": "invalid"},
+            headers=ADMIN_HEADERS,
         )
         assert resp.status_code == 400
 
@@ -165,11 +225,12 @@ class TestSleepingAPI:
         resp = client.put(
             "/api/v1/sleeping/detections/1/review",
             json={"status": "approved", "member_id": 999},
+            headers=ADMIN_HEADERS,
         )
         assert resp.status_code == 400
 
     def test_stats(self, client, sleeping_data):
-        resp = client.get("/api/v1/sleeping/stats")
+        resp = client.get("/api/v1/sleeping/stats", headers=ADMIN_HEADERS)
         assert resp.status_code == 200
         data = resp.json()
         assert data["total_detections"] == 3
@@ -179,7 +240,10 @@ class TestSleepingAPI:
         assert data["members_with_incidents"] == 1
 
     def test_member_incidents(self, client, sleeping_data):
-        resp = client.get("/api/v1/sleeping/members/1/incidents")
+        resp = client.get(
+            "/api/v1/sleeping/members/1/incidents",
+            headers=ADMIN_HEADERS,
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["member_name"] == "田中太郎"
@@ -187,7 +251,10 @@ class TestSleepingAPI:
         assert data["incidents"][0]["detection_type"] == "head_backward"
 
     def test_member_incidents_not_found(self, client, sleeping_data):
-        resp = client.get("/api/v1/sleeping/members/999/incidents")
+        resp = client.get(
+            "/api/v1/sleeping/members/999/incidents",
+            headers=ADMIN_HEADERS,
+        )
         assert resp.status_code == 404
 
 
