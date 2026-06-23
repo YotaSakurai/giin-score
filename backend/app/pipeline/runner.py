@@ -134,6 +134,15 @@ def run_speech_quality(db, session_number: int):
     return count
 
 
+def run_sleeping(db, session_number: int):
+    from app.pipeline.sleeping_detector import detect_sleeping_for_session
+
+    logger.info(f"=== Detecting sleeping in videos (session {session_number}) ===")
+    count = detect_sleeping_for_session(db, session_number)
+    logger.info(f"Detected {count} sleeping candidates")
+    return count
+
+
 def run_analyze(db, session_number: int):
     from app.pipeline.analyze import analyze_data_quality
 
@@ -195,6 +204,7 @@ PIPELINES: dict[str, object] = {
     "profiles": run_profiles,
     "written_questions": run_written_questions,
     "speech_quality": run_speech_quality,
+    "sleeping": run_sleeping,
     "analyze": run_analyze,
 }
 

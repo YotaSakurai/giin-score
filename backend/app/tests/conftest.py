@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.api.reviews import limiter as reviews_limiter
+from app.api.sleeping import limiter as sleeping_limiter
 from app.database import Base, get_db
 from app.main import app, limiter
 from app.models.member import Member
@@ -32,6 +33,7 @@ def _reset_rate_limits():
     yield
     limiter.reset()
     reviews_limiter.reset()
+    sleeping_limiter.reset()
 
 
 @pytest.fixture()

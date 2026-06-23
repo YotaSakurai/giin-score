@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.api import bills, data_quality, members, reviews, scores, sessions
+from app.api import bills, data_quality, members, reviews, scores, sessions, sleeping
 from app.config import settings
 from app.database import get_db
 
@@ -133,6 +133,7 @@ app.include_router(scores.router, prefix="/api/v1")
 app.include_router(sessions.router, prefix="/api/v1")
 app.include_router(data_quality.router, prefix="/api/v1")
 app.include_router(reviews.router, prefix="/api/v1")
+app.include_router(sleeping.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health")

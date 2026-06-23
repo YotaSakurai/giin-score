@@ -5,6 +5,7 @@ from app.models.review import ReviewLike, UserReview
 from app.models.score import MemberScore
 from app.models.score_audit import ScoreAuditLog
 from app.models.session import DietSession
+from app.models.sleeping_detection import SleepingDetection
 from app.models.speech import Speech
 from app.models.speech_quality import SpeechQualityScore
 from app.models.vote import VoteRecord, VoteResult
@@ -27,4 +28,5 @@ __all__ = [
     "ReviewLike",
     "ScoreAuditLog",
     "WeightVersion",
+    "SleepingDetection",
 ]

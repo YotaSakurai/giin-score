@@ -15,6 +15,7 @@ from app.models.member import Member
 from app.models.score import MemberScore
 from app.models.score_audit import ScoreAuditLog
 from app.models.session import DietSession
+from app.models.sleeping_detection import SleepingDetection
 from app.models.speech import Speech
 from app.models.speech_quality import SpeechQualityScore
 from app.models.vote import VoteRecord, VoteResult
@@ -33,6 +34,8 @@ DEFAULT_WEIGHTS = {
 
 SPEECH_DENSITY_BASELINE = 3000  # 基準文字数/回
 DENSITY_CAP = 2.0
+SLEEPING_PENALTY_PER_INCIDENT = 3.0  # 承認済み居眠り1件あたりのペナルティ（totalから減算）
+SLEEPING_PENALTY_CAP = 15.0  # 居眠りペナルティ上限
 
 
 def _get_active_weights(db: Session) -> tuple[dict, str | None]:
@@ -82,6 +85,9 @@ def compute_scores_for_session(db: Session, session_number: int) -> int:
     # Phase 0.5: 質問品質の集約スコアを事前計算
     quality_scores = _compute_quality_scores_bulk(db, diet_session)
 
+    # Phase 0.6: 居眠りペナルティ事前計算
+    sleeping_penalties = _compute_sleeping_penalties_bulk(db, diet_session)
+
     # Phase 1: raw スコア算出
     raw_scores: dict[int, dict] = {}
     for member in members:
@@ -109,8 +115,24 @@ def compute_scores_for_session(db: Session, session_number: int) -> int:
         norm = normalized_scores[mid]
 
         total = compute_total(norm, weights)
+
+        # 居眠りペナルティ適用
+        sleeping_info = sleeping_penalties.get(mid)
+        if sleeping_info:
+            penalty = sleeping_info["penalty"]
+            total = max(0.0, round(total - penalty, 1))
+            breakdown_sleeping = {
+                "approved_incidents": sleeping_info["count"],
+                "total_duration_sec": sleeping_info["total_duration"],
+                "penalty_applied": penalty,
+            }
+        else:
+            breakdown_sleeping = None
+
         grade = compute_grade(total)
         breakdown = raw.get("breakdown", {})
+        if breakdown_sleeping:
+            breakdown["sleeping_penalty"] = breakdown_sleeping
 
         # upsert
         existing = (
@@ -493,6 +515,45 @@ def _compute_transparency(db: Session, member: Member, session: DietSession) -> 
     }
 
     return diversity_rate, breakdown
+
+
+def _compute_sleeping_penalties_bulk(
+    db: Session, session: DietSession
+) -> dict[int, dict]:
+    """会期内の承認済み居眠り検出からペナルティを一括計算する。
+
+    Returns:
+        {member_id: {"count": int, "total_duration": float, "penalty": float}}
+    """
+    try:
+        results = (
+            db.query(
+                SleepingDetection.member_id,
+                func.count(SleepingDetection.id).label("incident_count"),
+                func.sum(SleepingDetection.duration_sec).label("total_duration"),
+            )
+            .filter(
+                SleepingDetection.session_id == session.id,
+                SleepingDetection.review_status == "approved",
+                SleepingDetection.member_id.isnot(None),
+            )
+            .group_by(SleepingDetection.member_id)
+            .all()
+        )
+        penalties = {}
+        for row in results:
+            raw_penalty = row.incident_count * SLEEPING_PENALTY_PER_INCIDENT
+            penalty = min(raw_penalty, SLEEPING_PENALTY_CAP)
+            penalties[row.member_id] = {
+                "count": int(row.incident_count),
+                "total_duration": float(row.total_duration),
+                "penalty": round(penalty, 1),
+            }
+        return penalties
+    except Exception:
+        db.rollback()
+        logger.info("sleeping_detections table not available, skipping sleeping penalties")
+        return {}
 
 
 def _compute_quality_scores_bulk(db: Session, session: DietSession) -> dict[int, tuple[float, int]]:
