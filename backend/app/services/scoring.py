@@ -11,7 +11,6 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.bill import Bill, BillSponsor
-from app.models.committee import CommitteeMembership
 from app.models.member import Member
 from app.models.political_fund import PoliticalFund
 from app.models.score import MemberScore
@@ -90,17 +89,14 @@ def compute_scores_for_session(db: Session, session_number: int) -> int:
     # Phase 0.6: 居眠りペナルティ事前計算
     sleeping_penalties = _compute_sleeping_penalties_bulk(db, diet_session)
 
-    # Phase 0.7: 委員会所属データの一括取得
-    committee_data = _compute_committee_data_bulk(db, diet_session)
-
-    # Phase 0.8: 政治資金データの一括取得
+    # Phase 0.7: 政治資金データの一括取得
     fund_data = _compute_fund_data_bulk(db)
 
     # Phase 1: raw スコア算出
     raw_scores: dict[int, dict] = {}
     for member in members:
         raw = _compute_raw_scores(
-            db, member, diet_session, quality_scores, committee_data, fund_data
+            db, member, diet_session, quality_scores, fund_data
         )
         raw_scores[member.id] = raw
 
@@ -218,13 +214,10 @@ def _compute_raw_scores(
     member: Member,
     session: DietSession,
     quality_scores: dict[int, tuple[float, int]] | None = None,
-    committee_data: dict[int, dict] | None = None,
     fund_data: dict[int, dict] | None = None,
 ) -> dict:
     """個別議員のraw スコアを算出する。"""
-    las_raw, las_breakdown = _compute_legislative_activity(
-        db, member, session, committee_data
-    )
+    las_raw, las_breakdown = _compute_legislative_activity(db, member, session)
     vbs_raw, vbs_breakdown = _compute_voting_behavior(db, member, session)
     pis_raw, pis_breakdown = _compute_policy_influence(db, member, session)
     ts_raw, ts_breakdown = _compute_transparency(db, member, session, fund_data)
@@ -246,18 +239,8 @@ def _compute_raw_scores(
     }
 
 
-COMMITTEE_ROLE_WEIGHT = {
-    "委員長": 2.0,
-    "理事": 1.5,
-    "委員": 1.0,
-}
-COMMITTEE_MEMBERSHIP_WEIGHT = 0.5  # 委員会所属1件あたりの加算
-COMMITTEE_LEADERSHIP_BONUS = 1.0  # 委員長・理事へのボーナス
-
-
 def _compute_legislative_activity(
     db: Session, member: Member, session: DietSession,
-    committee_data: dict[int, dict] | None = None,
 ) -> tuple[float, dict]:
     """立法活動スコア (LAS)"""
     # 法案発議
@@ -331,23 +314,12 @@ def _compute_legislative_activity(
     ) or 0
     wq_score = wq_count * 0.5
 
-    # 委員会所属スコア
-    cm_score = 0.0
-    cm_count = 0
-    cm_leadership = 0
-    if committee_data and member.id in committee_data:
-        cm_info = committee_data[member.id]
-        cm_count = cm_info["count"]
-        cm_leadership = cm_info["leadership_count"]
-        cm_score = cm_count * COMMITTEE_MEMBERSHIP_WEIGHT + cm_leadership * COMMITTEE_LEADERSHIP_BONUS
-
-    las_raw = bill_score + speech_score + wq_score + cm_score
+    las_raw = bill_score + speech_score + wq_score
 
     breakdown = {
         "bill_score": round(bill_score, 2),
         "committee_score": round(speech_score, 2),
         "written_questions_score": round(wq_score, 2),
-        "committee_membership_score": round(cm_score, 2),
         "bills_sponsored": bills_sponsored,
         "speech_count": speech_count,
         "total_speech_chars": total_chars,
@@ -355,8 +327,6 @@ def _compute_legislative_activity(
         "density_factor": round(density_factor, 2),
         "written_questions": wq_count,
         "written_questions_answered": wq_answered,
-        "committees_count": cm_count,
-        "committees_leadership": cm_leadership,
     }
 
     return las_raw, breakdown
@@ -566,7 +536,10 @@ def _compute_transparency(
 
     # 政治資金データがある場合のみブレンド
     if fund_data and member.id in fund_data:
-        ts_raw = diversity_rate * (1 - FUND_TRANSPARENCY_WEIGHT) + fund_score * FUND_TRANSPARENCY_WEIGHT
+        ts_raw = (
+            diversity_rate * (1 - FUND_TRANSPARENCY_WEIGHT)
+            + fund_score * FUND_TRANSPARENCY_WEIGHT
+        )
     else:
         ts_raw = diversity_rate
 
@@ -640,67 +613,6 @@ def _compute_quality_scores_bulk(db: Session, session: DietSession) -> dict[int,
     except Exception:
         db.rollback()
         logger.info("speech_quality_scores table not available, skipping quality scores")
-        return {}
-
-
-def _compute_committee_data_bulk(
-    db: Session, session: DietSession
-) -> dict[int, dict]:
-    """会期内の全議員の委員会所属データを一括取得する。
-
-    当該セッションにデータがない場合、同一選挙期間内の
-    最新セッションのデータにフォールバックする。
-    （委員会所属は選挙期間単位でほぼ同一のため）
-
-    Returns:
-        {member_id: {"count": int, "leadership_count": int, "committees": list}}
-    """
-    try:
-        memberships = (
-            db.query(CommitteeMembership)
-            .filter(CommitteeMembership.session_id == session.id)
-            .all()
-        )
-
-        # フォールバック: 当該セッションにデータがなければ最新セッションを使用
-        if not memberships:
-            fallback_row = (
-                db.query(
-                    CommitteeMembership.session_id,
-                    DietSession.session_number,
-                )
-                .join(DietSession, DietSession.id == CommitteeMembership.session_id)
-                .group_by(CommitteeMembership.session_id, DietSession.session_number)
-                .order_by(DietSession.session_number.desc())
-                .first()
-            )
-            if fallback_row:
-                memberships = (
-                    db.query(CommitteeMembership)
-                    .filter(CommitteeMembership.session_id == fallback_row[0])
-                    .all()
-                )
-                logger.info(
-                    f"Committee data: no data for session {session.session_number}, "
-                    f"falling back to session {fallback_row[1]} ({len(memberships)} records)"
-                )
-        result: dict[int, dict] = {}
-        for cm in memberships:
-            if cm.member_id not in result:
-                result[cm.member_id] = {
-                    "count": 0,
-                    "leadership_count": 0,
-                    "committees": [],
-                }
-            info = result[cm.member_id]
-            info["count"] += 1
-            if cm.role in ("委員長", "理事"):
-                info["leadership_count"] += 1
-            info["committees"].append(cm.committee_name)
-        return result
-    except Exception:
-        db.rollback()
-        logger.info("committee_memberships table not available, skipping committee data")
         return {}
 
 
