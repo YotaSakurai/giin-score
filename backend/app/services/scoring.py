@@ -648,6 +648,10 @@ def _compute_committee_data_bulk(
 ) -> dict[int, dict]:
     """会期内の全議員の委員会所属データを一括取得する。
 
+    当該セッションにデータがない場合、同一選挙期間内の
+    最新セッションのデータにフォールバックする。
+    （委員会所属は選挙期間単位でほぼ同一のため）
+
     Returns:
         {member_id: {"count": int, "leadership_count": int, "committees": list}}
     """
@@ -657,6 +661,29 @@ def _compute_committee_data_bulk(
             .filter(CommitteeMembership.session_id == session.id)
             .all()
         )
+
+        # フォールバック: 当該セッションにデータがなければ最新セッションを使用
+        if not memberships:
+            fallback_row = (
+                db.query(
+                    CommitteeMembership.session_id,
+                    DietSession.session_number,
+                )
+                .join(DietSession, DietSession.id == CommitteeMembership.session_id)
+                .group_by(CommitteeMembership.session_id, DietSession.session_number)
+                .order_by(DietSession.session_number.desc())
+                .first()
+            )
+            if fallback_row:
+                memberships = (
+                    db.query(CommitteeMembership)
+                    .filter(CommitteeMembership.session_id == fallback_row[0])
+                    .all()
+                )
+                logger.info(
+                    f"Committee data: no data for session {session.session_number}, "
+                    f"falling back to session {fallback_row[1]} ({len(memberships)} records)"
+                )
         result: dict[int, dict] = {}
         for cm in memberships:
             if cm.member_id not in result:
