@@ -59,3 +59,4 @@ infra/.terraform.lock.hcl
 .env.*
 !.env.example
 backend/test.db
+logs/
