@@ -94,10 +94,7 @@ class TestProceduralDetection:
         assert _is_procedural("委員の異動について御報告いたします。")
 
     def test_substantive_question_not_procedural(self):
-        text = (
-            "○佐藤太郎君　少子化対策について、"
-            "具体的な財源確保策をお示しください。"
-        )
+        text = "○佐藤太郎君　少子化対策について、具体的な財源確保策をお示しください。"
         assert not _is_procedural(text)
 
 
@@ -155,17 +152,17 @@ class TestLLMQualityTracker:
 # =====================================================================
 
 
-def _make_valid_llm_response(
-    pr=70, co=65, ex=60, ni=75, summary="テスト要約"
-):
+def _make_valid_llm_response(pr=70, co=65, ex=60, ni=75, summary="テスト要約"):
     """有効なLLMレスポンスJSONを返す。"""
-    return json.dumps({
-        "policy_relevance": pr,
-        "constructiveness": co,
-        "expertise": ex,
-        "national_interest": ni,
-        "summary": summary,
-    })
+    return json.dumps(
+        {
+            "policy_relevance": pr,
+            "constructiveness": co,
+            "expertise": ex,
+            "national_interest": ni,
+            "summary": summary,
+        }
+    )
 
 
 @pytest.fixture()
@@ -177,36 +174,47 @@ def pipeline_seed(db: Session):
 
     members = [
         Member(
-            id=1, name="質問者A", chamber="representatives",
-            party="自由民主党", role_category="ruling_junior",
+            id=1,
+            name="質問者A",
+            chamber="representatives",
+            party="自由民主党",
+            role_category="ruling_junior",
         ),
         Member(
-            id=2, name="質問者B", chamber="representatives",
-            party="立憲民主党", role_category="opposition_senior",
+            id=2,
+            name="質問者B",
+            chamber="representatives",
+            party="立憲民主党",
+            role_category="opposition_senior",
         ),
         Member(
-            id=3, name="大臣C", chamber="representatives",
-            party="自由民主党", role_category="cabinet",
+            id=3,
+            name="大臣C",
+            chamber="representatives",
+            party="自由民主党",
+            role_category="cabinet",
         ),
         Member(
-            id=4, name="議長D", chamber="representatives",
-            party="自由民主党", role_category="chair",
+            id=4,
+            name="議長D",
+            chamber="representatives",
+            party="自由民主党",
+            role_category="chair",
         ),
     ]
     db.add_all(members)
     db.flush()
 
     substantive = "あ" * 300  # MIN_SPEECH_CHARS以上
-    short_text = "あ" * 50   # 短すぎてスキップ
-    procedural = (
-        "○委員長（山田太郎君）　これより会議を開きます。"
-        + "あ" * 300
-    )
+    short_text = "あ" * 50  # 短すぎてスキップ
+    procedural = "○委員長（山田太郎君）　これより会議を開きます。" + "あ" * 300
 
     speeches = [
         # 質問者Aの実質的発言 (分析対象)
         Speech(
-            id=1, session_id=1, member_id=1,
+            id=1,
+            session_id=1,
+            member_id=1,
             meeting_name="予算委員会",
             speech_date=date(2024, 2, 15),
             speech_text=substantive,
@@ -214,7 +222,9 @@ def pipeline_seed(db: Session):
         ),
         # 質問者Bの実質的発言 (分析対象)
         Speech(
-            id=2, session_id=1, member_id=2,
+            id=2,
+            session_id=1,
+            member_id=2,
             meeting_name="厚生労働委員会",
             speech_date=date(2024, 2, 16),
             speech_text=substantive,
@@ -222,28 +232,36 @@ def pipeline_seed(db: Session):
         ),
         # 短い発言 (スキップ: MIN_SPEECH_CHARS未満)
         Speech(
-            id=3, session_id=1, member_id=1,
+            id=3,
+            session_id=1,
+            member_id=1,
             meeting_name="予算委員会",
             speech_text=short_text,
             speech_chars=50,
         ),
         # 大臣の答弁 (スキップ: cabinet)
         Speech(
-            id=4, session_id=1, member_id=3,
+            id=4,
+            session_id=1,
+            member_id=3,
             meeting_name="予算委員会",
             speech_text=substantive,
             speech_chars=300,
         ),
         # 議長の発言 (スキップ: chair)
         Speech(
-            id=5, session_id=1, member_id=4,
+            id=5,
+            session_id=1,
+            member_id=4,
             meeting_name="予算委員会",
             speech_text=substantive,
             speech_chars=300,
         ),
         # 議事進行発言 (パイプライン内でスキップ)
         Speech(
-            id=6, session_id=1, member_id=1,
+            id=6,
+            session_id=1,
+            member_id=1,
             meeting_name="予算委員会",
             speech_text=procedural,
             speech_chars=350,
@@ -267,17 +285,13 @@ class TestAnalyzeSpeechesFlow:
         mock_resp.status_code = 200
         mock_resp.raise_for_status = MagicMock()
         mock_resp.json.return_value = {
-            "message": {
-                "content": _make_valid_llm_response(pr, co, ex, ni)
-            }
+            "message": {"content": _make_valid_llm_response(pr, co, ex, ni)}
         }
         return mock_resp
 
     @patch("app.pipeline.notify._send_webhook")
     @patch("app.pipeline.speech_quality.httpx.Client")
-    def test_full_flow_filters_correctly(
-        self, mock_client_cls, mock_webhook, db, pipeline_seed
-    ):
+    def test_full_flow_filters_correctly(self, mock_client_cls, mock_webhook, db, pipeline_seed):
         """フィルタリング後、実質的発言のみ分析される。"""
         mock_client = MagicMock()
         mock_client_cls.return_value = mock_client
@@ -304,18 +318,14 @@ class TestAnalyzeSpeechesFlow:
 
     @patch("app.pipeline.notify._send_webhook")
     @patch("app.pipeline.speech_quality.httpx.Client")
-    def test_scores_saved_correctly(
-        self, mock_client_cls, mock_webhook, db, pipeline_seed
-    ):
+    def test_scores_saved_correctly(self, mock_client_cls, mock_webhook, db, pipeline_seed):
         """分析結果がDBに正しく保存される。"""
         mock_client = MagicMock()
         mock_client_cls.return_value = mock_client
         tags_resp = MagicMock()
         tags_resp.raise_for_status = MagicMock()
         mock_client.get.return_value = tags_resp
-        mock_client.post.return_value = self._mock_ollama_response(
-            pr=80, co=70, ex=60, ni=90
-        )
+        mock_client.post.return_value = self._mock_ollama_response(pr=80, co=70, ex=60, ni=90)
 
         reset_quality_tracker()
         analyze_speeches_for_session(db, 215)
@@ -331,15 +341,17 @@ class TestAnalyzeSpeechesFlow:
 
     @patch("app.pipeline.notify._send_webhook")
     @patch("app.pipeline.speech_quality.httpx.Client")
-    def test_already_analyzed_skipped(
-        self, mock_client_cls, mock_webhook, db, pipeline_seed
-    ):
+    def test_already_analyzed_skipped(self, mock_client_cls, mock_webhook, db, pipeline_seed):
         """既に分析済みの発言は再分析されない。"""
         # speech 1 を事前に分析済みにする
         existing = SpeechQualityScore(
-            speech_id=1, member_id=1, session_id=1,
-            policy_relevance=50, constructiveness=50,
-            expertise=50, national_interest=50,
+            speech_id=1,
+            member_id=1,
+            session_id=1,
+            policy_relevance=50,
+            constructiveness=50,
+            expertise=50,
+            national_interest=50,
             overall_quality=50.0,
         )
         db.add(existing)
@@ -360,9 +372,7 @@ class TestAnalyzeSpeechesFlow:
 
     @patch("app.pipeline.notify._send_webhook")
     @patch("app.pipeline.speech_quality.httpx.Client")
-    def test_quality_gate_abort(
-        self, mock_client_cls, mock_webhook, db, pipeline_seed
-    ):
+    def test_quality_gate_abort(self, mock_client_cls, mock_webhook, db, pipeline_seed):
         """LLM品質ゲートが発動するとパイプラインが停止する。"""
         mock_client = MagicMock()
         mock_client_cls.return_value = mock_client
@@ -374,9 +384,7 @@ class TestAnalyzeSpeechesFlow:
         bad_resp = MagicMock()
         bad_resp.status_code = 200
         bad_resp.raise_for_status = MagicMock()
-        bad_resp.json.return_value = {
-            "message": {"content": "I cannot analyze this."}
-        }
+        bad_resp.json.return_value = {"message": {"content": "I cannot analyze this."}}
         mock_client.post.return_value = bad_resp
 
         reset_quality_tracker()
@@ -403,15 +411,23 @@ class TestComputeMemberQualityScores:
         # 手動でスコアをシード
         scores = [
             SpeechQualityScore(
-                speech_id=1, member_id=1, session_id=1,
-                policy_relevance=80, constructiveness=70,
-                expertise=60, national_interest=90,
+                speech_id=1,
+                member_id=1,
+                session_id=1,
+                policy_relevance=80,
+                constructiveness=70,
+                expertise=60,
+                national_interest=90,
                 overall_quality=75.0,
             ),
             SpeechQualityScore(
-                speech_id=2, member_id=2, session_id=1,
-                policy_relevance=90, constructiveness=85,
-                expertise=80, national_interest=88,
+                speech_id=2,
+                member_id=2,
+                session_id=1,
+                policy_relevance=90,
+                constructiveness=85,
+                expertise=80,
+                national_interest=88,
                 overall_quality=85.8,
             ),
         ]
@@ -425,24 +441,34 @@ class TestComputeMemberQualityScores:
         assert result[1] == 75.0
         assert result[2] == 85.8
 
-    def test_multiple_speeches_averaged(
-        self, db: Session, pipeline_seed
-    ):
+    def test_multiple_speeches_averaged(self, db: Session, pipeline_seed):
         """同一議員の複数発言は平均化される。"""
         # member 1 に2つのスコア
-        db.add(SpeechQualityScore(
-            speech_id=1, member_id=1, session_id=1,
-            policy_relevance=80, constructiveness=80,
-            expertise=80, national_interest=80,
-            overall_quality=80.0,
-        ))
+        db.add(
+            SpeechQualityScore(
+                speech_id=1,
+                member_id=1,
+                session_id=1,
+                policy_relevance=80,
+                constructiveness=80,
+                expertise=80,
+                national_interest=80,
+                overall_quality=80.0,
+            )
+        )
         # speech_id=6 も member_id=1
-        db.add(SpeechQualityScore(
-            speech_id=6, member_id=1, session_id=1,
-            policy_relevance=60, constructiveness=60,
-            expertise=60, national_interest=60,
-            overall_quality=60.0,
-        ))
+        db.add(
+            SpeechQualityScore(
+                speech_id=6,
+                member_id=1,
+                session_id=1,
+                policy_relevance=60,
+                constructiveness=60,
+                expertise=60,
+                national_interest=60,
+                overall_quality=60.0,
+            )
+        )
         db.commit()
 
         result = compute_member_quality_scores(db, 215)
@@ -452,9 +478,7 @@ class TestComputeMemberQualityScores:
         result = compute_member_quality_scores(db, 999)
         assert result == {}
 
-    def test_no_scores_returns_empty(
-        self, db: Session, pipeline_seed
-    ):
+    def test_no_scores_returns_empty(self, db: Session, pipeline_seed):
         result = compute_member_quality_scores(db, 215)
         assert result == {}
 
@@ -472,7 +496,7 @@ class TestParseResponseEdgeCases:
 
     def test_json_with_surrounding_text(self):
         text = (
-            'はい、分析結果です。\n'
+            "はい、分析結果です。\n"
             '{"policy_relevance": 70, "constructiveness": 65, '
             '"expertise": 60, "national_interest": 75, '
             '"summary": "良い質問"}\n以上です。'
@@ -482,44 +506,52 @@ class TestParseResponseEdgeCases:
         assert result["policy_relevance"] == 70
 
     def test_negative_score_fallback(self):
-        text = json.dumps({
-            "policy_relevance": -10,
-            "constructiveness": 65,
-            "expertise": 60,
-            "national_interest": 75,
-        })
+        text = json.dumps(
+            {
+                "policy_relevance": -10,
+                "constructiveness": 65,
+                "expertise": 60,
+                "national_interest": 75,
+            }
+        )
         result = _parse_llm_response(text)
         assert result is not None
         assert result["policy_relevance"] == 50.0  # フォールバック
 
     def test_over_100_score_fallback(self):
-        text = json.dumps({
-            "policy_relevance": 150,
-            "constructiveness": 65,
-            "expertise": 60,
-            "national_interest": 75,
-        })
+        text = json.dumps(
+            {
+                "policy_relevance": 150,
+                "constructiveness": 65,
+                "expertise": 60,
+                "national_interest": 75,
+            }
+        )
         result = _parse_llm_response(text)
         assert result is not None
         assert result["policy_relevance"] == 50.0
 
     def test_string_score_fallback(self):
-        text = json.dumps({
-            "policy_relevance": "high",
-            "constructiveness": 65,
-            "expertise": 60,
-            "national_interest": 75,
-        })
+        text = json.dumps(
+            {
+                "policy_relevance": "high",
+                "constructiveness": 65,
+                "expertise": 60,
+                "national_interest": 75,
+            }
+        )
         result = _parse_llm_response(text)
         assert result is not None
         assert result["policy_relevance"] == 50.0
 
     def test_missing_key_fallback(self):
-        text = json.dumps({
-            "constructiveness": 65,
-            "expertise": 60,
-            "national_interest": 75,
-        })
+        text = json.dumps(
+            {
+                "constructiveness": 65,
+                "expertise": 60,
+                "national_interest": 75,
+            }
+        )
         result = _parse_llm_response(text)
         assert result is not None
         assert result["policy_relevance"] == 50.0

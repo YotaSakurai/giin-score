@@ -37,28 +37,43 @@ def rich_seed(db: Session):
 
     members = [
         Member(
-            id=1, name="田中太郎", chamber="representatives",
-            party="自由民主党", district="東京1区",
+            id=1,
+            name="田中太郎",
+            chamber="representatives",
+            party="自由民主党",
+            district="東京1区",
             role_category="ruling_junior",
         ),
         Member(
-            id=2, name="鈴木花子", chamber="councillors",
-            party="立憲民主党", district="東京都",
+            id=2,
+            name="鈴木花子",
+            chamber="councillors",
+            party="立憲民主党",
+            district="東京都",
             role_category="opposition_senior",
         ),
         Member(
-            id=3, name="山田一郎", chamber="representatives",
-            party="自由民主党", district="大阪1区",
+            id=3,
+            name="山田一郎",
+            chamber="representatives",
+            party="自由民主党",
+            district="大阪1区",
             role_category="ruling_junior",
         ),
         Member(
-            id=4, name="佐藤次郎", chamber="councillors",
-            party="日本維新の会", district="大阪府",
+            id=4,
+            name="佐藤次郎",
+            chamber="councillors",
+            party="日本維新の会",
+            district="大阪府",
             role_category="opposition_junior",
         ),
         Member(
-            id=5, name="高橋三郎", chamber="representatives",
-            party="立憲民主党", district="東京2区",
+            id=5,
+            name="高橋三郎",
+            chamber="representatives",
+            party="立憲民主党",
+            district="東京2区",
             role_category="opposition_junior",
         ),
     ]
@@ -68,28 +83,48 @@ def rich_seed(db: Session):
     # --- 会期215のスコア ---
     scores_215 = [
         MemberScore(
-            member_id=1, session_id=1,
-            legislative_activity=80, voting_behavior=70,
-            policy_influence=60, transparency=50,
-            question_quality=90, total=72, grade="B",
+            member_id=1,
+            session_id=1,
+            legislative_activity=80,
+            voting_behavior=70,
+            policy_influence=60,
+            transparency=50,
+            question_quality=90,
+            total=72,
+            grade="B",
         ),
         MemberScore(
-            member_id=2, session_id=1,
-            legislative_activity=90, voting_behavior=85,
-            policy_influence=80, transparency=75,
-            question_quality=95, total=86, grade="A",
+            member_id=2,
+            session_id=1,
+            legislative_activity=90,
+            voting_behavior=85,
+            policy_influence=80,
+            transparency=75,
+            question_quality=95,
+            total=86,
+            grade="A",
         ),
         MemberScore(
-            member_id=3, session_id=1,
-            legislative_activity=30, voting_behavior=25,
-            policy_influence=20, transparency=15,
-            question_quality=10, total=22, grade="D",
+            member_id=3,
+            session_id=1,
+            legislative_activity=30,
+            voting_behavior=25,
+            policy_influence=20,
+            transparency=15,
+            question_quality=10,
+            total=22,
+            grade="D",
         ),
         MemberScore(
-            member_id=4, session_id=1,
-            legislative_activity=50, voting_behavior=55,
-            policy_influence=45, transparency=40,
-            question_quality=60, total=50, grade="C",
+            member_id=4,
+            session_id=1,
+            legislative_activity=50,
+            voting_behavior=55,
+            policy_influence=45,
+            transparency=40,
+            question_quality=60,
+            total=50,
+            grade="C",
         ),
     ]
     db.add_all(scores_215)
@@ -97,22 +132,37 @@ def rich_seed(db: Session):
     # --- 会期216のスコア (変動あり) ---
     scores_216 = [
         MemberScore(
-            member_id=1, session_id=2,
-            legislative_activity=85, voting_behavior=75,
-            policy_influence=65, transparency=55,
-            question_quality=92, total=76, grade="B",
+            member_id=1,
+            session_id=2,
+            legislative_activity=85,
+            voting_behavior=75,
+            policy_influence=65,
+            transparency=55,
+            question_quality=92,
+            total=76,
+            grade="B",
         ),
         MemberScore(
-            member_id=2, session_id=2,
-            legislative_activity=70, voting_behavior=60,
-            policy_influence=55, transparency=50,
-            question_quality=65, total=60, grade="B",
+            member_id=2,
+            session_id=2,
+            legislative_activity=70,
+            voting_behavior=60,
+            policy_influence=55,
+            transparency=50,
+            question_quality=65,
+            total=60,
+            grade="B",
         ),
         MemberScore(
-            member_id=3, session_id=2,
-            legislative_activity=50, voting_behavior=45,
-            policy_influence=40, transparency=35,
-            question_quality=30, total=42, grade="C",
+            member_id=3,
+            session_id=2,
+            legislative_activity=50,
+            voting_behavior=45,
+            policy_influence=40,
+            transparency=35,
+            question_quality=30,
+            total=42,
+            grade="C",
         ),
     ]
     db.add_all(scores_216)
@@ -121,20 +171,26 @@ def rich_seed(db: Session):
     # --- 発言 ---
     speeches = [
         Speech(
-            id=1, session_id=1, member_id=1,
+            id=1,
+            session_id=1,
+            member_id=1,
             meeting_name="予算委員会",
             speech_date=date(2024, 2, 15),
             speech_chars=500,
             speech_url="https://example.com/s1",
         ),
         Speech(
-            id=2, session_id=1, member_id=1,
+            id=2,
+            session_id=1,
+            member_id=1,
             meeting_name="厚生労働委員会",
             speech_date=date(2024, 3, 1),
             speech_chars=300,
         ),
         Speech(
-            id=3, session_id=1, member_id=2,
+            id=3,
+            session_id=1,
+            member_id=2,
             meeting_name="予算委員会",
             speech_date=date(2024, 2, 20),
             speech_chars=800,
@@ -146,16 +202,24 @@ def rich_seed(db: Session):
     # --- 質問品質スコア ---
     quality_scores = [
         SpeechQualityScore(
-            speech_id=1, member_id=1, session_id=1,
-            policy_relevance=80, constructiveness=70,
-            expertise=60, national_interest=75,
+            speech_id=1,
+            member_id=1,
+            session_id=1,
+            policy_relevance=80,
+            constructiveness=70,
+            expertise=60,
+            national_interest=75,
             overall_quality=71.3,
             analysis_summary="政策提言を含む建設的な質問",
         ),
         SpeechQualityScore(
-            speech_id=3, member_id=2, session_id=1,
-            policy_relevance=90, constructiveness=85,
-            expertise=80, national_interest=88,
+            speech_id=3,
+            member_id=2,
+            session_id=1,
+            policy_relevance=90,
+            constructiveness=85,
+            expertise=80,
+            national_interest=88,
             overall_quality=85.8,
             analysis_summary="専門的なデータ分析に基づく追及",
         ),
@@ -165,20 +229,32 @@ def rich_seed(db: Session):
     # --- 法案 ---
     bills = [
         Bill(
-            id=1, session_id=1, bill_kind="閣法",
-            bill_number="1", title="予算関連法案",
-            status="成立", result="可決",
+            id=1,
+            session_id=1,
+            bill_kind="閣法",
+            bill_number="1",
+            title="予算関連法案",
+            status="成立",
+            result="可決",
             proposer_type="cabinet",
         ),
         Bill(
-            id=2, session_id=1, bill_kind="衆法",
-            bill_number="5", title="教育基本法改正案",
-            status="審議中", proposer_type="member",
+            id=2,
+            session_id=1,
+            bill_kind="衆法",
+            bill_number="5",
+            title="教育基本法改正案",
+            status="審議中",
+            proposer_type="member",
         ),
         Bill(
-            id=3, session_id=1, bill_kind="参法",
-            bill_number="3", title="環境保護法案",
-            status="否決", result="否決",
+            id=3,
+            session_id=1,
+            bill_kind="参法",
+            bill_number="3",
+            title="環境保護法案",
+            status="否決",
+            result="否決",
             proposer_type="member",
         ),
     ]
@@ -195,12 +271,20 @@ def rich_seed(db: Session):
 
     # --- 投票結果・記録 ---
     vr1 = VoteResult(
-        id=1, bill_id=1, chamber="representatives",
-        ayes=250, nays=100, result="可決",
+        id=1,
+        bill_id=1,
+        chamber="representatives",
+        ayes=250,
+        nays=100,
+        result="可決",
     )
     vr2 = VoteResult(
-        id=2, bill_id=1, chamber="councillors",
-        ayes=140, nays=80, result="可決",
+        id=2,
+        bill_id=1,
+        chamber="councillors",
+        ayes=140,
+        nays=80,
+        result="可決",
     )
     db.add_all([vr1, vr2])
     db.flush()
@@ -217,21 +301,30 @@ def rich_seed(db: Session):
     # --- 質問主意書 ---
     wqs = [
         WrittenQuestion(
-            session_id=1, member_id=1, chamber="representatives",
-            question_number=1, title="少子化対策に関する質問主意書",
+            session_id=1,
+            member_id=1,
+            chamber="representatives",
+            question_number=1,
+            title="少子化対策に関する質問主意書",
             submitted_date=date(2024, 2, 1),
             answer_date=date(2024, 2, 15),
             has_answer=True,
         ),
         WrittenQuestion(
-            session_id=1, member_id=1, chamber="representatives",
-            question_number=2, title="防衛費に関する質問主意書",
+            session_id=1,
+            member_id=1,
+            chamber="representatives",
+            question_number=2,
+            title="防衛費に関する質問主意書",
             submitted_date=date(2024, 3, 1),
             has_answer=False,
         ),
         WrittenQuestion(
-            session_id=1, member_id=2, chamber="councillors",
-            question_number=1, title="年金制度に関する質問主意書",
+            session_id=1,
+            member_id=2,
+            chamber="councillors",
+            question_number=1,
+            title="年金制度に関する質問主意書",
             submitted_date=date(2024, 2, 10),
             has_answer=False,
         ),
@@ -241,21 +334,24 @@ def rich_seed(db: Session):
     # --- パイプライン実行記録 ---
     runs = [
         PipelineRun(
-            pipeline_name="members", session_number=215,
+            pipeline_name="members",
+            session_number=215,
             status="completed",
             started_at=datetime(2024, 1, 1, tzinfo=UTC),
             finished_at=datetime(2024, 1, 1, 1, 0, tzinfo=UTC),
             records_processed=500,
         ),
         PipelineRun(
-            pipeline_name="speeches", session_number=215,
+            pipeline_name="speeches",
+            session_number=215,
             status="completed",
             started_at=datetime(2024, 1, 2, tzinfo=UTC),
             finished_at=datetime(2024, 1, 2, 2, 0, tzinfo=UTC),
             records_processed=3000,
         ),
         PipelineRun(
-            pipeline_name="scoring", session_number=215,
+            pipeline_name="scoring",
+            session_number=215,
             status="failed",
             started_at=datetime(2024, 1, 3, tzinfo=UTC),
             finished_at=datetime(2024, 1, 3, 0, 30, tzinfo=UTC),
@@ -282,9 +378,7 @@ class TestMembersDistricts:
         assert "大阪1区" in districts
 
     def test_districts_filter_chamber(self, client: TestClient, rich_seed):
-        resp = client.get(
-            "/api/v1/members/districts?chamber=councillors"
-        )
+        resp = client.get("/api/v1/members/districts?chamber=councillors")
         assert resp.status_code == 200
         districts = resp.json()
         assert "東京都" in districts
@@ -300,12 +394,8 @@ class TestMembersRoleCategories:
         assert "ruling_junior" in cats
         assert "opposition_senior" in cats
 
-    def test_role_categories_filter_chamber(
-        self, client: TestClient, rich_seed
-    ):
-        resp = client.get(
-            "/api/v1/members/role-categories?chamber=councillors"
-        )
+    def test_role_categories_filter_chamber(self, client: TestClient, rich_seed):
+        resp = client.get("/api/v1/members/role-categories?chamber=councillors")
         assert resp.status_code == 200
         cats = resp.json()
         assert "opposition_senior" in cats
@@ -322,16 +412,12 @@ class TestMembersSimilar:
         ids = [m["id"] for m in data]
         assert 1 not in ids
 
-    def test_similar_member_not_found(
-        self, client: TestClient, rich_seed
-    ):
+    def test_similar_member_not_found(self, client: TestClient, rich_seed):
         # member 5 はスコアなし
         resp = client.get("/api/v1/members/5/similar")
         assert resp.status_code == 404
 
-    def test_similar_nonexistent_member(
-        self, client: TestClient, rich_seed
-    ):
+    def test_similar_nonexistent_member(self, client: TestClient, rich_seed):
         resp = client.get("/api/v1/members/999/similar")
         assert resp.status_code == 404
 
@@ -345,24 +431,17 @@ class TestMembersSpeeches:
         assert len(data["items"]) == 2
         # 日付降順
         if data["items"][0]["speech_date"] and data["items"][1]["speech_date"]:
-            assert (
-                data["items"][0]["speech_date"]
-                >= data["items"][1]["speech_date"]
-            )
+            assert data["items"][0]["speech_date"] >= data["items"][1]["speech_date"]
 
     def test_speeches_pagination(self, client: TestClient, rich_seed):
-        resp = client.get(
-            "/api/v1/members/1/speeches?per_page=1&page=2"
-        )
+        resp = client.get("/api/v1/members/1/speeches?per_page=1&page=2")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 2
         assert len(data["items"]) == 1
         assert data["pages"] == 2
 
-    def test_speeches_member_not_found(
-        self, client: TestClient, rich_seed
-    ):
+    def test_speeches_member_not_found(self, client: TestClient, rich_seed):
         resp = client.get("/api/v1/members/999/speeches")
         assert resp.status_code == 404
 
@@ -388,9 +467,7 @@ class TestMembersVotes:
         item = resp.json()["items"][0]
         assert item["bill_title"] == "予算関連法案"
 
-    def test_votes_member_not_found(
-        self, client: TestClient, rich_seed
-    ):
+    def test_votes_member_not_found(self, client: TestClient, rich_seed):
         resp = client.get("/api/v1/members/999/votes")
         assert resp.status_code == 404
 
@@ -411,9 +488,7 @@ class TestMembersSpeechQuality:
         assert resp.status_code == 200
         assert resp.json()["total"] == 0
 
-    def test_speech_quality_member_not_found(
-        self, client: TestClient, rich_seed
-    ):
+    def test_speech_quality_member_not_found(self, client: TestClient, rich_seed):
         resp = client.get("/api/v1/members/999/speech-quality")
         assert resp.status_code == 404
 
@@ -428,9 +503,7 @@ class TestMembersVotePattern:
         assert 0 <= data["dissent_rate"] <= 100
         assert 0 <= data["participation_rate"] <= 100
 
-    def test_vote_pattern_with_dissent(
-        self, client: TestClient, rich_seed
-    ):
+    def test_vote_pattern_with_dissent(self, client: TestClient, rich_seed):
         """member 5 (立憲) は nay だが同党 member 2 は参院なので
         衆院同党員なし→造反判定なし。"""
         resp = client.get("/api/v1/members/5/vote-pattern")
@@ -438,25 +511,19 @@ class TestMembersVotePattern:
         data = resp.json()
         assert data["total_votes"] == 1
 
-    def test_vote_pattern_no_votes(
-        self, client: TestClient, rich_seed
-    ):
+    def test_vote_pattern_no_votes(self, client: TestClient, rich_seed):
         """投票記録がない議員。"""
         resp = client.get("/api/v1/members/3/vote-pattern")
         # member 3 は vr1 で aye → 記録あり
         assert resp.status_code == 200
 
-    def test_vote_pattern_member_not_found(
-        self, client: TestClient, rich_seed
-    ):
+    def test_vote_pattern_member_not_found(self, client: TestClient, rich_seed):
         resp = client.get("/api/v1/members/999/vote-pattern")
         assert resp.status_code == 404
 
 
 class TestMembersWrittenQuestions:
-    def test_written_questions_list(
-        self, client: TestClient, rich_seed
-    ):
+    def test_written_questions_list(self, client: TestClient, rich_seed):
         resp = client.get("/api/v1/members/1/written-questions")
         assert resp.status_code == 200
         data = resp.json()
@@ -466,27 +533,19 @@ class TestMembersWrittenQuestions:
         assert "title" in item
         assert "has_answer" in item
 
-    def test_written_questions_pagination(
-        self, client: TestClient, rich_seed
-    ):
-        resp = client.get(
-            "/api/v1/members/1/written-questions?per_page=1"
-        )
+    def test_written_questions_pagination(self, client: TestClient, rich_seed):
+        resp = client.get("/api/v1/members/1/written-questions?per_page=1")
         assert resp.status_code == 200
         data = resp.json()
         assert data["pages"] == 2
         assert len(data["items"]) == 1
 
-    def test_written_questions_empty(
-        self, client: TestClient, rich_seed
-    ):
+    def test_written_questions_empty(self, client: TestClient, rich_seed):
         resp = client.get("/api/v1/members/3/written-questions")
         assert resp.status_code == 200
         assert resp.json()["total"] == 0
 
-    def test_written_questions_member_not_found(
-        self, client: TestClient, rich_seed
-    ):
+    def test_written_questions_member_not_found(self, client: TestClient, rich_seed):
         resp = client.get("/api/v1/members/999/written-questions")
         assert resp.status_code == 404
 
@@ -509,23 +568,15 @@ class TestScoresCSVExport:
         # データ行がある
         assert "田中太郎" in body
 
-    def test_csv_export_filter_chamber(
-        self, client: TestClient, rich_seed
-    ):
-        resp = client.get(
-            "/api/v1/scores/export/csv?chamber=councillors"
-        )
+    def test_csv_export_filter_chamber(self, client: TestClient, rich_seed):
+        resp = client.get("/api/v1/scores/export/csv?chamber=councillors")
         assert resp.status_code == 200
         body = resp.text
         assert "鈴木花子" in body
         assert "田中太郎" not in body
 
-    def test_csv_export_filter_party(
-        self, client: TestClient, rich_seed
-    ):
-        resp = client.get(
-            "/api/v1/scores/export/csv?party=自由民主党"
-        )
+    def test_csv_export_filter_party(self, client: TestClient, rich_seed):
+        resp = client.get("/api/v1/scores/export/csv?party=自由民主党")
         assert resp.status_code == 200
         body = resp.text
         assert "田中太郎" in body
@@ -546,12 +597,8 @@ class TestScoresPartyTrend:
         s215 = data["sessions"][0]["parties"]
         assert "自由民主党" in s215
 
-    def test_party_trend_filter_chamber(
-        self, client: TestClient, rich_seed
-    ):
-        resp = client.get(
-            "/api/v1/scores/party-trend?chamber=representatives"
-        )
+    def test_party_trend_filter_chamber(self, client: TestClient, rich_seed):
+        resp = client.get("/api/v1/scores/party-trend?chamber=representatives")
         assert resp.status_code == 200
         data = resp.json()
         # 参院のみの維新は会期215には含まれない
@@ -596,12 +643,8 @@ class TestScoresParties:
         assert "立憲民主党" in data
         assert "日本維新の会" in data
 
-    def test_parties_filter_chamber(
-        self, client: TestClient, rich_seed
-    ):
-        resp = client.get(
-            "/api/v1/scores/parties?chamber=councillors"
-        )
+    def test_parties_filter_chamber(self, client: TestClient, rich_seed):
+        resp = client.get("/api/v1/scores/parties?chamber=councillors")
         assert resp.status_code == 200
         data = resp.json()
         assert "立憲民主党" in data
@@ -658,16 +701,11 @@ class TestBillDetail:
         assert data["title"] == "教育基本法改正案"
         assert len(data["sponsors"]) == 2
         # primary sponsor は田中太郎
-        primary = [
-            s for s in data["sponsors"]
-            if s["sponsor_type"] == "primary"
-        ]
+        primary = [s for s in data["sponsors"] if s["sponsor_type"] == "primary"]
         assert len(primary) == 1
         assert primary[0]["member_name"] == "田中太郎"
 
-    def test_bill_detail_with_vote_results(
-        self, client: TestClient, rich_seed
-    ):
+    def test_bill_detail_with_vote_results(self, client: TestClient, rich_seed):
         resp = client.get("/api/v1/bills/1")
         assert resp.status_code == 200
         data = resp.json()
@@ -687,9 +725,7 @@ class TestBillDetail:
 
 
 class TestDataQuality:
-    def test_data_quality_summary(
-        self, client: TestClient, rich_seed
-    ):
+    def test_data_quality_summary(self, client: TestClient, rich_seed):
         resp = client.get("/api/v1/data-quality")
         assert resp.status_code == 200
         data = resp.json()
@@ -697,10 +733,7 @@ class TestDataQuality:
         assert data["total_sessions"] == 2
         assert len(data["sessions"]) == 2
         # 会期215のデータ
-        s215 = next(
-            s for s in data["sessions"]
-            if s["session_number"] == 215
-        )
+        s215 = next(s for s in data["sessions"] if s["session_number"] == 215)
         assert s215["speech_count"] == 3
         assert s215["bill_count"] == 3
         assert s215["scored_member_count"] == 4
@@ -712,16 +745,11 @@ class TestDataQuality:
         assert "pipelines" in data
         assert len(data["pipelines"]) >= 2
         # completed パイプラインがある
-        completed = [
-            p for p in data["pipelines"]
-            if p["status"] == "completed"
-        ]
+        completed = [p for p in data["pipelines"] if p["status"] == "completed"]
         assert len(completed) >= 1
         assert data["last_updated"] is not None
 
-    def test_last_updated_pipeline_details(
-        self, client: TestClient, rich_seed
-    ):
+    def test_last_updated_pipeline_details(self, client: TestClient, rich_seed):
         resp = client.get("/api/v1/data-quality/last-updated")
         data = resp.json()
         names = {p["pipeline_name"] for p in data["pipelines"]}
@@ -729,8 +757,7 @@ class TestDataQuality:
         assert "speeches" in names
         # scoring は failed のみなので status="never"
         scoring = next(
-            (p for p in data["pipelines"]
-             if p["pipeline_name"] == "scoring"),
+            (p for p in data["pipelines"] if p["pipeline_name"] == "scoring"),
             None,
         )
         if scoring:
@@ -743,9 +770,7 @@ class TestDataQuality:
 
 
 class TestReviewUpdate:
-    def _create_review(
-        self, client: TestClient, member_id: int = 1
-    ) -> dict:
+    def _create_review(self, client: TestClient, member_id: int = 1) -> dict:
         """ヘルパー: レビューを作成して返す。"""
         resp = client.post(
             f"/api/v1/members/{member_id}/reviews",
@@ -781,9 +806,7 @@ class TestReviewUpdate:
         # 他のフィールドは変わらない
         assert data["voting_behavior"] == 60
 
-    def test_update_review_recalculates_total(
-        self, client: TestClient, rich_seed
-    ):
+    def test_update_review_recalculates_total(self, client: TestClient, rich_seed):
         created = self._create_review(client)
         review_id = created["id"]
         resp = client.put(
@@ -798,9 +821,7 @@ class TestReviewUpdate:
         expected = (100 + 60 + 50 + 40 + 80) / 5
         assert abs(data["total"] - expected) < 0.1
 
-    def test_update_review_wrong_reviewer(
-        self, client: TestClient, rich_seed
-    ):
+    def test_update_review_wrong_reviewer(self, client: TestClient, rich_seed):
         created = self._create_review(client)
         review_id = created["id"]
         resp = client.put(
@@ -812,9 +833,7 @@ class TestReviewUpdate:
         )
         assert resp.status_code == 403
 
-    def test_update_review_not_found(
-        self, client: TestClient, rich_seed
-    ):
+    def test_update_review_not_found(self, client: TestClient, rich_seed):
         resp = client.put(
             "/api/v1/reviews/9999",
             json={

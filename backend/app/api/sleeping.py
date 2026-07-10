@@ -167,10 +167,7 @@ def list_detections(
 
     total = query.count()
     detections = (
-        query.order_by(SleepingDetection.detected_at.desc())
-        .offset(offset)
-        .limit(limit)
-        .all()
+        query.order_by(SleepingDetection.detected_at.desc()).offset(offset).limit(limit).all()
     )
 
     return {"total": total, "items": [_build_response(d, db) for d in detections]}

@@ -133,6 +133,7 @@ class TestMain:
 
         with patch("app.services.scoring.compute_scores_for_session", return_value=5):
             from app.pipeline.runner import main
+
             main()
 
         mock_db.close.assert_called_once()
@@ -151,6 +152,7 @@ class TestMain:
             pytest.raises(SystemExit) as exc_info,
         ):
             from app.pipeline.runner import main
+
             main()
 
         assert exc_info.value.code == 1

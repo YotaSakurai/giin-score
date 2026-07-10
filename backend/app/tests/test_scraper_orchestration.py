@@ -61,9 +61,7 @@ class TestLoadBillsCsv:
         db.commit()
 
         csv_content = "session,title\n215,テスト法案\n"
-        with tempfile.NamedTemporaryFile(
-            mode="wb", suffix=".csv", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", suffix=".csv", delete=False) as f:
             f.write(csv_content.encode("cp932"))
             csv_path = f.name
 
@@ -446,11 +444,13 @@ class TestScrapeWrittenQuestions:
 class TestShitsumonHelpers:
     def test_clean_shugiin_name(self):
         from app.pipeline.shitsumon_scraper import _clean_shugiin_name
+
         assert _clean_shugiin_name("田中太郎君") == "田中太郎"
         assert _clean_shugiin_name("鈴木花子") == "鈴木花子"
 
     def test_clean_sangiin_name(self):
         from app.pipeline.shitsumon_scraper import _clean_sangiin_name
+
         assert _clean_sangiin_name("田中太郎君") == "田中太郎"
         assert _clean_sangiin_name("鈴木花子さん") == "鈴木花子"
         assert _clean_sangiin_name("提出者 山田一郎") == "山田一郎"
@@ -483,6 +483,7 @@ class TestShitsumonHelpers:
 
     def test_parse_date_empty(self):
         from app.pipeline.shitsumon_scraper import _parse_date
+
         assert _parse_date("") is None
         assert _parse_date("不明") is None
 

@@ -171,8 +171,7 @@ class LLMQualityTracker:
         """個別キーのフォールバックを記録。"""
         self.fallback_count += 1
         logger.warning(
-            f"LLM fallback: {key}={original_value!r} → 50.0 "
-            f"(total_fallbacks={self.fallback_count})"
+            f"LLM fallback: {key}={original_value!r} → 50.0 (total_fallbacks={self.fallback_count})"
         )
 
     @property
@@ -560,31 +559,32 @@ def analyze_speeches_for_session(db: DBSession, session_number: int) -> int:
 
             # LLM品質ゲートチェック
             if tracker.should_abort():
-                logger.error(
-                    f"LLM quality gate ABORT: {tracker.summary()}"
+                logger.error(f"LLM quality gate ABORT: {tracker.summary()}")
+                _send_webhook(
+                    {
+                        "title": "🚨 LLM品質ゲート: パイプライン停止",
+                        "description": (
+                            f"**会期:** {session_number}\n"
+                            f"**失敗率:** {tracker.failure_rate:.1%}\n"
+                            f"**詳細:** {tracker.summary()}\n\n"
+                            "LLM応答の品質が閾値を超えて低下したため、"
+                            "パイプラインを安全に停止しました。"
+                        ),
+                        "color": 0xE74C3C,
+                    }
                 )
-                _send_webhook({
-                    "title": "🚨 LLM品質ゲート: パイプライン停止",
-                    "description": (
-                        f"**会期:** {session_number}\n"
-                        f"**失敗率:** {tracker.failure_rate:.1%}\n"
-                        f"**詳細:** {tracker.summary()}\n\n"
-                        "LLM応答の品質が閾値を超えて低下したため、"
-                        "パイプラインを安全に停止しました。"
-                    ),
-                    "color": 0xE74C3C,
-                })
                 break
 
             if tracker.should_warn() and batch_count % NOTIFY_EVERY_N_BATCHES == 0:
-                _send_webhook({
-                    "title": "⚠️ LLM品質ゲート: 警告",
-                    "description": (
-                        f"**失敗率:** {tracker.failure_rate:.1%}\n"
-                        f"**詳細:** {tracker.summary()}"
-                    ),
-                    "color": 0xF39C12,
-                })
+                _send_webhook(
+                    {
+                        "title": "⚠️ LLM品質ゲート: 警告",
+                        "description": (
+                            f"**失敗率:** {tracker.failure_rate:.1%}\n**詳細:** {tracker.summary()}"
+                        ),
+                        "color": 0xF39C12,
+                    }
+                )
 
             # Discord途中経過通知
             if batch_count % NOTIFY_EVERY_N_BATCHES == 0:

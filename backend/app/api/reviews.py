@@ -32,9 +32,7 @@ def _to_response(review: UserReview, liker_id: str | None, db: Session = None) -
         # フォールバック: 個別クエリ
         is_liked = (
             db.query(ReviewLike)
-            .filter(
-                ReviewLike.review_id == review.id, ReviewLike.liker_id == liker_id
-            )
+            .filter(ReviewLike.review_id == review.id, ReviewLike.liker_id == liker_id)
             .first()
             is not None
         )
@@ -73,9 +71,7 @@ def get_reviews(
     total = base_query.count()
 
     if sort == "likes":
-        base_query = base_query.order_by(
-            UserReview.like_count.desc(), UserReview.created_at.desc()
-        )
+        base_query = base_query.order_by(UserReview.like_count.desc(), UserReview.created_at.desc())
     else:
         base_query = base_query.order_by(UserReview.created_at.desc())
 
@@ -102,17 +98,19 @@ def get_review_summary(
     member_id: int,
     db: Session = Depends(get_db),
 ):
-    result = db.query(
-        func.count(UserReview.id).label("review_count"),
-        func.coalesce(func.avg(UserReview.legislative_activity), 0).label(
-            "avg_la"
-        ),
-        func.coalesce(func.avg(UserReview.voting_behavior), 0).label("avg_vb"),
-        func.coalesce(func.avg(UserReview.policy_influence), 0).label("avg_pi"),
-        func.coalesce(func.avg(UserReview.transparency), 0).label("avg_tr"),
-        func.coalesce(func.avg(UserReview.question_quality), 0).label("avg_qq"),
-        func.coalesce(func.avg(UserReview.total), 0).label("avg_total"),
-    ).filter(UserReview.member_id == member_id).first()
+    result = (
+        db.query(
+            func.count(UserReview.id).label("review_count"),
+            func.coalesce(func.avg(UserReview.legislative_activity), 0).label("avg_la"),
+            func.coalesce(func.avg(UserReview.voting_behavior), 0).label("avg_vb"),
+            func.coalesce(func.avg(UserReview.policy_influence), 0).label("avg_pi"),
+            func.coalesce(func.avg(UserReview.transparency), 0).label("avg_tr"),
+            func.coalesce(func.avg(UserReview.question_quality), 0).label("avg_qq"),
+            func.coalesce(func.avg(UserReview.total), 0).label("avg_total"),
+        )
+        .filter(UserReview.member_id == member_id)
+        .first()
+    )
 
     return ReviewSummary(
         member_id=member_id,

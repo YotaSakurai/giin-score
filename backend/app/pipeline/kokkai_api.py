@@ -113,8 +113,8 @@ def _process_speech_record(db: Session, diet_session: DietSession, record: dict)
     if not speaker_name or speaker_name in EXCLUDED_SPEAKERS:
         return
 
-    speaker_group = (record.get("speakerGroup") or "")
-    speaker_role = (record.get("speakerPosition") or "")
+    speaker_group = record.get("speakerGroup") or ""
+    speaker_role = record.get("speakerPosition") or ""
 
     chamber = "representatives"
     meeting_name = record.get("nameOfMeeting", "")

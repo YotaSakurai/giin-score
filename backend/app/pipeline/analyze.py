@@ -25,14 +25,11 @@ logger = logging.getLogger(__name__)
 
 def _grade_distribution(db: Session, session_id: int) -> dict[str, int]:
     """グレード分布を取得する。"""
-    rows = (
-        db.execute(
-            select(MemberScore.grade, func.count(MemberScore.id))
-            .where(MemberScore.session_id == session_id)
-            .group_by(MemberScore.grade)
-        )
-        .all()
-    )
+    rows = db.execute(
+        select(MemberScore.grade, func.count(MemberScore.id))
+        .where(MemberScore.session_id == session_id)
+        .group_by(MemberScore.grade)
+    ).all()
     return {row[0]: row[1] for row in rows}
 
 
@@ -71,9 +68,7 @@ def analyze_data_quality(db: Session, session_number: int) -> int:
     speakers_count = db.execute(
         select(func.count(func.distinct(Speech.member_id))).where(Speech.session_id == sid)
     ).scalar_one()
-    bill_count = db.execute(
-        select(func.count(Bill.id)).where(Bill.session_id == sid)
-    ).scalar_one()
+    bill_count = db.execute(select(func.count(Bill.id)).where(Bill.session_id == sid)).scalar_one()
     vote_result_count = db.execute(
         select(func.count(VoteResult.id)).where(
             VoteResult.bill_id.in_(select(Bill.id).where(Bill.session_id == sid))
@@ -106,12 +101,16 @@ def analyze_data_quality(db: Session, session_number: int) -> int:
     avg_score_str = f"{avg_score:.1f}" if avg_score else "N/A"
 
     # 最終パイプライン実行
-    last_runs = db.execute(
-        select(PipelineRun)
-        .where(PipelineRun.status == "completed")
-        .order_by(PipelineRun.finished_at.desc())
-        .limit(10)
-    ).scalars().all()
+    last_runs = (
+        db.execute(
+            select(PipelineRun)
+            .where(PipelineRun.status == "completed")
+            .order_by(PipelineRun.finished_at.desc())
+            .limit(10)
+        )
+        .scalars()
+        .all()
+    )
     last_run_line = ""
     if last_runs:
         latest = last_runs[0]
@@ -149,15 +148,16 @@ def analyze_data_quality(db: Session, session_number: int) -> int:
         f"**データギャップ:**\n{gaps_text}"
     )
 
-    _send_webhook({
-        "title": f"📊 デイリー分析レポート (session {session_number})",
-        "description": description,
-        "color": 0x9B59B6 if gaps else 0x2ECC71,
-        "timestamp": datetime.now(UTC).isoformat(),
-    })
+    _send_webhook(
+        {
+            "title": f"📊 デイリー分析レポート (session {session_number})",
+            "description": description,
+            "color": 0x9B59B6 if gaps else 0x2ECC71,
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+    )
 
     logger.info(
-        f"Analysis report sent: {scored_members}/{total_members} scored, "
-        f"{len(gaps)} gaps found"
+        f"Analysis report sent: {scored_members}/{total_members} scored, {len(gaps)} gaps found"
     )
     return 1

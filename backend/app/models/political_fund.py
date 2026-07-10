@@ -10,7 +10,9 @@ class PoliticalFund(Base):
     __tablename__ = "political_funds"
     __table_args__ = (
         UniqueConstraint(
-            "member_id", "report_year", "organization_name",
+            "member_id",
+            "report_year",
+            "organization_name",
             name="uq_political_fund_member_year_org",
         ),
         Index("ix_political_funds_year", "report_year"),

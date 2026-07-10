@@ -26,25 +26,53 @@ class TestMembersFilters:
         s = DietSession(id=1, session_number=215, kind="通常")
         db.add(s)
         db.flush()
-        db.add(Member(
-            id=1, name="田中太郎", chamber="representatives",
-            party="自由民主党", district="東京1区", role_category="member",
-        ))
-        db.add(Member(
-            id=2, name="鈴木花子", chamber="councillors",
-            party="立憲民主党", district="神奈川", role_category="member",
-        ))
+        db.add(
+            Member(
+                id=1,
+                name="田中太郎",
+                chamber="representatives",
+                party="自由民主党",
+                district="東京1区",
+                role_category="member",
+            )
+        )
+        db.add(
+            Member(
+                id=2,
+                name="鈴木花子",
+                chamber="councillors",
+                party="立憲民主党",
+                district="神奈川",
+                role_category="member",
+            )
+        )
         db.flush()
-        db.add(MemberScore(
-            member_id=1, session_id=1, total=70, grade="B",
-            legislative_activity=60, voting_behavior=70,
-            policy_influence=50, transparency=40, question_quality=80,
-        ))
-        db.add(MemberScore(
-            member_id=2, session_id=1, total=55, grade="C",
-            legislative_activity=50, voting_behavior=55,
-            policy_influence=45, transparency=35, question_quality=65,
-        ))
+        db.add(
+            MemberScore(
+                member_id=1,
+                session_id=1,
+                total=70,
+                grade="B",
+                legislative_activity=60,
+                voting_behavior=70,
+                policy_influence=50,
+                transparency=40,
+                question_quality=80,
+            )
+        )
+        db.add(
+            MemberScore(
+                member_id=2,
+                session_id=1,
+                total=55,
+                grade="C",
+                legislative_activity=50,
+                voting_behavior=55,
+                policy_influence=45,
+                transparency=35,
+                question_quality=65,
+            )
+        )
         db.commit()
 
     def test_role_category_filter(self, client: TestClient, db: Session):
@@ -129,28 +157,55 @@ class TestScoresAPI:
         db.flush()
 
         m1 = Member(
-            id=1, name="議員A", chamber="representatives",
-            party="党A", role_category="member",
+            id=1,
+            name="議員A",
+            chamber="representatives",
+            party="党A",
+            role_category="member",
         )
         m2 = Member(id=2, name="議員B", chamber="councillors", party="党B", role_category="member")
         db.add_all([m1, m2])
         db.flush()
 
-        db.add(MemberScore(
-            member_id=1, session_id=1, total=50, grade="C",
-            legislative_activity=50, voting_behavior=50,
-            policy_influence=50, transparency=50, question_quality=50,
-        ))
-        db.add(MemberScore(
-            member_id=1, session_id=2, total=70, grade="B",
-            legislative_activity=60, voting_behavior=70,
-            policy_influence=65, transparency=55, question_quality=80,
-        ))
-        db.add(MemberScore(
-            member_id=2, session_id=2, total=60, grade="C",
-            legislative_activity=55, voting_behavior=60,
-            policy_influence=55, transparency=50, question_quality=70,
-        ))
+        db.add(
+            MemberScore(
+                member_id=1,
+                session_id=1,
+                total=50,
+                grade="C",
+                legislative_activity=50,
+                voting_behavior=50,
+                policy_influence=50,
+                transparency=50,
+                question_quality=50,
+            )
+        )
+        db.add(
+            MemberScore(
+                member_id=1,
+                session_id=2,
+                total=70,
+                grade="B",
+                legislative_activity=60,
+                voting_behavior=70,
+                policy_influence=65,
+                transparency=55,
+                question_quality=80,
+            )
+        )
+        db.add(
+            MemberScore(
+                member_id=2,
+                session_id=2,
+                total=60,
+                grade="C",
+                legislative_activity=55,
+                voting_behavior=60,
+                policy_influence=55,
+                transparency=50,
+                question_quality=70,
+            )
+        )
         db.commit()
 
     def test_resolve_session_by_number(self, client: TestClient, db: Session):
@@ -184,11 +239,19 @@ class TestScoresAPI:
         db.flush()
         db.add(Member(id=1, name="議員A", chamber="representatives"))
         db.flush()
-        db.add(MemberScore(
-            member_id=1, session_id=1, total=50, grade="C",
-            legislative_activity=50, voting_behavior=50,
-            policy_influence=50, transparency=50, question_quality=50,
-        ))
+        db.add(
+            MemberScore(
+                member_id=1,
+                session_id=1,
+                total=50,
+                grade="C",
+                legislative_activity=50,
+                voting_behavior=50,
+                policy_influence=50,
+                transparency=50,
+                question_quality=50,
+            )
+        )
         db.commit()
 
         resp = client.get("/api/v1/scores/movers")
@@ -216,11 +279,16 @@ class TestReviewsPartialUpdate:
             db.flush()
 
         review = UserReview(
-            member_id=1, reviewer_id="user-123",
+            member_id=1,
+            reviewer_id="user-123",
             display_name="テストユーザー",
-            legislative_activity=80, voting_behavior=70,
-            policy_influence=60, transparency=50, question_quality=40,
-            total=60, comment="テスト",
+            legislative_activity=80,
+            voting_behavior=70,
+            policy_influence=60,
+            transparency=50,
+            question_quality=40,
+            total=60,
+            comment="テスト",
         )
         db.add(review)
         db.commit()
@@ -265,11 +333,16 @@ class TestToResponseFallback:
         db.flush()
 
         review = UserReview(
-            member_id=1, reviewer_id="user-123",
+            member_id=1,
+            reviewer_id="user-123",
             display_name="テスト",
-            legislative_activity=50, voting_behavior=50,
-            policy_influence=50, transparency=50, question_quality=50,
-            total=50, comment="test",
+            legislative_activity=50,
+            voting_behavior=50,
+            policy_influence=50,
+            transparency=50,
+            question_quality=50,
+            total=50,
+            comment="test",
         )
         db.add(review)
         db.commit()

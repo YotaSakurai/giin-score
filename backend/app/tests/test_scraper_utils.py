@@ -35,9 +35,7 @@ class TestDetectEncoding:
 
     def test_shift_jis(self):
         resp = MagicMock()
-        resp.headers = {
-            "content-type": "text/html; charset=Shift_JIS"
-        }
+        resp.headers = {"content-type": "text/html; charset=Shift_JIS"}
         assert detect_encoding(resp) == "shift_jis"
 
     def test_utf8_default(self):
@@ -57,15 +55,11 @@ class TestHealthCheck:
         assert health_check(soup) is True
 
     def test_with_anchor(self):
-        soup = BeautifulSoup(
-            "<html><a href='#'>link</a></html>", "html.parser"
-        )
+        soup = BeautifulSoup("<html><a href='#'>link</a></html>", "html.parser")
         assert health_check(soup) is True
 
     def test_empty_div(self):
-        soup = BeautifulSoup(
-            "<html><div>text</div></html>", "html.parser"
-        )
+        soup = BeautifulSoup("<html><div>text</div></html>", "html.parser")
         assert health_check(soup) is False
 
 
@@ -79,10 +73,7 @@ class TestNormalizeShugiinDistrict:
         assert _normalize_shugiin_district("(比)北海道") == "比例北海道"
 
     def test_hirei_fullwidth_paren(self):
-        assert (
-            _normalize_shugiin_district("（比）北陸信越")
-            == "比例北陸信越"
-        )
+        assert _normalize_shugiin_district("（比）北陸信越") == "比例北陸信越"
 
     def test_small_district(self):
         assert _normalize_shugiin_district("東京1") == "東京1区"
@@ -111,44 +102,30 @@ class TestNormalizeShugiinDistrict:
 
 class TestExtractVoteLinks:
     def test_relative_links(self):
-        html = (
-            '<a href="213-0619-v001.htm">投票結果</a>'
-            '<a href="213-0619-v002.htm">投票結果</a>'
-        )
+        html = '<a href="213-0619-v001.htm">投票結果</a><a href="213-0619-v002.htm">投票結果</a>'
         soup = BeautifulSoup(html, "html.parser")
-        links = _extract_vote_links(
-            soup, "https://example.com/base/vote.htm"
-        )
+        links = _extract_vote_links(soup, "https://example.com/base/vote.htm")
         assert len(links) == 2
         assert links[0].endswith("213-0619-v001.htm")
 
     def test_absolute_links(self):
         html = '<a href="https://other.com/213-v001.htm">X</a>'
         soup = BeautifulSoup(html, "html.parser")
-        links = _extract_vote_links(
-            soup, "https://example.com/base/"
-        )
+        links = _extract_vote_links(soup, "https://example.com/base/")
         assert len(links) == 1
         assert links[0] == "https://other.com/213-v001.htm"
 
     def test_root_relative_links(self):
         html = '<a href="/path/213-v001.htm">X</a>'
         soup = BeautifulSoup(html, "html.parser")
-        links = _extract_vote_links(
-            soup, "https://example.com/base/"
-        )
+        links = _extract_vote_links(soup, "https://example.com/base/")
         assert len(links) == 1
         assert links[0].startswith("https://www.sangiin.go.jp")
 
     def test_deduplication(self):
-        html = (
-            '<a href="213-v001.htm">A</a>'
-            '<a href="213-v001.htm">B</a>'
-        )
+        html = '<a href="213-v001.htm">A</a><a href="213-v001.htm">B</a>'
         soup = BeautifulSoup(html, "html.parser")
-        links = _extract_vote_links(
-            soup, "https://example.com/base/x.htm"
-        )
+        links = _extract_vote_links(soup, "https://example.com/base/x.htm")
         assert len(links) == 1
 
     def test_non_vote_links_excluded(self):
@@ -158,37 +135,24 @@ class TestExtractVoteLinks:
             '<a href="summary.html">Summary</a>'
         )
         soup = BeautifulSoup(html, "html.parser")
-        links = _extract_vote_links(
-            soup, "https://example.com/base/x.htm"
-        )
+        links = _extract_vote_links(soup, "https://example.com/base/x.htm")
         assert len(links) == 1
 
     def test_no_links(self):
         soup = BeautifulSoup("<div>No links</div>", "html.parser")
-        links = _extract_vote_links(
-            soup, "https://example.com/"
-        )
+        links = _extract_vote_links(soup, "https://example.com/")
         assert len(links) == 0
 
 
 class TestExtractTitleNew:
     def test_basic_title(self):
-        html = (
-            '<div id="ContentsBox">'
-            '<dl class="ankenmei"><dd>民法改正法案</dd></dl>'
-            '</div>'
-        )
+        html = '<div id="ContentsBox"><dl class="ankenmei"><dd>民法改正法案</dd></dl></div>'
         soup = BeautifulSoup(html, "html.parser")
         contents = soup.find(id="ContentsBox")
         assert _extract_title_new(contents) == "民法改正法案"
 
     def test_removes_schedule_prefix(self):
-        html = (
-            '<div id="ContentsBox">'
-            '<dl class="ankenmei">'
-            '<dd>日程第1 民法改正法案</dd>'
-            '</dl></div>'
-        )
+        html = '<div id="ContentsBox"><dl class="ankenmei"><dd>日程第1 民法改正法案</dd></dl></div>'
         soup = BeautifulSoup(html, "html.parser")
         contents = soup.find(id="ContentsBox")
         assert _extract_title_new(contents) == "民法改正法案"
@@ -197,8 +161,8 @@ class TestExtractTitleNew:
         html = (
             '<div id="ContentsBox">'
             '<dl class="ankenmei">'
-            '<dd>民法改正法案（内閣提出）</dd>'
-            '</dl></div>'
+            "<dd>民法改正法案（内閣提出）</dd>"
+            "</dl></div>"
         )
         soup = BeautifulSoup(html, "html.parser")
         contents = soup.find(id="ContentsBox")
@@ -213,11 +177,7 @@ class TestExtractTitleNew:
 
 class TestExtractTotalsNew:
     def test_basic(self):
-        html = (
-            '<div id="ContentsBox">'
-            '<h3 class="tohyosousu">賛成票  112　反対票   5</h3>'
-            '</div>'
-        )
+        html = '<div id="ContentsBox"><h3 class="tohyosousu">賛成票  112　反対票   5</h3></div>'
         soup = BeautifulSoup(html, "html.parser")
         contents = soup.find(id="ContentsBox")
         ayes, nays = _extract_totals_new(contents)
@@ -225,11 +185,7 @@ class TestExtractTotalsNew:
         assert nays == 5
 
     def test_zero_votes(self):
-        html = (
-            '<div id="ContentsBox">'
-            '<h3 class="tohyosousu">賛成票  0　反対票   0</h3>'
-            '</div>'
-        )
+        html = '<div id="ContentsBox"><h3 class="tohyosousu">賛成票  0　反対票   0</h3></div>'
         soup = BeautifulSoup(html, "html.parser")
         contents = soup.find(id="ContentsBox")
         ayes, nays = _extract_totals_new(contents)
@@ -276,11 +232,7 @@ class TestParseSanpilistText:
         assert len(records) == 0
 
     def test_mixed(self):
-        text = (
-            "賛成田中\u3000太郎"
-            "反対鈴木\u3000花子"
-            "投票なし山田\u3000一郎"
-        )
+        text = "賛成田中\u3000太郎反対鈴木\u3000花子投票なし山田\u3000一郎"
         records = _parse_sanpilist_text(text)
         assert len(records) == 3
         votes = [r[1] for r in records]
@@ -337,51 +289,35 @@ class TestNormalizeStatus:
 
 class TestExtractBillLinks:
     def test_honbun_links(self):
-        html = (
-            '<a href="honbun/kaiji213_1.htm">本文</a>'
-            '<a href="keika/kaiji213_1.htm">経過</a>'
-        )
+        html = '<a href="honbun/kaiji213_1.htm">本文</a><a href="keika/kaiji213_1.htm">経過</a>'
         soup = BeautifulSoup(html, "html.parser")
-        links = _extract_bill_links(
-            soup, "https://example.com/bills/list.htm"
-        )
+        links = _extract_bill_links(soup, "https://example.com/bills/list.htm")
         assert len(links) == 1
         assert "honbun" in links[0]
 
     def test_text_honbun(self):
         html = '<a href="detail.htm">本文</a>'
         soup = BeautifulSoup(html, "html.parser")
-        links = _extract_bill_links(
-            soup, "https://example.com/"
-        )
+        links = _extract_bill_links(soup, "https://example.com/")
         assert len(links) == 1
 
     def test_deduplication(self):
-        html = (
-            '<a href="honbun/a.htm">A</a>'
-            '<a href="honbun/a.htm">B</a>'
-        )
+        html = '<a href="honbun/a.htm">A</a><a href="honbun/a.htm">B</a>'
         soup = BeautifulSoup(html, "html.parser")
-        links = _extract_bill_links(
-            soup, "https://example.com/"
-        )
+        links = _extract_bill_links(soup, "https://example.com/")
         assert len(links) == 1
 
     def test_relative_url_resolved(self):
         html = '<a href="../honbun/a.htm">本文</a>'
         soup = BeautifulSoup(html, "html.parser")
-        links = _extract_bill_links(
-            soup, "https://example.com/dir/list.htm"
-        )
+        links = _extract_bill_links(soup, "https://example.com/dir/list.htm")
         assert len(links) == 1
         assert links[0].startswith("https://")
 
     def test_no_links(self):
         html = "<div>No bills</div>"
         soup = BeautifulSoup(html, "html.parser")
-        links = _extract_bill_links(
-            soup, "https://example.com/"
-        )
+        links = _extract_bill_links(soup, "https://example.com/")
         assert len(links) == 0
 
 

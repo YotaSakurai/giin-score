@@ -118,9 +118,7 @@ def run_profiles(db, session_number: int):
 def run_written_questions(db, session_number: int):
     from app.pipeline.shitsumon_scraper import scrape_written_questions
 
-    logger.info(
-        f"=== Scraping written questions (session {session_number}) ==="
-    )
+    logger.info(f"=== Scraping written questions (session {session_number}) ===")
     count = scrape_written_questions(db, session_number)
     logger.info(f"Scraped {count} written questions")
     return count

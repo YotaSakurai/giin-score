@@ -112,21 +112,29 @@ def _apply_filters(
     score_filters_active = any(
         v is not None
         for v in [
-            grade, score_min, score_max,
-            la_min, la_max, vb_min, vb_max,
-            pi_min, pi_max, tr_min, tr_max, qq_min, qq_max,
+            grade,
+            score_min,
+            score_max,
+            la_min,
+            la_max,
+            vb_min,
+            vb_max,
+            pi_min,
+            pi_max,
+            tr_min,
+            tr_max,
+            qq_min,
+            qq_max,
         ]
     )
     if score_filters_active:
         # count_queryにもLatestScoreのJOINが必要
-        count_query = (
-            count_query
-            .join(latest_score_sq, Member.id == latest_score_sq.c.member_id)
-            .join(
-                LatestScore,
-                (LatestScore.member_id == latest_score_sq.c.member_id)
-                & (LatestScore.session_id == latest_score_sq.c.max_session_id),
-            )
+        count_query = count_query.join(
+            latest_score_sq, Member.id == latest_score_sq.c.member_id
+        ).join(
+            LatestScore,
+            (LatestScore.member_id == latest_score_sq.c.member_id)
+            & (LatestScore.session_id == latest_score_sq.c.max_session_id),
         )
 
     if grade:
@@ -200,13 +208,28 @@ def list_members(
     count_query = select(func.count(Member.id))
 
     query, count_query = _apply_filters(
-        query, count_query, LatestScore, latest_score_sq,
-        chamber=chamber, party=party, role_category=role_category,
-        search=search, district=district, grade=grade,
-        score_min=score_min, score_max=score_max,
-        la_min=la_min, la_max=la_max, vb_min=vb_min, vb_max=vb_max,
-        pi_min=pi_min, pi_max=pi_max, tr_min=tr_min, tr_max=tr_max,
-        qq_min=qq_min, qq_max=qq_max,
+        query,
+        count_query,
+        LatestScore,
+        latest_score_sq,
+        chamber=chamber,
+        party=party,
+        role_category=role_category,
+        search=search,
+        district=district,
+        grade=grade,
+        score_min=score_min,
+        score_max=score_max,
+        la_min=la_min,
+        la_max=la_max,
+        vb_min=vb_min,
+        vb_max=vb_max,
+        pi_min=pi_min,
+        pi_max=pi_max,
+        tr_min=tr_min,
+        tr_max=tr_max,
+        qq_min=qq_min,
+        qq_max=qq_max,
     )
 
     total = db.execute(count_query).scalar_one()
@@ -290,13 +313,28 @@ def list_members_scatter(
     count_query = select(func.count(Member.id))  # not used but needed by _apply_filters
 
     query, _ = _apply_filters(
-        query, count_query, LatestScore, latest_score_sq,
-        chamber=chamber, party=party, role_category=role_category,
-        search=search, district=district, grade=grade,
-        score_min=score_min, score_max=score_max,
-        la_min=la_min, la_max=la_max, vb_min=vb_min, vb_max=vb_max,
-        pi_min=pi_min, pi_max=pi_max, tr_min=tr_min, tr_max=tr_max,
-        qq_min=qq_min, qq_max=qq_max,
+        query,
+        count_query,
+        LatestScore,
+        latest_score_sq,
+        chamber=chamber,
+        party=party,
+        role_category=role_category,
+        search=search,
+        district=district,
+        grade=grade,
+        score_min=score_min,
+        score_max=score_max,
+        la_min=la_min,
+        la_max=la_max,
+        vb_min=vb_min,
+        vb_max=vb_max,
+        pi_min=pi_min,
+        pi_max=pi_max,
+        tr_min=tr_min,
+        tr_max=tr_max,
+        qq_min=qq_min,
+        qq_max=qq_max,
     )
 
     # スコアが無い議員は散布図に表示しない
@@ -462,15 +500,12 @@ def get_similar_members(
 ):
     """5軸スコアのユークリッド距離で類似議員を返す。"""
     # 対象議員の最新スコアを取得
-    target_score = (
-        db.execute(
-            select(MemberScore)
-            .where(MemberScore.member_id == member_id)
-            .order_by(MemberScore.session_id.desc())
-            .limit(1)
-        )
-        .scalar_one_or_none()
-    )
+    target_score = db.execute(
+        select(MemberScore)
+        .where(MemberScore.member_id == member_id)
+        .order_by(MemberScore.session_id.desc())
+        .limit(1)
+    ).scalar_one_or_none()
     if not target_score:
         raise HTTPException(status_code=404, detail="Score not found for member")
 
@@ -510,8 +545,11 @@ def get_similar_members(
     scored = []
     for s in all_scores:
         vec = [
-            s.legislative_activity, s.voting_behavior, s.policy_influence,
-            s.transparency, s.question_quality,
+            s.legislative_activity,
+            s.voting_behavior,
+            s.policy_influence,
+            s.transparency,
+            s.question_quality,
         ]
         dist = math.sqrt(sum((a - b) ** 2 for a, b in zip(target_vec, vec)))
         scored.append((dist, s))

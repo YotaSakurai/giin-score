@@ -193,11 +193,11 @@ class TestCanaryScoring:
     def test_weighted_calculation_correct(self):
         """非均一スコアで重み計算が正しいこと。"""
         scores = {
-            "legislative_activity": 80.0,   # × 0.25 = 20.0
-            "voting_behavior": 60.0,        # × 0.20 = 12.0
-            "policy_influence": 100.0,      # × 0.20 = 20.0
-            "transparency": 40.0,           # × 0.15 = 6.0
-            "question_quality": 70.0,       # × 0.20 = 14.0
+            "legislative_activity": 80.0,  # × 0.25 = 20.0
+            "voting_behavior": 60.0,  # × 0.20 = 12.0
+            "policy_influence": 100.0,  # × 0.20 = 20.0
+            "transparency": 40.0,  # × 0.15 = 6.0
+            "question_quality": 70.0,  # × 0.20 = 14.0
         }
         expected = 20.0 + 12.0 + 20.0 + 6.0 + 14.0  # = 72.0
         total = compute_total(scores)

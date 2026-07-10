@@ -156,8 +156,15 @@ def load_political_funds_csv(db: Session, csv_path: str) -> int:
             skipped += 1
             continue
 
-        org_name = row[col_map.get("organization_name", -1)].strip() if "organization_name" in col_map else f"{name}関連政治団体"
+        org_name = (
+            row[col_map["organization_name"]].strip()
+            if "organization_name" in col_map
+            else f"{name}関連政治団体"
+        )
         year = int(row[col_map["report_year"]]) if "report_year" in col_map else 2024
+
+        def _amount(key: str, row=row) -> float:
+            return _parse_amount(row[col_map[key]]) if key in col_map else 0.0
 
         # upsert
         existing = (
@@ -167,21 +174,21 @@ def load_political_funds_csv(db: Session, csv_path: str) -> int:
         )
 
         fund_data = {
-            "total_income": _parse_amount(row[col_map["total_income"]]) if "total_income" in col_map else 0.0,
-            "individual_donations": _parse_amount(row[col_map["individual_donations"]]) if "individual_donations" in col_map else 0.0,
-            "corporate_donations": _parse_amount(row[col_map["corporate_donations"]]) if "corporate_donations" in col_map else 0.0,
-            "party_donations": _parse_amount(row[col_map["party_donations"]]) if "party_donations" in col_map else 0.0,
-            "party_subsidy": _parse_amount(row[col_map["party_subsidy"]]) if "party_subsidy" in col_map else 0.0,
-            "party_fee": _parse_amount(row[col_map["party_fee"]]) if "party_fee" in col_map else 0.0,
-            "fundraising_party": _parse_amount(row[col_map["fundraising_party"]]) if "fundraising_party" in col_map else 0.0,
-            "other_income": _parse_amount(row[col_map["other_income"]]) if "other_income" in col_map else 0.0,
-            "total_expenditure": _parse_amount(row[col_map["total_expenditure"]]) if "total_expenditure" in col_map else 0.0,
-            "personnel_expenses": _parse_amount(row[col_map["personnel_expenses"]]) if "personnel_expenses" in col_map else 0.0,
-            "office_expenses": _parse_amount(row[col_map["office_expenses"]]) if "office_expenses" in col_map else 0.0,
-            "political_activity": _parse_amount(row[col_map["political_activity"]]) if "political_activity" in col_map else 0.0,
-            "research_expenses": _parse_amount(row[col_map["research_expenses"]]) if "research_expenses" in col_map else 0.0,
-            "organization_expenses": _parse_amount(row[col_map["organization_expenses"]]) if "organization_expenses" in col_map else 0.0,
-            "other_expenses": _parse_amount(row[col_map["other_expenses"]]) if "other_expenses" in col_map else 0.0,
+            "total_income": _amount("total_income"),
+            "individual_donations": _amount("individual_donations"),
+            "corporate_donations": _amount("corporate_donations"),
+            "party_donations": _amount("party_donations"),
+            "party_subsidy": _amount("party_subsidy"),
+            "party_fee": _amount("party_fee"),
+            "fundraising_party": _amount("fundraising_party"),
+            "other_income": _amount("other_income"),
+            "total_expenditure": _amount("total_expenditure"),
+            "personnel_expenses": _amount("personnel_expenses"),
+            "office_expenses": _amount("office_expenses"),
+            "political_activity": _amount("political_activity"),
+            "research_expenses": _amount("research_expenses"),
+            "organization_expenses": _amount("organization_expenses"),
+            "other_expenses": _amount("other_expenses"),
             "source": str(csv_path),
         }
 
@@ -202,7 +209,9 @@ def load_political_funds_csv(db: Session, csv_path: str) -> int:
             db.commit()
 
     db.commit()
-    logger.info(f"Political funds loaded: {processed} records, {skipped} skipped (member not found)")
+    logger.info(
+        f"Political funds loaded: {processed} records, {skipped} skipped (member not found)"
+    )
     return processed
 
 

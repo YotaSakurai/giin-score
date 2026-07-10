@@ -60,9 +60,7 @@ def _get_member_ids_from_list(client: httpx.Client, list_url: str) -> list[tuple
     return members
 
 
-def _scrape_member_stats(
-    client: httpx.Client, hakusho_id: str, target_session: int
-) -> dict | None:
+def _scrape_member_stats(client: httpx.Client, hakusho_id: str, target_session: int) -> dict | None:
     """議員個別ページから指定会期の統計データを取得する。
 
     Returns:
@@ -119,7 +117,6 @@ def scrape_hakusho_stats(db: Session, session_number: int) -> int:
 
     try:
         # 衆議院の現職一覧（最新会期）
-        shugiin_session = session_number
         # 衆議院は「期」で管理されるため、会期番号→期への変換が必要
         # 50期 = 第214回国会以降の衆議院
         # ここでは最新の一覧ページを使う
@@ -145,9 +142,7 @@ def scrape_hakusho_stats(db: Session, session_number: int) -> int:
                 if not member:
                     # スペースなしで検索
                     name_no_space = name_normalized.replace("　", "")
-                    all_members = (
-                        db.query(Member).filter(Member.chamber == chamber).all()
-                    )
+                    all_members = db.query(Member).filter(Member.chamber == chamber).all()
                     member = next(
                         (m for m in all_members if m.name.replace("　", "") == name_no_space),
                         None,

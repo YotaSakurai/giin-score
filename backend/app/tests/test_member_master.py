@@ -99,24 +99,12 @@ class TestGuessRoleCategory:
         assert guess_role_category("", "公明党") == "ruling_junior"
 
     def test_opposition_senior(self):
-        assert (
-            guess_role_category("幹事長", "立憲民主党")
-            == "opposition_senior"
-        )
-        assert (
-            guess_role_category("代表", "日本維新の会")
-            == "opposition_senior"
-        )
+        assert guess_role_category("幹事長", "立憲民主党") == "opposition_senior"
+        assert guess_role_category("代表", "日本維新の会") == "opposition_senior"
 
     def test_opposition_junior(self):
-        assert (
-            guess_role_category("", "立憲民主党")
-            == "opposition_junior"
-        )
-        assert (
-            guess_role_category("", "日本共産党")
-            == "opposition_junior"
-        )
+        assert guess_role_category("", "立憲民主党") == "opposition_junior"
+        assert guess_role_category("", "日本共産党") == "opposition_junior"
 
     def test_no_role_no_party(self):
         assert guess_role_category("", None) == "opposition_junior"
@@ -134,8 +122,11 @@ class TestGuessRoleCategory:
 class TestFindOrCreateMember:
     def test_create_new(self, db: Session):
         member = find_or_create_member(
-            db, "田中太郎", "representatives",
-            party="自由民主党", role=None,
+            db,
+            "田中太郎",
+            "representatives",
+            party="自由民主党",
+            role=None,
         )
         assert member.id is not None
         assert member.name == "田中太郎"
@@ -144,32 +135,44 @@ class TestFindOrCreateMember:
 
     def test_find_existing(self, db: Session):
         m1 = find_or_create_member(
-            db, "田中太郎", "representatives",
+            db,
+            "田中太郎",
+            "representatives",
         )
         m2 = find_or_create_member(
-            db, "田中太郎", "representatives",
+            db,
+            "田中太郎",
+            "representatives",
         )
         assert m1.id == m2.id
 
     def test_name_normalization(self, db: Session):
         """旧字体で作成し、新字体で検索できる。"""
         m1 = find_or_create_member(
-            db, "齋藤健", "representatives",
+            db,
+            "齋藤健",
+            "representatives",
         )
         m2 = find_or_create_member(
-            db, "斎藤健", "representatives",
+            db,
+            "斎藤健",
+            "representatives",
         )
         assert m1.id == m2.id
 
     def test_update_party(self, db: Session):
         """party が空だった議員に後から情報を追加。"""
         m1 = find_or_create_member(
-            db, "無名太郎", "representatives",
+            db,
+            "無名太郎",
+            "representatives",
         )
         assert m1.party is None
 
         m2 = find_or_create_member(
-            db, "無名太郎", "representatives",
+            db,
+            "無名太郎",
+            "representatives",
             party="自民",
         )
         assert m2.party == "自由民主党"
@@ -177,32 +180,40 @@ class TestFindOrCreateMember:
     def test_update_role(self, db: Session):
         """role_category が後から更新される。"""
         m1 = find_or_create_member(
-            db, "田中太郎", "representatives",
+            db,
+            "田中太郎",
+            "representatives",
             party="自由民主党",
         )
         assert m1.role_category == "ruling_junior"
 
         find_or_create_member(
-            db, "田中太郎", "representatives",
+            db,
+            "田中太郎",
+            "representatives",
             role="内閣総理大臣",
         )
         assert m1.role_category == "cabinet"
 
-    def test_different_chamber_creates_separate(
-        self, db: Session
-    ):
+    def test_different_chamber_creates_separate(self, db: Session):
         """同名でも院が異なれば別議員。"""
         m1 = find_or_create_member(
-            db, "鈴木花子", "representatives",
+            db,
+            "鈴木花子",
+            "representatives",
         )
         m2 = find_or_create_member(
-            db, "鈴木花子", "councillors",
+            db,
+            "鈴木花子",
+            "councillors",
         )
         assert m1.id != m2.id
 
     def test_faction_stored(self, db: Session):
         m = find_or_create_member(
-            db, "山田太郎", "representatives",
+            db,
+            "山田太郎",
+            "representatives",
             party="自由民主党・国民の声",
         )
         assert m.party == "自由民主党・国民の声"

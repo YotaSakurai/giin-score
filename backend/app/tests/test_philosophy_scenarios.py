@@ -4,7 +4,6 @@ CLAUDE.mdの設計思想が実際のスコアリングロジックで正しく�
 具体的なシナリオで検証する。
 """
 
-
 from app.pipeline.speech_quality import _is_procedural, _parse_llm_response
 from app.services.scoring import (
     _normalize_group,
@@ -175,14 +174,8 @@ class TestScenarioPartyFairness:
         normalized = {}
         _normalize_group(raw_scores, [1, 2], normalized)
 
-        assert (
-            normalized[1]["legislative_activity"]
-            == normalized[2]["legislative_activity"]
-        )
-        assert (
-            normalized[1]["voting_behavior"]
-            == normalized[2]["voting_behavior"]
-        )
+        assert normalized[1]["legislative_activity"] == normalized[2]["legislative_activity"]
+        assert normalized[1]["voting_behavior"] == normalized[2]["voting_behavior"]
 
 
 # ---------------------------------------------------------------------------
@@ -247,9 +240,7 @@ class TestScenarioProceduralFiltering:
         )
 
     def test_government_reference_is_procedural(self):
-        assert _is_procedural(
-            "○政府参考人（鈴木一郎君）　お答え申し上げます。"
-        )
+        assert _is_procedural("○政府参考人（鈴木一郎君）　お答え申し上げます。")
 
 
 # ---------------------------------------------------------------------------
@@ -273,9 +264,9 @@ class TestScenarioLLMFallback:
         result = _parse_llm_response(response)
         assert result is not None
         assert result["policy_relevance"] == 50.0  # 150 → 50
-        assert result["constructiveness"] == 50.0   # -10 → 50
-        assert result["expertise"] == 50.0           # 正常値
-        assert result["national_interest"] == 70.0   # 正常値
+        assert result["constructiveness"] == 50.0  # -10 → 50
+        assert result["expertise"] == 50.0  # 正常値
+        assert result["national_interest"] == 70.0  # 正常値
 
     def test_missing_keys_fallback_to_50(self):
         """必須キーが欠落した場合は50.0にフォールバック。"""
@@ -295,7 +286,7 @@ class TestScenarioLLMFallback:
         )
         result = _parse_llm_response(response)
         assert result is not None
-        assert result["policy_relevance"] == 50.0   # "high" → 50
-        assert result["constructiveness"] == 60.0    # 正常
-        assert result["expertise"] == 50.0           # null → 50
-        assert result["national_interest"] == 70.0   # 正常
+        assert result["policy_relevance"] == 50.0  # "high" → 50
+        assert result["constructiveness"] == 60.0  # 正常
+        assert result["expertise"] == 50.0  # null → 50
+        assert result["national_interest"] == 70.0  # 正常

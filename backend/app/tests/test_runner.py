@@ -14,17 +14,12 @@ class TestPipelineRegistry:
     def test_all_scheduled_in_registry(self):
         """SCHEDULED_PIPELINESの全パイプラインがPIPELINESに登録されている。"""
         for name in SCHEDULED_PIPELINES:
-            assert name in PIPELINES, (
-                f"'{name}' is in SCHEDULED_PIPELINES "
-                f"but not in PIPELINES"
-            )
+            assert name in PIPELINES, f"'{name}' is in SCHEDULED_PIPELINES but not in PIPELINES"
 
     def test_all_entries_callable(self):
         """PIPELINESの全エントリが呼び出し可能。"""
         for name, func in PIPELINES.items():
-            assert callable(func), (
-                f"PIPELINES['{name}'] is not callable"
-            )
+            assert callable(func), f"PIPELINES['{name}'] is not callable"
 
     def test_scoring_last_in_scheduled(self):
         """scoringはデータ収集後に実行されるため末尾付近にある。"""
@@ -39,8 +34,11 @@ class TestPipelineRegistry:
     def test_minimum_pipelines(self):
         """最低限必要なパイプラインが存在する。"""
         required = [
-            "members", "speeches", "bills",
-            "votes", "scoring",
+            "members",
+            "speeches",
+            "bills",
+            "votes",
+            "scoring",
         ]
         for name in required:
             assert name in PIPELINES
@@ -95,9 +93,7 @@ class TestRunAll:
         """一部パイプライン失敗時も他は継続実行される。"""
         mock_db = MagicMock()
         ok_func = MagicMock(return_value=50)
-        fail_func = MagicMock(
-            side_effect=RuntimeError("DB error")
-        )
+        fail_func = MagicMock(side_effect=RuntimeError("DB error"))
 
         test_pipelines = {
             "test_a": ok_func,

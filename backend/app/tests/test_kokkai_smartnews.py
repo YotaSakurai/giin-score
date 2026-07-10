@@ -150,48 +150,65 @@ class TestGetLastRun:
         assert get_last_run(db, 215) == 0
 
     def test_completed_run(self, db: Session):
-        db.add(PipelineRun(
-            pipeline_name="kokkai_speeches",
-            session_number=215, status="completed",
-            records_processed=500,
-            started_at=datetime(2024, 1, 1, tzinfo=UTC),
-        ))
+        db.add(
+            PipelineRun(
+                pipeline_name="kokkai_speeches",
+                session_number=215,
+                status="completed",
+                records_processed=500,
+                started_at=datetime(2024, 1, 1, tzinfo=UTC),
+            )
+        )
         db.commit()
         assert get_last_run(db, 215) == 500
 
     def test_failed_run(self, db: Session):
-        db.add(PipelineRun(
-            pipeline_name="kokkai_speeches",
-            session_number=215, status="failed",
-            records_processed=300,
-            started_at=datetime(2024, 1, 1, tzinfo=UTC),
-        ))
+        db.add(
+            PipelineRun(
+                pipeline_name="kokkai_speeches",
+                session_number=215,
+                status="failed",
+                records_processed=300,
+                started_at=datetime(2024, 1, 1, tzinfo=UTC),
+            )
+        )
         db.commit()
         assert get_last_run(db, 215) == 300
 
     def test_running_ignored(self, db: Session):
-        db.add(PipelineRun(
-            pipeline_name="kokkai_speeches",
-            session_number=215, status="running",
-            records_processed=100,
-            started_at=datetime(2024, 1, 1, tzinfo=UTC),
-        ))
+        db.add(
+            PipelineRun(
+                pipeline_name="kokkai_speeches",
+                session_number=215,
+                status="running",
+                records_processed=100,
+                started_at=datetime(2024, 1, 1, tzinfo=UTC),
+            )
+        )
         db.commit()
         assert get_last_run(db, 215) == 0
 
     def test_latest_used(self, db: Session):
-        db.add(PipelineRun(
-            id=1, pipeline_name="kokkai_speeches",
-            session_number=215, status="completed",
-            records_processed=100,
-            started_at=datetime(2024, 1, 1, tzinfo=UTC),
-        ))
-        db.add(PipelineRun(
-            id=2, pipeline_name="kokkai_speeches",
-            session_number=215, status="completed",
-            records_processed=500,
-            started_at=datetime(2024, 1, 2, tzinfo=UTC),
-        ))
+        db.add(
+            PipelineRun(
+                id=1,
+                pipeline_name="kokkai_speeches",
+                session_number=215,
+                status="completed",
+                records_processed=100,
+                started_at=datetime(2024, 1, 1, tzinfo=UTC),
+            )
+        )
+        db.add(
+            PipelineRun(
+                id=2,
+                pipeline_name="kokkai_speeches",
+                session_number=215,
+                status="completed",
+                records_processed=500,
+                started_at=datetime(2024, 1, 2, tzinfo=UTC),
+            )
+        )
         db.commit()
         assert get_last_run(db, 215) == 500
 
@@ -229,16 +246,18 @@ class TestProcessBillRow:
         db.add(s)
         db.commit()
 
-        row = pd.Series({
-            "session": "215",
-            "bill_kind": "閣法",
-            "bill_number": "1",
-            "title": "テスト法案",
-            "status": "成立",
-            "result": "可決",
-            "proposer_type": "cabinet",
-            "url": "https://example.com",
-        })
+        row = pd.Series(
+            {
+                "session": "215",
+                "bill_kind": "閣法",
+                "bill_number": "1",
+                "title": "テスト法案",
+                "status": "成立",
+                "result": "可決",
+                "proposer_type": "cabinet",
+                "url": "https://example.com",
+            }
+        )
         result = _process_bill_row(db, row)
         db.commit()
         assert result is True
@@ -249,34 +268,39 @@ class TestProcessBillRow:
         assert bill.status == "成立"
 
     def test_creates_session_if_missing(self, db: Session):
-        row = pd.Series({
-            "session": "999",
-            "title": "新会期法案",
-        })
+        row = pd.Series(
+            {
+                "session": "999",
+                "title": "新会期法案",
+            }
+        )
         result = _process_bill_row(db, row)
         db.commit()
         assert result is True
 
-        s = db.query(DietSession).filter_by(
-            session_number=999
-        ).first()
+        s = db.query(DietSession).filter_by(session_number=999).first()
         assert s is not None
 
     def test_duplicate_skipped(self, db: Session):
         s = DietSession(id=1, session_number=215, kind="通常")
         db.add(s)
         db.flush()
-        db.add(Bill(
-            session_id=1, bill_kind="閣法",
-            title="既存法案",
-        ))
+        db.add(
+            Bill(
+                session_id=1,
+                bill_kind="閣法",
+                title="既存法案",
+            )
+        )
         db.commit()
 
-        row = pd.Series({
-            "session": "215",
-            "bill_kind": "閣法",
-            "title": "既存法案",
-        })
+        row = pd.Series(
+            {
+                "session": "215",
+                "bill_kind": "閣法",
+                "title": "既存法案",
+            }
+        )
         assert _process_bill_row(db, row) is False
 
     def test_missing_title(self, db: Session):
@@ -289,13 +313,15 @@ class TestProcessBillRow:
 
     def test_japanese_column_names(self, db: Session):
         """日本語カラム名のCSVもパースできる。"""
-        row = pd.Series({
-            "国会回次": "215",
-            "議案種類": "衆法",
-            "議案番号": "5",
-            "議案名": "教育法案",
-            "審議状況": "審議中",
-        })
+        row = pd.Series(
+            {
+                "国会回次": "215",
+                "議案種類": "衆法",
+                "議案番号": "5",
+                "議案名": "教育法案",
+                "審議状況": "審議中",
+            }
+        )
         s = DietSession(id=1, session_number=215, kind="通常")
         db.add(s)
         db.commit()

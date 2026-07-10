@@ -322,11 +322,7 @@ def get_score_movers(
     scored_sessions = (
         db.execute(
             select(DietSession)
-            .where(
-                DietSession.id.in_(
-                    select(MemberScore.session_id).distinct()
-                )
-            )
+            .where(DietSession.id.in_(select(MemberScore.session_id).distinct()))
             .order_by(DietSession.session_number.desc())
             .limit(2)
         )
@@ -335,9 +331,7 @@ def get_score_movers(
     )
 
     if len(scored_sessions) < 2:
-        return ScoreMoversResponse(
-            risers=[], fallers=[], chamber=chamber
-        )
+        return ScoreMoversResponse(risers=[], fallers=[], chamber=chamber)
 
     current_session = scored_sessions[0]
     previous_session = scored_sessions[1]
@@ -354,9 +348,7 @@ def get_score_movers(
     current_scores = db.execute(cur_q).scalars().all()
 
     # 前会期のスコアをdict化
-    prev_q = select(MemberScore).where(
-        MemberScore.session_id == previous_session.id
-    )
+    prev_q = select(MemberScore).where(MemberScore.session_id == previous_session.id)
     prev_scores = db.execute(prev_q).scalars().all()
     prev_map = {s.member_id: s for s in prev_scores}
 
@@ -368,9 +360,7 @@ def get_score_movers(
 
     diffs.sort(key=lambda x: x[2], reverse=True)
 
-    def to_entry(
-        cur: MemberScore, prev: MemberScore, diff: float
-    ) -> ScoreMoverEntry:
+    def to_entry(cur: MemberScore, prev: MemberScore, diff: float) -> ScoreMoverEntry:
         return ScoreMoverEntry(
             member=MemberResponse.model_validate(cur.member),
             current_score=round(cur.total, 1),
@@ -383,9 +373,7 @@ def get_score_movers(
     risers = [to_entry(*d) for d in diffs[:limit]]
     fallers = [to_entry(*d) for d in reversed(diffs[-limit:])]
 
-    return ScoreMoversResponse(
-        risers=risers, fallers=fallers, chamber=chamber
-    )
+    return ScoreMoversResponse(risers=risers, fallers=fallers, chamber=chamber)
 
 
 @router.get("/export/csv", summary="ランキングCSVエクスポート")

@@ -25,9 +25,9 @@ logger = logging.getLogger(__name__)
 
 # 閾値
 PARTY_SCORE_DIFF_THRESHOLD = 15.0  # 政党間平均スコア差がこれ以上なら警告
-GRADE_DOMINANCE_THRESHOLD = 0.6    # 単一グレードが60%以上なら分布異常
+GRADE_DOMINANCE_THRESHOLD = 0.6  # 単一グレードが60%以上なら分布異常
 LARGE_SCORE_CHANGE_THRESHOLD = 20.0  # 20pt以上変動は要調査
-MIN_PARTY_MEMBERS = 3               # 統計に含める最低議員数
+MIN_PARTY_MEMBERS = 3  # 統計に含める最低議員数
 
 
 def detect_bias(db: Session, session_number: int) -> list[str]:
@@ -194,23 +194,25 @@ def run_bias_detection(db: Session, session_number: int) -> int:
     warnings = detect_bias(db, session_number)
 
     if warnings:
-        description = (
-            f"**会期:** {session_number}\n"
-            f"**検出件数:** {len(warnings)}\n\n"
-            + "\n".join(warnings)
+        description = f"**会期:** {session_number}\n**検出件数:** {len(warnings)}\n\n" + "\n".join(
+            warnings
         )
-        _send_webhook({
-            "title": "🔍 バイアス検出レポート",
-            "description": description,
-            "color": 0xE74C3C,
-        })
+        _send_webhook(
+            {
+                "title": "🔍 バイアス検出レポート",
+                "description": description,
+                "color": 0xE74C3C,
+            }
+        )
         logger.warning(f"Bias detection: {len(warnings)} warnings for session {session_number}")
     else:
-        _send_webhook({
-            "title": "✅ バイアス検出: 問題なし",
-            "description": f"会期 {session_number} のスコア分布に異常は検出されませんでした。",
-            "color": 0x2ECC71,
-        })
+        _send_webhook(
+            {
+                "title": "✅ バイアス検出: 問題なし",
+                "description": f"会期 {session_number} のスコア分布に異常は検出されませんでした。",
+                "color": 0x2ECC71,
+            }
+        )
         logger.info(f"Bias detection: no issues for session {session_number}")
 
     return len(warnings)

@@ -61,9 +61,7 @@ def _classify_committee(name: str) -> str:
     return "常任"
 
 
-def _scrape_shugiin_committees(
-    db: Session, diet_session: DietSession, client: httpx.Client
-) -> int:
+def _scrape_shugiin_committees(db: Session, diet_session: DietSession, client: httpx.Client) -> int:
     """衆議院の委員会名簿をスクレイピングする。"""
     # 委員会一覧ページを取得
     list_url = f"{SHUGIIN_BASE}/list.htm"
@@ -156,9 +154,7 @@ def _scrape_shugiin_committees(
     return total
 
 
-def _scrape_sangiin_committees(
-    db: Session, diet_session: DietSession, client: httpx.Client
-) -> int:
+def _scrape_sangiin_committees(db: Session, diet_session: DietSession, client: httpx.Client) -> int:
     """参議院の委員会名簿をスクレイピングする。"""
     # 委員会一覧ページを取得
     resp = client.get(SANGIIN_INDEX)

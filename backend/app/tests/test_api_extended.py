@@ -79,12 +79,22 @@ class TestBillsAPI:
         s = DietSession(id=1, session_number=215, kind="通常")
         db.add(s)
         db.flush()
-        db.add(Bill(
-            session_id=1, bill_kind="閣法", title="教育基本法改正案", status="成立",
-        ))
-        db.add(Bill(
-            session_id=1, bill_kind="衆法", title="福祉推進法案", status="審議中",
-        ))
+        db.add(
+            Bill(
+                session_id=1,
+                bill_kind="閣法",
+                title="教育基本法改正案",
+                status="成立",
+            )
+        )
+        db.add(
+            Bill(
+                session_id=1,
+                bill_kind="衆法",
+                title="福祉推進法案",
+                status="審議中",
+            )
+        )
         db.commit()
 
         resp = client.get("/api/v1/bills", params={"bill_kind": "閣法"})
@@ -327,16 +337,21 @@ class TestBiasDetection:
         db.add(Member(id=1, name="変動議員", chamber="representatives", party="党"))
         db.flush()
         db.add(MemberScore(member_id=1, session_id=1, total=50, grade="C"))
-        db.add(ScoreAuditLog(
-            member_id=1, session_number=215,
-            prev_total=30.0, new_total=80.0, diff_total=50.0,
-            new_grade="A",
-            new_legislative_activity=80.0,
-            new_voting_behavior=70.0,
-            new_policy_influence=60.0,
-            new_transparency=50.0,
-            new_question_quality=90.0,
-        ))
+        db.add(
+            ScoreAuditLog(
+                member_id=1,
+                session_number=215,
+                prev_total=30.0,
+                new_total=80.0,
+                diff_total=50.0,
+                new_grade="A",
+                new_legislative_activity=80.0,
+                new_voting_behavior=70.0,
+                new_policy_influence=60.0,
+                new_transparency=50.0,
+                new_question_quality=90.0,
+            )
+        )
         db.commit()
 
         warnings = detect_bias(db, 215)
@@ -364,15 +379,24 @@ class TestBiasDetection:
         # スコア差が小さく、グレード分布も均等なデータ
         grades = ["A", "B", "C", "D", "F"]
         for i in range(1, 6):
-            db.add(Member(
-                id=i, name=f"議員{i}", chamber="representatives", party="党A",
-            ))
+            db.add(
+                Member(
+                    id=i,
+                    name=f"議員{i}",
+                    chamber="representatives",
+                    party="党A",
+                )
+            )
         db.flush()
         for i in range(1, 6):
-            db.add(MemberScore(
-                member_id=i, session_id=1,
-                total=48 + i, grade=grades[i - 1],
-            ))
+            db.add(
+                MemberScore(
+                    member_id=i,
+                    session_id=1,
+                    total=48 + i,
+                    grade=grades[i - 1],
+                )
+            )
         db.commit()
 
         count = run_bias_detection(db, 215)

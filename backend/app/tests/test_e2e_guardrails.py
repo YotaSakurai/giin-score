@@ -81,9 +81,7 @@ def _seed_full_session(db):
         )
         bills.append(b)
         # 議員i が primary sponsor
-        sponsors.append(
-            BillSponsor(bill_id=i, member_id=i, sponsor_type="primary")
-        )
+        sponsors.append(BillSponsor(bill_id=i, member_id=i, sponsor_type="primary"))
     db.add_all(bills)
     db.flush()
     db.add_all(sponsors)
@@ -102,38 +100,44 @@ def _seed_full_session(db):
         # 衆議院メンバーが投票
         for m in members[:5]:
             vote = "aye" if m.id % 2 == 0 else "nay"
-            db.add(VoteRecord(
-                vote_result_id=vr.id,
-                member_id=m.id,
-                vote=vote,
-            ))
+            db.add(
+                VoteRecord(
+                    vote_result_id=vr.id,
+                    member_id=m.id,
+                    vote=vote,
+                )
+            )
 
     # 質問主意書
     for m in members[:3]:
-        db.add(WrittenQuestion(
-            session_id=1,
-            member_id=m.id,
-            chamber=m.chamber,
-            question_number=m.id,
-            title=f"質問主意書{m.id}",
-            has_answer=True,
-        ))
+        db.add(
+            WrittenQuestion(
+                session_id=1,
+                member_id=m.id,
+                chamber=m.chamber,
+                question_number=m.id,
+                title=f"質問主意書{m.id}",
+                has_answer=True,
+            )
+        )
 
     # 発言品質スコア（事前分析済みとして投入）
     speech_list = db.query(Speech).all()
     for s in speech_list:
         # 議員IDに応じて品質に差を出す
         quality = 30 + (s.member_id * 5)
-        db.add(SpeechQualityScore(
-            speech_id=s.id,
-            member_id=s.member_id,
-            session_id=1,
-            policy_relevance=quality,
-            constructiveness=quality + 5,
-            expertise=quality - 5,
-            national_interest=quality,
-            overall_quality=quality,
-        ))
+        db.add(
+            SpeechQualityScore(
+                speech_id=s.id,
+                member_id=s.member_id,
+                session_id=1,
+                policy_relevance=quality,
+                constructiveness=quality + 5,
+                expertise=quality - 5,
+                national_interest=quality,
+                overall_quality=quality,
+            )
+        )
 
     db.commit()
     return members
@@ -164,18 +168,17 @@ class TestScoringPipelineE2E:
 
         scores = db.query(MemberScore).all()
         axes = [
-            "legislative_activity", "voting_behavior",
-            "policy_influence", "transparency", "question_quality",
+            "legislative_activity",
+            "voting_behavior",
+            "policy_influence",
+            "transparency",
+            "question_quality",
         ]
         for s in scores:
             for axis in axes:
                 val = getattr(s, axis)
-                assert 0.0 <= val <= 100.0, (
-                    f"member_id={s.member_id} {axis}={val} が0-100範囲外"
-                )
-            assert 0.0 <= s.total <= 100.0, (
-                f"member_id={s.member_id} total={s.total} が0-100範囲外"
-            )
+                assert 0.0 <= val <= 100.0, f"member_id={s.member_id} {axis}={val} が0-100範囲外"
+            assert 0.0 <= s.total <= 100.0, f"member_id={s.member_id} total={s.total} が0-100範囲外"
 
     def test_grades_consistent_with_total(self, db):
         """グレードが総合スコアと一致していること。"""
@@ -213,8 +216,7 @@ class TestScoringPipelineE2E:
                 1,
             )
             assert abs(s.total - expected) < 0.2, (
-                f"member_id={s.member_id}: total={s.total} != "
-                f"weighted_sum={expected}"
+                f"member_id={s.member_id}: total={s.total} != weighted_sum={expected}"
             )
 
     def test_normalization_produces_full_range(self, db):
@@ -243,13 +245,9 @@ class TestScoringPipelineE2E:
             la_raw = [s.legislative_activity_raw for s in group_scores]
             # rawに差がある場合、0.0と100.0が含まれるべき
             if len(set(la_raw)) == len(la_raw):
-                assert 0.0 in la_values, (
-                    f"{group_key} legislative_activity: "
-                    "最低ランク0.0がない"
-                )
+                assert 0.0 in la_values, f"{group_key} legislative_activity: 最低ランク0.0がない"
                 assert 100.0 in la_values, (
-                    f"{group_key} legislative_activity: "
-                    "最高ランク100.0がない"
+                    f"{group_key} legislative_activity: 最高ランク100.0がない"
                 )
 
     def test_same_raw_scores_get_same_normalized(self, db):
@@ -259,18 +257,25 @@ class TestScoringPipelineE2E:
 
         # 全く同じ活動量の議員3名
         for i in range(1, 4):
-            db.add(Member(
-                id=i, name=f"均一議員{i}",
-                chamber="representatives", party=f"政党{i}",
-                role_category="member",
-            ))
+            db.add(
+                Member(
+                    id=i,
+                    name=f"均一議員{i}",
+                    chamber="representatives",
+                    party=f"政党{i}",
+                    role_category="member",
+                )
+            )
             for j in range(5):
-                db.add(Speech(
-                    session_id=1, member_id=i,
-                    meeting_name="同じ委員会",
-                    speech_text="同じ発言 " + "あ" * 500,
-                    speech_chars=600,
-                ))
+                db.add(
+                    Speech(
+                        session_id=1,
+                        member_id=i,
+                        meeting_name="同じ委員会",
+                        speech_text="同じ発言 " + "あ" * 500,
+                        speech_chars=600,
+                    )
+                )
         db.commit()
 
         compute_scores_for_session(db, 215)
@@ -281,8 +286,7 @@ class TestScoringPipelineE2E:
         for axis in ["legislative_activity", "transparency"]:
             vals = [getattr(s, axis) for s in scores]
             assert vals[0] == vals[1] == vals[2], (
-                f"{axis}: 同じ活動の議員に異なるスコア {vals} "
-                "→ 公平性違反"
+                f"{axis}: 同じ活動の議員に異なるスコア {vals} → 公平性違反"
             )
 
     def test_party_independent_scoring(self, db):
@@ -292,18 +296,25 @@ class TestScoringPipelineE2E:
 
         parties = ["与党A", "野党B", "少数党C"]
         for i, party in enumerate(parties, 1):
-            db.add(Member(
-                id=i, name=f"議員{i}",
-                chamber="representatives", party=party,
-                role_category="member",
-            ))
+            db.add(
+                Member(
+                    id=i,
+                    name=f"議員{i}",
+                    chamber="representatives",
+                    party=party,
+                    role_category="member",
+                )
+            )
             for j in range(3):
-                db.add(Speech(
-                    session_id=1, member_id=i,
-                    meeting_name=f"委員会{j}",
-                    speech_text="同一発言 " + "い" * 400,
-                    speech_chars=500,
-                ))
+                db.add(
+                    Speech(
+                        session_id=1,
+                        member_id=i,
+                        meeting_name=f"委員会{j}",
+                        speech_text="同一発言 " + "い" * 400,
+                        speech_chars=500,
+                    )
+                )
         db.commit()
         compute_scores_for_session(db, 215)
 
@@ -311,8 +322,7 @@ class TestScoringPipelineE2E:
         totals = {s.member_id: s.total for s in scores}
         # 全員同じtotal
         assert totals[1] == totals[2] == totals[3], (
-            f"政党が異なるだけで活動量同一の議員のスコアに差: {totals} "
-            "→ 政党バイアスの可能性"
+            f"政党が異なるだけで活動量同一の議員のスコアに差: {totals} → 政党バイアスの可能性"
         )
 
 
@@ -344,31 +354,33 @@ class TestAuditLogCompleteness:
         compute_scores_for_session(db, 215)
 
         # 活動データを追加して再スコアリング
-        db.add(Speech(
-            session_id=1, member_id=1,
-            meeting_name="追加委員会",
-            speech_text="追加発言 " + "う" * 1000,
-            speech_chars=1500,
-        ))
-        db.add(SpeechQualityScore(
-            speech_id=db.query(Speech).count() + 1,
-            member_id=1, session_id=1,
-            policy_relevance=90, constructiveness=90,
-            expertise=90, national_interest=90,
-            overall_quality=90,
-        ))
+        db.add(
+            Speech(
+                session_id=1,
+                member_id=1,
+                meeting_name="追加委員会",
+                speech_text="追加発言 " + "う" * 1000,
+                speech_chars=1500,
+            )
+        )
+        db.add(
+            SpeechQualityScore(
+                speech_id=db.query(Speech).count() + 1,
+                member_id=1,
+                session_id=1,
+                policy_relevance=90,
+                constructiveness=90,
+                expertise=90,
+                national_interest=90,
+                overall_quality=90,
+            )
+        )
         db.commit()
         compute_scores_for_session(db, 215)
 
         # 2回目の監査ログにはprev_totalが存在
-        second_audits = (
-            db.query(ScoreAuditLog)
-            .filter(ScoreAuditLog.prev_total.isnot(None))
-            .all()
-        )
-        assert len(second_audits) > 0, (
-            "2回目スコアリングで prev_total を持つ監査ログがない"
-        )
+        second_audits = db.query(ScoreAuditLog).filter(ScoreAuditLog.prev_total.isnot(None)).all()
+        assert len(second_audits) > 0, "2回目スコアリングで prev_total を持つ監査ログがない"
 
     def test_audit_log_has_all_axes(self, db):
         """監査ログに5軸全てのbefore/after値が記録されること。"""
@@ -393,9 +405,7 @@ class TestAuditLogCompleteness:
         compute_scores_for_session(db, 215)
 
         for audit in db.query(ScoreAuditLog).all():
-            assert audit.reason, (
-                f"member_id={audit.member_id} の監査ログにreasonがない"
-            )
+            assert audit.reason, f"member_id={audit.member_id} の監査ログにreasonがない"
 
 
 # =====================================================================
@@ -415,26 +425,32 @@ class TestBiasDetectionE2E:
         for i in range(1, 7):
             party = "政党A" if i <= 3 else "政党B"
             total = 85.0 if i <= 3 else 30.0
-            db.add(Member(
-                id=i, name=f"議員{i}",
-                chamber="representatives", party=party,
-            ))
-            db.add(MemberScore(
-                member_id=i, session_id=1, total=total,
-                grade="A" if total >= 80 else "D",
-                legislative_activity=total,
-                voting_behavior=total,
-                policy_influence=total,
-                transparency=total,
-                question_quality=total,
-            ))
+            db.add(
+                Member(
+                    id=i,
+                    name=f"議員{i}",
+                    chamber="representatives",
+                    party=party,
+                )
+            )
+            db.add(
+                MemberScore(
+                    member_id=i,
+                    session_id=1,
+                    total=total,
+                    grade="A" if total >= 80 else "D",
+                    legislative_activity=total,
+                    voting_behavior=total,
+                    policy_influence=total,
+                    transparency=total,
+                    question_quality=total,
+                )
+            )
         db.commit()
 
         warnings = detect_bias(db, 215)
         party_warnings = [w for w in warnings if "政党間バイアス" in w]
-        assert len(party_warnings) > 0, (
-            "政党間に55ptの差があるのにバイアスが検出されなかった"
-        )
+        assert len(party_warnings) > 0, "政党間に55ptの差があるのにバイアスが検出されなかった"
 
     def test_detects_grade_inflation(self, db):
         """全員がAグレードの場合にグレード分布異常が検出されること。"""
@@ -442,57 +458,76 @@ class TestBiasDetectionE2E:
         db.add(session)
 
         for i in range(1, 11):
-            db.add(Member(
-                id=i, name=f"議員{i}",
-                chamber="representatives", party=f"政党{i % 3}",
-            ))
-            db.add(MemberScore(
-                member_id=i, session_id=1, total=90.0, grade="A",
-                legislative_activity=90,
-                voting_behavior=90,
-                policy_influence=90,
-                transparency=90,
-                question_quality=90,
-            ))
+            db.add(
+                Member(
+                    id=i,
+                    name=f"議員{i}",
+                    chamber="representatives",
+                    party=f"政党{i % 3}",
+                )
+            )
+            db.add(
+                MemberScore(
+                    member_id=i,
+                    session_id=1,
+                    total=90.0,
+                    grade="A",
+                    legislative_activity=90,
+                    voting_behavior=90,
+                    policy_influence=90,
+                    transparency=90,
+                    question_quality=90,
+                )
+            )
         db.commit()
 
         warnings = detect_bias(db, 215)
         grade_warnings = [w for w in warnings if "グレード分布異常" in w]
         assert len(grade_warnings) > 0, (
-            "全員Aグレードなのに分布異常が検出されなかった → "
-            "スコアインフレを見逃す"
+            "全員Aグレードなのに分布異常が検出されなかった → スコアインフレを見逃す"
         )
 
     def test_detects_large_score_changes(self, db):
         """大幅なスコア変動が検出されること。"""
         session = DietSession(id=1, session_number=215, kind="通常")
         db.add(session)
-        db.add(Member(
-            id=1, name="変動議員",
-            chamber="representatives", party="政党A",
-        ))
+        db.add(
+            Member(
+                id=1,
+                name="変動議員",
+                chamber="representatives",
+                party="政党A",
+            )
+        )
 
         # 大幅な変動の監査ログ
-        db.add(ScoreAuditLog(
-            member_id=1, session_number=215,
-            prev_total=30.0, prev_grade="D",
-            prev_legislative_activity=30, prev_voting_behavior=30,
-            prev_policy_influence=30, prev_transparency=30,
-            prev_question_quality=30,
-            new_total=80.0, new_grade="A",
-            new_legislative_activity=80, new_voting_behavior=80,
-            new_policy_influence=80, new_transparency=80,
-            new_question_quality=80,
-            diff_total=50.0,
-            reason="test",
-        ))
+        db.add(
+            ScoreAuditLog(
+                member_id=1,
+                session_number=215,
+                prev_total=30.0,
+                prev_grade="D",
+                prev_legislative_activity=30,
+                prev_voting_behavior=30,
+                prev_policy_influence=30,
+                prev_transparency=30,
+                prev_question_quality=30,
+                new_total=80.0,
+                new_grade="A",
+                new_legislative_activity=80,
+                new_voting_behavior=80,
+                new_policy_influence=80,
+                new_transparency=80,
+                new_question_quality=80,
+                diff_total=50.0,
+                reason="test",
+            )
+        )
         db.commit()
 
         warnings = detect_bias(db, 215)
         change_warnings = [w for w in warnings if "大幅スコア変動" in w]
-        assert len(change_warnings) > 0, (
-            "50pt変動があるのに検出されなかった"
-        )
+        assert len(change_warnings) > 0, "50pt変動があるのに検出されなかった"
 
     def test_no_false_positive_on_fair_distribution(self, db):
         """均等な分布ではバイアス警告が出ないこと。"""
@@ -503,9 +538,7 @@ class TestBiasDetectionE2E:
         party_warnings = [w for w in warnings if "政党間バイアス" in w]
         # 均等な活動データなら政党バイアスは出ないはず
         # （同じ政党内でも活動量に差があるため、ノイズはあり得る）
-        assert len(party_warnings) == 0, (
-            f"均等分布なのに政党バイアス警告: {party_warnings}"
-        )
+        assert len(party_warnings) == 0, f"均等分布なのに政党バイアス警告: {party_warnings}"
 
 
 # =====================================================================
@@ -522,22 +555,21 @@ class TestWeightVersionIntegrationE2E:
 
         # DEFAULT_WEIGHTS でスコア計算
         compute_scores_for_session(db, 215)
-        default_scores = {
-            s.member_id: s.total
-            for s in db.query(MemberScore).all()
-        }
+        default_scores = {s.member_id: s.total for s in db.query(MemberScore).all()}
 
         # 重み変更: transparency を大幅に引き上げ
-        db.add(WeightVersion(
-            version="v_test",
-            legislative_activity=0.10,
-            voting_behavior=0.10,
-            policy_influence=0.10,
-            transparency=0.50,
-            question_quality=0.20,
-            reason="E2Eテスト: 重み変更の影響確認",
-            is_active=True,
-        ))
+        db.add(
+            WeightVersion(
+                version="v_test",
+                legislative_activity=0.10,
+                voting_behavior=0.10,
+                policy_influence=0.10,
+                transparency=0.50,
+                question_quality=0.20,
+                reason="E2Eテスト: 重み変更の影響確認",
+                is_active=True,
+            )
+        )
         db.commit()
 
         # 既存スコアを削除して再計算
@@ -546,34 +578,29 @@ class TestWeightVersionIntegrationE2E:
         db.commit()
 
         compute_scores_for_session(db, 215)
-        new_scores = {
-            s.member_id: s.total
-            for s in db.query(MemberScore).all()
-        }
+        new_scores = {s.member_id: s.total for s in db.query(MemberScore).all()}
 
         # 少なくとも一部の議員でスコアが変わっているはず
         changed = sum(
-            1 for mid in default_scores
-            if abs(default_scores[mid] - new_scores[mid]) > 0.5
+            1 for mid in default_scores if abs(default_scores[mid] - new_scores[mid]) > 0.5
         )
-        assert changed > 0, (
-            "重みを大幅に変更したのにスコアが変わらない → "
-            "DB重みが使われていない"
-        )
+        assert changed > 0, "重みを大幅に変更したのにスコアが変わらない → DB重みが使われていない"
 
     def test_weights_version_recorded_in_audit(self, db):
         """監査ログにweights_versionが記録されること。"""
         _seed_full_session(db)
-        db.add(WeightVersion(
-            version="v2.0_test",
-            legislative_activity=0.25,
-            voting_behavior=0.20,
-            policy_influence=0.20,
-            transparency=0.15,
-            question_quality=0.20,
-            reason="バージョン記録テスト",
-            is_active=True,
-        ))
+        db.add(
+            WeightVersion(
+                version="v2.0_test",
+                legislative_activity=0.25,
+                voting_behavior=0.20,
+                policy_influence=0.20,
+                transparency=0.15,
+                question_quality=0.20,
+                reason="バージョン記録テスト",
+                is_active=True,
+            )
+        )
         db.commit()
 
         compute_scores_for_session(db, 215)
@@ -629,14 +656,8 @@ class TestDesignInvariants:
             groups.setdefault(key, []).append(s)
 
         for group_key, group_scores in groups.items():
-            raw_pairs = [
-                (s.member_id, s.legislative_activity_raw)
-                for s in group_scores
-            ]
-            norm_map = {
-                s.member_id: s.legislative_activity
-                for s in group_scores
-            }
+            raw_pairs = [(s.member_id, s.legislative_activity_raw) for s in group_scores]
+            norm_map = {s.member_id: s.legislative_activity for s in group_scores}
 
             raw_pairs.sort(key=lambda x: x[1])
             for i in range(len(raw_pairs) - 1):
@@ -657,22 +678,15 @@ class TestDesignInvariants:
         _seed_full_session(db)
 
         compute_scores_for_session(db, 215)
-        first = {
-            s.member_id: s.total
-            for s in db.query(MemberScore).all()
-        }
+        first = {s.member_id: s.total for s in db.query(MemberScore).all()}
 
         # 同じデータで再計算
         compute_scores_for_session(db, 215)
-        second = {
-            s.member_id: s.total
-            for s in db.query(MemberScore).all()
-        }
+        second = {s.member_id: s.total for s in db.query(MemberScore).all()}
 
         for mid in first:
             assert first[mid] == second[mid], (
-                f"member_id={mid}: 1回目={first[mid]}, 2回目={second[mid]} "
-                "→ スコアリングが非決定的"
+                f"member_id={mid}: 1回目={first[mid]}, 2回目={second[mid]} → スコアリングが非決定的"
             )
 
     def test_no_axis_ignored_in_total(self, db):
@@ -682,12 +696,15 @@ class TestDesignInvariants:
 
         # 2人の議員: 1つの軸だけ異なる
         for i in [1, 2]:
-            db.add(Member(
-                id=i, name=f"テスト{i}",
-                chamber="representatives",
-                party="無所属",
-                role_category="member",
-            ))
+            db.add(
+                Member(
+                    id=i,
+                    name=f"テスト{i}",
+                    chamber="representatives",
+                    party="無所属",
+                    role_category="member",
+                )
+            )
         db.commit()
 
         # 直接MemberScoreを作って検証
@@ -701,16 +718,14 @@ class TestDesignInvariants:
             modified[axis] = 80.0
             modified_total = compute_total(modified)
             assert modified_total > base_total, (
-                f"{axis}を50→80にしてもtotalが変わらない → "
-                "この軸の重みが0"
+                f"{axis}を50→80にしてもtotalが変わらない → この軸の重みが0"
             )
 
     def test_weights_always_sum_to_one_at_runtime(self, db):
         """実行時のDEFAULT_WEIGHTSが常に合計1.0であること。"""
         total = sum(DEFAULT_WEIGHTS.values())
         assert abs(total - 1.0) < 1e-10, (
-            f"DEFAULT_WEIGHTSの合計={total} ≠ 1.0 → "
-            "スコアの最大値が100にならない"
+            f"DEFAULT_WEIGHTSの合計={total} ≠ 1.0 → スコアの最大値が100にならない"
         )
 
 
@@ -724,26 +739,33 @@ class TestReviewAPIE2E:
 
     def _setup_member(self, db):
         db.add(DietSession(id=1, session_number=215, kind="通常"))
-        db.add(Member(
-            id=1, name="レビュー対象議員",
-            chamber="representatives", party="テスト党",
-        ))
+        db.add(
+            Member(
+                id=1,
+                name="レビュー対象議員",
+                chamber="representatives",
+                party="テスト党",
+            )
+        )
         db.commit()
 
     def test_create_review(self, client, db):
         """レビュー作成→取得の全フロー。"""
         self._setup_member(db)
 
-        resp = client.post("/api/v1/members/1/reviews", json={
-            "reviewer_id": "test-uuid-001",
-            "display_name": "テストユーザー",
-            "legislative_activity": 80,
-            "voting_behavior": 70,
-            "policy_influence": 60,
-            "transparency": 50,
-            "question_quality": 90,
-            "comment": "良い議員だと思います",
-        })
+        resp = client.post(
+            "/api/v1/members/1/reviews",
+            json={
+                "reviewer_id": "test-uuid-001",
+                "display_name": "テストユーザー",
+                "legislative_activity": 80,
+                "voting_behavior": 70,
+                "policy_influence": 60,
+                "transparency": 50,
+                "question_quality": 90,
+                "comment": "良い議員だと思います",
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == (80 + 70 + 60 + 50 + 90) / 5
@@ -755,25 +777,31 @@ class TestReviewAPIE2E:
         reviewer_id = "test-uuid-002"
 
         # 1回目
-        client.post("/api/v1/members/1/reviews", json={
-            "reviewer_id": reviewer_id,
-            "legislative_activity": 50,
-            "voting_behavior": 50,
-            "policy_influence": 50,
-            "transparency": 50,
-            "question_quality": 50,
-        })
+        client.post(
+            "/api/v1/members/1/reviews",
+            json={
+                "reviewer_id": reviewer_id,
+                "legislative_activity": 50,
+                "voting_behavior": 50,
+                "policy_influence": 50,
+                "transparency": 50,
+                "question_quality": 50,
+            },
+        )
 
         # 2回目（更新）
-        resp = client.post("/api/v1/members/1/reviews", json={
-            "reviewer_id": reviewer_id,
-            "legislative_activity": 90,
-            "voting_behavior": 90,
-            "policy_influence": 90,
-            "transparency": 90,
-            "question_quality": 90,
-            "comment": "更新しました",
-        })
+        resp = client.post(
+            "/api/v1/members/1/reviews",
+            json={
+                "reviewer_id": reviewer_id,
+                "legislative_activity": 90,
+                "voting_behavior": 90,
+                "policy_influence": 90,
+                "transparency": 90,
+                "question_quality": 90,
+                "comment": "更新しました",
+            },
+        )
         assert resp.status_code == 200
 
         # 1件しかないこと
@@ -787,36 +815,42 @@ class TestReviewAPIE2E:
 
         # 2人のレビュアーが異なるスコアを付ける
         for i, scores in enumerate([(80, 70, 60, 50, 90), (40, 50, 60, 70, 30)]):
-            client.post("/api/v1/members/1/reviews", json={
-                "reviewer_id": f"reviewer-{i}",
-                "legislative_activity": scores[0],
-                "voting_behavior": scores[1],
-                "policy_influence": scores[2],
-                "transparency": scores[3],
-                "question_quality": scores[4],
-            })
+            client.post(
+                "/api/v1/members/1/reviews",
+                json={
+                    "reviewer_id": f"reviewer-{i}",
+                    "legislative_activity": scores[0],
+                    "voting_behavior": scores[1],
+                    "policy_influence": scores[2],
+                    "transparency": scores[3],
+                    "question_quality": scores[4],
+                },
+            )
 
         resp = client.get("/api/v1/members/1/review-summary")
         assert resp.status_code == 200
         data = resp.json()
         assert data["review_count"] == 2
         assert data["average_legislative_activity"] == 60.0  # (80+40)/2
-        assert data["average_voting_behavior"] == 60.0       # (70+50)/2
-        assert data["average_question_quality"] == 60.0      # (90+30)/2
+        assert data["average_voting_behavior"] == 60.0  # (70+50)/2
+        assert data["average_question_quality"] == 60.0  # (90+30)/2
 
     def test_like_toggle(self, client, db):
         """いいねのトグル動作。"""
         self._setup_member(db)
 
         # レビュー作成
-        create_resp = client.post("/api/v1/members/1/reviews", json={
-            "reviewer_id": "author-001",
-            "legislative_activity": 50,
-            "voting_behavior": 50,
-            "policy_influence": 50,
-            "transparency": 50,
-            "question_quality": 50,
-        })
+        create_resp = client.post(
+            "/api/v1/members/1/reviews",
+            json={
+                "reviewer_id": "author-001",
+                "legislative_activity": 50,
+                "voting_behavior": 50,
+                "policy_influence": 50,
+                "transparency": 50,
+                "question_quality": 50,
+            },
+        )
         review_id = create_resp.json()["id"]
 
         # いいね追加
@@ -839,43 +873,43 @@ class TestReviewAPIE2E:
         """他人のレビューは削除できないこと。"""
         self._setup_member(db)
 
-        create_resp = client.post("/api/v1/members/1/reviews", json={
-            "reviewer_id": "author-001",
-            "legislative_activity": 50,
-            "voting_behavior": 50,
-            "policy_influence": 50,
-            "transparency": 50,
-            "question_quality": 50,
-        })
+        create_resp = client.post(
+            "/api/v1/members/1/reviews",
+            json={
+                "reviewer_id": "author-001",
+                "legislative_activity": 50,
+                "voting_behavior": 50,
+                "policy_influence": 50,
+                "transparency": 50,
+                "question_quality": 50,
+            },
+        )
         review_id = create_resp.json()["id"]
 
         # 別のユーザーが削除しようとする
-        del_resp = client.delete(
-            f"/api/v1/reviews/{review_id}?reviewer_id=attacker-999"
-        )
+        del_resp = client.delete(f"/api/v1/reviews/{review_id}?reviewer_id=attacker-999")
         assert del_resp.status_code == 403
 
         # 正しいユーザーなら削除できる
-        del_resp = client.delete(
-            f"/api/v1/reviews/{review_id}?reviewer_id=author-001"
-        )
+        del_resp = client.delete(f"/api/v1/reviews/{review_id}?reviewer_id=author-001")
         assert del_resp.status_code == 200
 
     def test_review_score_validation(self, client, db):
         """スコアが0-100の範囲外ならバリデーションエラーになること。"""
         self._setup_member(db)
 
-        resp = client.post("/api/v1/members/1/reviews", json={
-            "reviewer_id": "test-001",
-            "legislative_activity": 150,  # 範囲外
-            "voting_behavior": 50,
-            "policy_influence": 50,
-            "transparency": 50,
-            "question_quality": 50,
-        })
-        assert resp.status_code == 422, (
-            "0-100範囲外のスコアが受け入れられてしまった"
+        resp = client.post(
+            "/api/v1/members/1/reviews",
+            json={
+                "reviewer_id": "test-001",
+                "legislative_activity": 150,  # 範囲外
+                "voting_behavior": 50,
+                "policy_influence": 50,
+                "transparency": 50,
+                "question_quality": 50,
+            },
         )
+        assert resp.status_code == 422, "0-100範囲外のスコアが受け入れられてしまった"
 
     def test_review_sort_by_likes(self, client, db):
         """いいね順ソートが正しく機能すること。"""
@@ -884,15 +918,18 @@ class TestReviewAPIE2E:
         # 3件のレビュー
         ids = []
         for i in range(3):
-            resp = client.post("/api/v1/members/1/reviews", json={
-                "reviewer_id": f"reviewer-{i}",
-                "legislative_activity": 50,
-                "voting_behavior": 50,
-                "policy_influence": 50,
-                "transparency": 50,
-                "question_quality": 50,
-                "comment": f"レビュー{i}",
-            })
+            resp = client.post(
+                "/api/v1/members/1/reviews",
+                json={
+                    "reviewer_id": f"reviewer-{i}",
+                    "legislative_activity": 50,
+                    "voting_behavior": 50,
+                    "policy_influence": 50,
+                    "transparency": 50,
+                    "question_quality": 50,
+                    "comment": f"レビュー{i}",
+                },
+            )
             ids.append(resp.json()["id"])
 
         # 2番目のレビューに2いいね、3番目に1いいね
@@ -909,6 +946,4 @@ class TestReviewAPIE2E:
         # いいね順で取得
         resp = client.get("/api/v1/members/1/reviews?sort=likes")
         items = resp.json()["items"]
-        assert items[0]["like_count"] >= items[1]["like_count"], (
-            "いいね順ソートが機能していない"
-        )
+        assert items[0]["like_count"] >= items[1]["like_count"], "いいね順ソートが機能していない"

@@ -7,7 +7,6 @@
 """
 
 import os
-import sys
 import time
 
 import httpx
@@ -52,9 +51,7 @@ def get_progress() -> tuple[int, int]:
         )
 
         skip_members = (
-            db.query(Member.id)
-            .filter(Member.role_category.in_(["cabinet", "chair"]))
-            .subquery()
+            db.query(Member.id).filter(Member.role_category.in_(["cabinet", "chair"])).subquery()
         )
         total = (
             db.query(func.count(Speech.id))
@@ -106,7 +103,9 @@ def main():
             f"**残り:** {remaining:,}件 (約{eta_hours:.1f}時間)"
         )
 
-        print(f"[{pct:.1f}%] {analyzed:,}/{total:,} (+{delta:,}), {speed:.1f}/s, ETA {eta_hours:.1f}h")
+        print(
+            f"[{pct:.1f}%] {analyzed:,}/{total:,} (+{delta:,}), {speed:.1f}/s, ETA {eta_hours:.1f}h"
+        )
 
         send_discord(
             {

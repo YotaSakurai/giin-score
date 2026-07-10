@@ -116,9 +116,7 @@ def get_last_updated(db: Session = Depends(get_db)):
     """各パイプラインの最終成功実行日時を返す。"""
     from sqlalchemy import distinct
 
-    pipeline_names = db.execute(
-        select(distinct(PipelineRun.pipeline_name))
-    ).scalars().all()
+    pipeline_names = db.execute(select(distinct(PipelineRun.pipeline_name))).scalars().all()
 
     pipelines: list[PipelineLastRun] = []
     global_latest: str | None = None
@@ -133,18 +131,22 @@ def get_last_updated(db: Session = Depends(get_db)):
 
         if run and run.finished_at:
             finished_str = run.finished_at.isoformat()
-            pipelines.append(PipelineLastRun(
-                pipeline_name=name,
-                status=run.status,
-                finished_at=finished_str,
-                records_processed=run.records_processed,
-            ))
+            pipelines.append(
+                PipelineLastRun(
+                    pipeline_name=name,
+                    status=run.status,
+                    finished_at=finished_str,
+                    records_processed=run.records_processed,
+                )
+            )
             if global_latest is None or finished_str > global_latest:
                 global_latest = finished_str
         else:
-            pipelines.append(PipelineLastRun(
-                pipeline_name=name,
-                status="never",
-            ))
+            pipelines.append(
+                PipelineLastRun(
+                    pipeline_name=name,
+                    status="never",
+                )
+            )
 
     return LastUpdatedResponse(last_updated=global_latest, pipelines=pipelines)

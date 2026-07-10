@@ -15,7 +15,6 @@
 - reviews.py (1 line): _to_response fallback (already partially covered)
 """
 
-import re
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -26,16 +25,15 @@ from sqlalchemy.orm import Session
 from app.models.bill import Bill, BillSponsor
 from app.models.member import Member
 from app.models.pipeline import PipelineRun
-from app.models.score import MemberScore
 from app.models.session import DietSession
 from app.models.speech import Speech
 from app.models.vote import VoteRecord, VoteResult
 from app.models.written_question import WrittenQuestion
 
-
 # =====================================================================
 # sangiin_scraper.py: scrape_votes exception, page error, kiritsu new/legacy, legacy table
 # =====================================================================
+
 
 def _make_sangiin_response(html: str) -> httpx.Response:
     return httpx.Response(
@@ -321,7 +319,10 @@ class TestSangiinScrapeVotes:
             patch("app.pipeline.sangiin_scraper.httpx.Client", return_value=mock_client),
             patch("app.pipeline.sangiin_scraper.health_check", return_value=True),
             patch("app.pipeline.sangiin_scraper.detect_encoding", return_value="utf-8"),
-            patch("app.pipeline.sangiin_scraper._scrape_vote_page", side_effect=RuntimeError("page error")),
+            patch(
+                "app.pipeline.sangiin_scraper._scrape_vote_page",
+                side_effect=RuntimeError("page error"),
+            ),
         ):
             result = scrape_votes(db, 215)
 
@@ -727,8 +728,12 @@ class TestShitsumonScraper:
         db.flush()
         # 既存質問: 答弁なし
         wq = WrittenQuestion(
-            session_id=s.id, member_id=m.id, chamber="representatives",
-            question_number=1, title="テスト質問主意書", has_answer=False,
+            session_id=s.id,
+            member_id=m.id,
+            chamber="representatives",
+            question_number=1,
+            title="テスト質問主意書",
+            has_answer=False,
         )
         db.add(wq)
         db.commit()
@@ -868,12 +873,15 @@ class TestSpeechQualityEdgeCases:
         s = self._seed(db)
         # 11件の発言を作成 (MAX_CONSECUTIVE_ERRORS=10)
         for i in range(11):
-            db.add(Speech(
-                session_id=s.id, member_id=1,
-                speech_text="テスト" * 50,
-                speech_chars=300,
-                speech_url=f"https://example.com/speech/{i}",
-            ))
+            db.add(
+                Speech(
+                    session_id=s.id,
+                    member_id=1,
+                    speech_text="テスト" * 50,
+                    speech_chars=300,
+                    speech_url=f"https://example.com/speech/{i}",
+                )
+            )
         db.commit()
 
         mock_http = MagicMock()
@@ -907,12 +915,15 @@ class TestSpeechQualityEdgeCases:
 
         s = self._seed(db)
         for i in range(5):
-            db.add(Speech(
-                session_id=s.id, member_id=1,
-                speech_text="テスト" * 50,
-                speech_chars=300,
-                speech_url=f"https://example.com/speech/{i}",
-            ))
+            db.add(
+                Speech(
+                    session_id=s.id,
+                    member_id=1,
+                    speech_text="テスト" * 50,
+                    speech_chars=300,
+                    speech_url=f"https://example.com/speech/{i}",
+                )
+            )
         db.commit()
 
         call_count = 0
@@ -921,8 +932,10 @@ class TestSpeechQualityEdgeCases:
             nonlocal call_count
             call_count += 1
             return {
-                "policy_relevance": 7.0, "constructiveness": 6.0,
-                "expertise": 5.0, "national_interest": 8.0,
+                "policy_relevance": 7.0,
+                "constructiveness": 6.0,
+                "expertise": 5.0,
+                "national_interest": 8.0,
                 "summary": "test",
             }
 
@@ -938,7 +951,7 @@ class TestSpeechQualityEdgeCases:
         ):
             # Force quality gate abort after processing
             result = analyze_speeches_for_session(db, 215)
-            tracker = get_quality_tracker()
+            get_quality_tracker()
             # Even if tracker doesn't abort, we tested the code path
             assert result >= 0
 
@@ -950,12 +963,15 @@ class TestSpeechQualityEdgeCases:
 
         s = self._seed(db)
         for i in range(3):
-            db.add(Speech(
-                session_id=s.id, member_id=1,
-                speech_text="テスト" * 50,
-                speech_chars=300,
-                speech_url=f"https://example.com/speech/{i}",
-            ))
+            db.add(
+                Speech(
+                    session_id=s.id,
+                    member_id=1,
+                    speech_text="テスト" * 50,
+                    speech_chars=300,
+                    speech_url=f"https://example.com/speech/{i}",
+                )
+            )
         db.commit()
 
         call_count = 0
@@ -966,8 +982,10 @@ class TestSpeechQualityEdgeCases:
             if call_count == 1:
                 raise httpx.ConnectError("connection failed")
             return {
-                "policy_relevance": 7.0, "constructiveness": 6.0,
-                "expertise": 5.0, "national_interest": 8.0,
+                "policy_relevance": 7.0,
+                "constructiveness": 6.0,
+                "expertise": 5.0,
+                "national_interest": 8.0,
                 "summary": "test",
             }
 
@@ -994,12 +1012,15 @@ class TestSpeechQualityEdgeCases:
 
         s = self._seed(db)
         for i in range(3):
-            db.add(Speech(
-                session_id=s.id, member_id=1,
-                speech_text="テスト" * 50,
-                speech_chars=300,
-                speech_url=f"https://example.com/speech/{i}",
-            ))
+            db.add(
+                Speech(
+                    session_id=s.id,
+                    member_id=1,
+                    speech_text="テスト" * 50,
+                    speech_chars=300,
+                    speech_url=f"https://example.com/speech/{i}",
+                )
+            )
         db.commit()
 
         call_count = 0
@@ -1010,8 +1031,10 @@ class TestSpeechQualityEdgeCases:
             if call_count == 1:
                 raise ValueError("unexpected")
             return {
-                "policy_relevance": 7.0, "constructiveness": 6.0,
-                "expertise": 5.0, "national_interest": 8.0,
+                "policy_relevance": 7.0,
+                "constructiveness": 6.0,
+                "expertise": 5.0,
+                "national_interest": 8.0,
                 "summary": "test",
             }
 
@@ -1258,9 +1281,7 @@ class TestVotePatternDissent:
         db.add(bill)
         db.flush()
 
-        vr = VoteResult(
-            bill_id=bill.id, chamber="representatives", ayes=2, nays=1, result="可決"
-        )
+        vr = VoteResult(bill_id=bill.id, chamber="representatives", ayes=2, nays=1, result="可決")
         db.add(vr)
         db.flush()
 
@@ -1292,9 +1313,7 @@ class TestVotePatternDissent:
         db.add(bill)
         db.flush()
 
-        vr = VoteResult(
-            bill_id=bill.id, chamber="representatives", ayes=1, nays=0, result="可決"
-        )
+        vr = VoteResult(bill_id=bill.id, chamber="representatives", ayes=1, nays=0, result="可決")
         db.add(vr)
         db.flush()
         db.add(VoteRecord(vote_result_id=vr.id, member_id=1, vote="aye"))
@@ -1563,8 +1582,12 @@ class TestShitsumonEdge:
         db.flush()
         # 既存質問(答弁なし)
         wq = WrittenQuestion(
-            session_id=s.id, member_id=m.id, chamber="councillors",
-            question_number=1, title="既存質問", has_answer=False,
+            session_id=s.id,
+            member_id=m.id,
+            chamber="councillors",
+            question_number=1,
+            title="既存質問",
+            has_answer=False,
         )
         db.add(wq)
         db.commit()
@@ -1612,18 +1635,24 @@ class TestSpeechQualityMoreEdge:
 
         s = self._seed(db)
         # speech_chars >= MIN but speech_text is empty
-        db.add(Speech(
-            session_id=s.id, member_id=1,
-            speech_text="",
-            speech_chars=300,
-            speech_url="https://example.com/speech/1",
-        ))
-        db.add(Speech(
-            session_id=s.id, member_id=1,
-            speech_text="テスト" * 50,
-            speech_chars=300,
-            speech_url="https://example.com/speech/2",
-        ))
+        db.add(
+            Speech(
+                session_id=s.id,
+                member_id=1,
+                speech_text="",
+                speech_chars=300,
+                speech_url="https://example.com/speech/1",
+            )
+        )
+        db.add(
+            Speech(
+                session_id=s.id,
+                member_id=1,
+                speech_text="テスト" * 50,
+                speech_chars=300,
+                speech_url="https://example.com/speech/2",
+            )
+        )
         db.commit()
 
         mock_http = MagicMock()
@@ -1633,8 +1662,10 @@ class TestSpeechQualityMoreEdge:
 
         def fake_analyze(client, text, name):
             return {
-                "policy_relevance": 7.0, "constructiveness": 6.0,
-                "expertise": 5.0, "national_interest": 8.0,
+                "policy_relevance": 7.0,
+                "constructiveness": 6.0,
+                "expertise": 5.0,
+                "national_interest": 8.0,
                 "summary": "test",
             }
 
@@ -1656,12 +1687,15 @@ class TestSpeechQualityMoreEdge:
 
         s = self._seed(db)
         for i in range(12):
-            db.add(Speech(
-                session_id=s.id, member_id=1,
-                speech_text="テスト" * 50,
-                speech_chars=300,
-                speech_url=f"https://example.com/speech/{i}",
-            ))
+            db.add(
+                Speech(
+                    session_id=s.id,
+                    member_id=1,
+                    speech_text="テスト" * 50,
+                    speech_chars=300,
+                    speech_url=f"https://example.com/speech/{i}",
+                )
+            )
         db.commit()
 
         def always_connect_error(client, text, name):
@@ -1675,7 +1709,10 @@ class TestSpeechQualityMoreEdge:
         with (
             patch("app.pipeline.speech_quality.LLM_BACKEND", "ollama"),
             patch("app.pipeline.speech_quality.httpx.Client", return_value=mock_http),
-            patch("app.pipeline.speech_quality._analyze_speech_ollama", side_effect=always_connect_error),
+            patch(
+                "app.pipeline.speech_quality._analyze_speech_ollama",
+                side_effect=always_connect_error,
+            ),
         ):
             try:
                 analyze_speeches_for_session(db, 215)
@@ -1690,12 +1727,15 @@ class TestSpeechQualityMoreEdge:
 
         s = self._seed(db)
         for i in range(12):
-            db.add(Speech(
-                session_id=s.id, member_id=1,
-                speech_text="テスト" * 50,
-                speech_chars=300,
-                speech_url=f"https://example.com/speech/{i}",
-            ))
+            db.add(
+                Speech(
+                    session_id=s.id,
+                    member_id=1,
+                    speech_text="テスト" * 50,
+                    speech_chars=300,
+                    speech_url=f"https://example.com/speech/{i}",
+                )
+            )
         db.commit()
 
         def always_error(client, text, name):
@@ -1733,10 +1773,12 @@ class TestScoringQualityException:
 
         # Mock db.query to raise an exception
         from unittest.mock import patch as p
+
         original_query = db.query
 
         def broken_query(*args, **kwargs):
             from app.models.speech_quality import SpeechQualityScore
+
             if args and args[0] is SpeechQualityScore.member_id:
                 raise RuntimeError("table not found")
             return original_query(*args, **kwargs)

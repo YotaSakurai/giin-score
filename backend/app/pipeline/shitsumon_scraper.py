@@ -40,15 +40,9 @@ def scrape_written_questions(db: Session, session_number: int) -> int:
 
     total = 0
     try:
-        diet_session = (
-            db.query(DietSession)
-            .filter_by(session_number=session_number)
-            .first()
-        )
+        diet_session = db.query(DietSession).filter_by(session_number=session_number).first()
         if not diet_session:
-            diet_session = DietSession(
-                session_number=session_number, kind="通常"
-            )
+            diet_session = DietSession(session_number=session_number, kind="通常")
             db.add(diet_session)
             db.flush()
 
@@ -60,10 +54,7 @@ def scrape_written_questions(db: Session, session_number: int) -> int:
         pipeline_run.records_processed = total
         pipeline_run.finished_at = datetime.now(UTC)
         db.commit()
-        logger.info(
-            f"Written questions completed: {total} records "
-            f"for session {session_number}"
-        )
+        logger.info(f"Written questions completed: {total} records for session {session_number}")
 
     except Exception as e:
         pipeline_run.status = "failed"
@@ -76,13 +67,10 @@ def scrape_written_questions(db: Session, session_number: int) -> int:
     return total
 
 
-def _scrape_shugiin(
-    db: Session, diet_session: DietSession, session_number: int
-) -> int:
+def _scrape_shugiin(db: Session, diet_session: DietSession, session_number: int) -> int:
     """衆議院の質問主意書一覧を取得する。"""
     list_url = (
-        f"{SHUGIIN_BASE}/internet/itdb_shitsumon.nsf"
-        f"/html/shitsumon/kaiji{session_number}_l.htm"
+        f"{SHUGIIN_BASE}/internet/itdb_shitsumon.nsf/html/shitsumon/kaiji{session_number}_l.htm"
     )
     count = 0
 
@@ -96,10 +84,7 @@ def _scrape_shugiin(
             resp = client.get(list_url)
             resp.raise_for_status()
         except httpx.HTTPStatusError as e:
-            logger.warning(
-                f"Shugiin shitsumon page not found for session "
-                f"{session_number}: {e}"
-            )
+            logger.warning(f"Shugiin shitsumon page not found for session {session_number}: {e}")
             return 0
 
         resp.encoding = detect_encoding(resp)
@@ -107,10 +92,7 @@ def _scrape_shugiin(
 
         table = soup.find("table")
         if not table:
-            logger.warning(
-                f"No table found on shugiin shitsumon page "
-                f"(session {session_number})"
-            )
+            logger.warning(f"No table found on shugiin shitsumon page (session {session_number})")
             return 0
 
         rows = table.find_all("tr")  # type: ignore[union-attr]
@@ -125,9 +107,7 @@ def _scrape_shugiin(
                 continue
 
             title = cells[1].get_text(strip=True)
-            submitter = _clean_shugiin_name(
-                cells[2].get_text(strip=True)
-            )
+            submitter = _clean_shugiin_name(cells[2].get_text(strip=True))
             submitted_str = cells[3].get_text(strip=True)
 
             if not title or not submitter:
@@ -147,11 +127,7 @@ def _scrape_shugiin(
             question_url = None
             for a_tag in row.find_all("a", href=True):
                 href = a_tag["href"]
-                if (
-                    href.startswith("a")
-                    or href.startswith(str(session_number))
-                    or "/pdfS/" in href
-                ):
+                if href.startswith("a") or href.startswith(str(session_number)) or "/pdfS/" in href:
                     question_url = urljoin(list_url, href)
                     break
 
@@ -198,16 +174,11 @@ def _scrape_shugiin(
                 db.commit()
 
     db.commit()
-    logger.info(
-        f"Shugiin written questions: {count} new records "
-        f"(session {session_number})"
-    )
+    logger.info(f"Shugiin written questions: {count} new records (session {session_number})")
     return count
 
 
-def _scrape_sangiin(
-    db: Session, diet_session: DietSession, session_number: int
-) -> int:
+def _scrape_sangiin(db: Session, diet_session: DietSession, session_number: int) -> int:
     """参議院の質問主意書一覧を取得する。
 
     参議院のHTML構造（class=list_c テーブル）:
@@ -215,10 +186,7 @@ def _scrape_sangiin(
       行2: [td:番号] [td:提出者] [td:氏名] [td:質問HTML] [td:答弁HTML]
       行3: [td:質問PDF] [td:答弁PDF]
     """
-    list_url = (
-        f"{SANGIIN_BASE}/japanese/joho1/kousei"
-        f"/syuisyo/{session_number}/syuisyo.htm"
-    )
+    list_url = f"{SANGIIN_BASE}/japanese/joho1/kousei/syuisyo/{session_number}/syuisyo.htm"
     count = 0
 
     with httpx.Client(
@@ -231,10 +199,7 @@ def _scrape_sangiin(
             resp = client.get(list_url)
             resp.raise_for_status()
         except httpx.HTTPStatusError as e:
-            logger.warning(
-                f"Sangiin shitsumon page not found for session "
-                f"{session_number}: {e}"
-            )
+            logger.warning(f"Sangiin shitsumon page not found for session {session_number}: {e}")
             return 0
 
         resp.encoding = detect_encoding(resp)
@@ -242,10 +207,7 @@ def _scrape_sangiin(
 
         table = soup.find("table", class_="list_c")
         if not table:
-            logger.warning(
-                f"No list_c table on sangiin shitsumon page "
-                f"(session {session_number})"
-            )
+            logger.warning(f"No list_c table on sangiin shitsumon page (session {session_number})")
             return 0
 
         rows = table.find_all("tr")  # type: ignore[union-attr]
@@ -260,19 +222,12 @@ def _scrape_sangiin(
             cell_texts = [c.get_text(strip=True) for c in cells]
 
             # 件名行: 「提出番号」「件名」を含むヘッダー行
-            if (
-                len(cells) >= 3
-                and "提出番号" in cell_texts[0]
-                and "件名" in cell_texts[1]
-            ):
+            if len(cells) >= 3 and "提出番号" in cell_texts[0] and "件名" in cell_texts[1]:
                 pending_title = cell_texts[2]
                 continue
 
             # データ行: 先頭が数字、2番目が「提出者」
-            if (
-                len(cells) >= 3
-                and "提出者" in cell_texts[1]
-            ):
+            if len(cells) >= 3 and "提出者" in cell_texts[1]:
                 try:
                     q_num = int(cell_texts[0])
                 except (ValueError, TypeError):
@@ -321,9 +276,7 @@ def _scrape_sangiin(
                 else:
                     wq = WrittenQuestion(
                         session_id=diet_session.id,
-                        member_id=(
-                            member.id if member else None
-                        ),
+                        member_id=(member.id if member else None),
                         chamber="councillors",
                         question_number=q_num,
                         title=title,
@@ -340,12 +293,8 @@ def _scrape_sangiin(
                 pending_title = ""
 
     db.commit()
-    logger.info(
-        f"Sangiin written questions: {count} new records "
-        f"(session {session_number})"
-    )
+    logger.info(f"Sangiin written questions: {count} new records (session {session_number})")
     return count
-
 
 
 def _clean_shugiin_name(text: str) -> str:

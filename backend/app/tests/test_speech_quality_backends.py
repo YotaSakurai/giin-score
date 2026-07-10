@@ -24,13 +24,15 @@ from app.pipeline.speech_quality import (
     reset_quality_tracker,
 )
 
-VALID_LLM_JSON = json.dumps({
-    "policy_relevance": 75,
-    "constructiveness": 60,
-    "expertise": 55,
-    "national_interest": 80,
-    "summary": "テスト評価",
-})
+VALID_LLM_JSON = json.dumps(
+    {
+        "policy_relevance": 75,
+        "constructiveness": 60,
+        "expertise": 55,
+        "national_interest": 80,
+        "summary": "テスト評価",
+    }
+)
 
 
 def _make_ollama_response(content: str) -> httpx.Response:
@@ -243,20 +245,28 @@ class TestAnalyzeSpeechesForSession:
         db.flush()
 
         for i in range(1, count + 1):
-            db.add(Member(
-                id=i, name=f"議員{i}", chamber="representatives",
-                role_category="member",
-            ))
+            db.add(
+                Member(
+                    id=i,
+                    name=f"議員{i}",
+                    chamber="representatives",
+                    role_category="member",
+                )
+            )
         db.flush()
 
         for i in range(1, count + 1):
-            db.add(Speech(
-                id=i, session_id=1, member_id=i,
-                meeting_name="予算委員会",
-                speech_text="政策に関する質問" * 100,
-                speech_chars=600,
-                speech_date=date(2024, 1, i),
-            ))
+            db.add(
+                Speech(
+                    id=i,
+                    session_id=1,
+                    member_id=i,
+                    meeting_name="予算委員会",
+                    speech_text="政策に関する質問" * 100,
+                    speech_chars=600,
+                    speech_date=date(2024, 1, i),
+                )
+            )
         db.commit()
 
     @patch("app.pipeline.notify._send_webhook")
@@ -270,7 +280,9 @@ class TestAnalyzeSpeechesForSession:
         mock_http = MagicMock()
         # tags エンドポイント
         mock_http.get.return_value = httpx.Response(
-            200, json={}, request=httpx.Request("GET", "https://example.com"),
+            200,
+            json={},
+            request=httpx.Request("GET", "https://example.com"),
         )
         # 分析API
         mock_http.post.return_value = _make_ollama_response(VALID_LLM_JSON)
@@ -310,6 +322,7 @@ class TestAnalyzeSpeechesForSession:
     @patch("app.pipeline.speech_quality.time.sleep")
     def test_session_not_found(self, mock_sleep, mock_webhook, db: Session):
         from app.pipeline.speech_quality import analyze_speeches_for_session
+
         assert analyze_speeches_for_session(db, 999) == 0
 
     @patch("app.pipeline.notify._send_webhook")
@@ -364,7 +377,9 @@ class TestAnalyzeSpeechesForSession:
 
         mock_http = MagicMock()
         mock_http.get.return_value = httpx.Response(
-            200, json={}, request=httpx.Request("GET", "https://example.com"),
+            200,
+            json={},
+            request=httpx.Request("GET", "https://example.com"),
         )
         # 1回目ConnectError、2回目以降は成功
         mock_http.post.side_effect = [
@@ -410,17 +425,23 @@ class TestAnalyzeSpeechesForSession:
         db.flush()
 
         for mid in [1, 2, 3]:
-            db.add(Speech(
-                id=mid, session_id=1, member_id=mid,
-                meeting_name="委員会",
-                speech_text="テスト" * 100,
-                speech_chars=400,
-            ))
+            db.add(
+                Speech(
+                    id=mid,
+                    session_id=1,
+                    member_id=mid,
+                    meeting_name="委員会",
+                    speech_text="テスト" * 100,
+                    speech_chars=400,
+                )
+            )
         db.commit()
 
         mock_http = MagicMock()
         mock_http.get.return_value = httpx.Response(
-            200, json={}, request=httpx.Request("GET", "https://example.com"),
+            200,
+            json={},
+            request=httpx.Request("GET", "https://example.com"),
         )
         mock_http.post.return_value = _make_ollama_response(VALID_LLM_JSON)
         mock_http.close = MagicMock()
@@ -446,23 +467,33 @@ class TestAnalyzeSpeechesForSession:
         db.add(Member(id=1, name="議員", chamber="representatives", role_category="member"))
         db.flush()
 
-        db.add(Speech(
-            id=1, session_id=1, member_id=1,
-            meeting_name="委員会",
-            speech_text="これより本日の会議を開きます。" + "あ" * 300,
-            speech_chars=400,
-        ))
-        db.add(Speech(
-            id=2, session_id=1, member_id=1,
-            meeting_name="委員会",
-            speech_text="政策についての実質的な質問" * 50,
-            speech_chars=400,
-        ))
+        db.add(
+            Speech(
+                id=1,
+                session_id=1,
+                member_id=1,
+                meeting_name="委員会",
+                speech_text="これより本日の会議を開きます。" + "あ" * 300,
+                speech_chars=400,
+            )
+        )
+        db.add(
+            Speech(
+                id=2,
+                session_id=1,
+                member_id=1,
+                meeting_name="委員会",
+                speech_text="政策についての実質的な質問" * 50,
+                speech_chars=400,
+            )
+        )
         db.commit()
 
         mock_http = MagicMock()
         mock_http.get.return_value = httpx.Response(
-            200, json={}, request=httpx.Request("GET", "https://example.com"),
+            200,
+            json={},
+            request=httpx.Request("GET", "https://example.com"),
         )
         mock_http.post.return_value = _make_ollama_response(VALID_LLM_JSON)
         mock_http.close = MagicMock()

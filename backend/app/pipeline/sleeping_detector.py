@@ -118,9 +118,7 @@ def detect_sleeping_in_video(
                 active_tracker_ids.add(tracker_id)
 
                 if tracker_id not in trackers:
-                    trackers[tracker_id] = _FaceTracker(
-                        tracker_id, face_center, current_time
-                    )
+                    trackers[tracker_id] = _FaceTracker(tracker_id, face_center, current_time)
 
                 tracker = trackers[tracker_id]
                 tracker.update(
@@ -150,9 +148,7 @@ def detect_sleeping_in_video(
 
     for det in detections:
         # スクリーンショット保存
-        screenshot_filename = (
-            f"sleep_{session_id}_{det['start_time']:.0f}_{det['tracker_id']}.jpg"
-        )
+        screenshot_filename = f"sleep_{session_id}_{det['start_time']:.0f}_{det['tracker_id']}.jpg"
         screenshot_path = evidence_dir / screenshot_filename
         if det.get("peak_frame") is not None:
             cv2.imwrite(str(screenshot_path), det["peak_frame"])
@@ -162,9 +158,7 @@ def detect_sleeping_in_video(
         # 動画クリップ切り出し
         clip_path = None
         if video_path:
-            clip_filename = (
-                f"clip_{session_id}_{det['start_time']:.0f}_{det['tracker_id']}.mp4"
-            )
+            clip_filename = f"clip_{session_id}_{det['start_time']:.0f}_{det['tracker_id']}.mp4"
             clip_full_path = evidence_dir / clip_filename
             clip_start = max(0, det["start_time"] - CLIP_MARGIN_SEC)
             clip_duration = det["duration"] + CLIP_MARGIN_SEC * 2
@@ -297,9 +291,7 @@ class _FaceTracker:
 
         # 動きが多い場合は居眠りではない（資料をめくっている等）
         avg_motion = (
-            sum(self.motion_history) / len(self.motion_history)
-            if self.motion_history
-            else 0
+            sum(self.motion_history) / len(self.motion_history) if self.motion_history else 0
         )
         if avg_motion > MOTION_THRESHOLD:
             return None
@@ -316,9 +308,7 @@ class _FaceTracker:
             "duration": duration,
             "type": self.sleeping_type,
             "confidence": round(confidence, 3),
-            "angle_avg": round(
-                sum(abs(p) for p in self.pitch_history) / len(self.pitch_history), 1
-            )
+            "angle_avg": round(sum(abs(p) for p in self.pitch_history) / len(self.pitch_history), 1)
             if self.pitch_history
             else None,
             "peak_frame": self.peak_frame,
@@ -368,17 +358,12 @@ class _FaceTracker:
         angle_score = min((avg_angle - angle_threshold) / 20.0 + 0.5, 1.0)
 
         confidence = (
-            duration_score * 0.3
-            + stability_score * 0.25
-            + motion_score * 0.25
-            + angle_score * 0.2
+            duration_score * 0.3 + stability_score * 0.25 + motion_score * 0.25 + angle_score * 0.2
         )
         return min(max(confidence, 0.0), 1.0)
 
 
-def _estimate_head_pose(
-    face_landmarks, img_w: int, img_h: int
-) -> tuple[float, float, float]:
+def _estimate_head_pose(face_landmarks, img_w: int, img_h: int) -> tuple[float, float, float]:
     """MediaPipe Face Meshのランドマークから頭部のpitch/yaw/rollを推定する。
 
     Returns:
@@ -444,9 +429,7 @@ def _estimate_head_pose(
     return pitch, yaw, roll
 
 
-def _get_face_center(
-    face_landmarks, img_w: int, img_h: int
-) -> tuple[int, int]:
+def _get_face_center(face_landmarks, img_w: int, img_h: int) -> tuple[int, int]:
     """顔の中心座標を取得する。"""
     nose = face_landmarks.landmark[1]
     return int(nose.x * img_w), int(nose.y * img_h)
@@ -538,9 +521,7 @@ def detect_sleeping_for_session(db: Session, session_number: int) -> int:
     """
     from app.models.session import DietSession
 
-    diet_session = (
-        db.query(DietSession).filter_by(session_number=session_number).first()
-    )
+    diet_session = db.query(DietSession).filter_by(session_number=session_number).first()
     if not diet_session:
         logger.error(f"Session {session_number} not found")
         return 0
@@ -583,15 +564,11 @@ def detect_sleeping_for_session(db: Session, session_number: int) -> int:
             except OSError:
                 pass
 
-    logger.info(
-        f"Session {session_number}: {total_detections} sleeping candidates detected"
-    )
+    logger.info(f"Session {session_number}: {total_detections} sleeping candidates detected")
     return total_detections
 
 
-def _get_video_urls(
-    db: Session, session_number: int
-) -> list[dict]:
+def _get_video_urls(db: Session, session_number: int) -> list[dict]:
     """処理対象の動画URLリストを取得する。
 
     優先順位:
@@ -604,7 +581,6 @@ def _get_video_urls(
 
     # 将来: 衆議院TV / 参議院中継 の動画URL一覧をスクレイピング
     logger.info(
-        "No SLEEPING_VIDEO_URLS set. "
-        "Set environment variable with comma-separated video URLs."
+        "No SLEEPING_VIDEO_URLS set. Set environment variable with comma-separated video URLs."
     )
     return []

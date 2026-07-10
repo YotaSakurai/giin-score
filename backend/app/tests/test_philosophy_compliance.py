@@ -49,8 +49,17 @@ def _read_python_files(
 
 # スコアリングロジック内で特定政党名を条件分岐に使っていないか
 _PARTY_NAMES = [
-    "自民党", "自由民主党", "立憲民主", "公明党", "日本維新", "国民民主",
-    "共産党", "れいわ", "社民党", "NHK", "参政党",
+    "自民党",
+    "自由民主党",
+    "立憲民主",
+    "公明党",
+    "日本維新",
+    "国民民主",
+    "共産党",
+    "れいわ",
+    "社民党",
+    "NHK",
+    "参政党",
 ]
 _PARTY_PATTERN = re.compile("|".join(re.escape(p) for p in _PARTY_NAMES))
 
@@ -103,12 +112,9 @@ class TestIdeologyNeutrality:
                     # if文のソースを取得
                     segment = ast.get_source_segment(content, node.test) or ""
                     if _PARTY_PATTERN.search(segment):
-                        violations.append(
-                            f"{path.name}:{node.lineno} — 政党名を条件分岐に使用"
-                        )
-        assert not violations, (
-            "イデオロギー中立の原則違反: 政党名による条件分岐\n"
-            + "\n".join(violations)
+                        violations.append(f"{path.name}:{node.lineno} — 政党名を条件分岐に使用")
+        assert not violations, "イデオロギー中立の原則違反: 政党名による条件分岐\n" + "\n".join(
+            violations
         )
 
 
@@ -117,8 +123,15 @@ class TestIdeologyNeutrality:
 # ---------------------------------------------------------------------------
 
 _SCANDAL_KEYWORDS = [
-    "スキャンダル", "不倫", "裏金", "逮捕", "起訴", "品性",
-    "scandal", "arrest", "indictment",
+    "スキャンダル",
+    "不倫",
+    "裏金",
+    "逮捕",
+    "起訴",
+    "品性",
+    "scandal",
+    "arrest",
+    "indictment",
 ]
 _SCANDAL_PATTERN = re.compile("|".join(re.escape(k) for k in _SCANDAL_KEYWORDS), re.IGNORECASE)
 
@@ -229,8 +242,7 @@ class TestScoringWeightIntegrity:
 
         total = sum(DEFAULT_WEIGHTS.values())
         assert abs(total - 1.0) < 0.001, (
-            f"重みの合計が1.0ではありません: {total}\n"
-            "重みを変更する場合は理由を記録してください"
+            f"重みの合計が1.0ではありません: {total}\n重みを変更する場合は理由を記録してください"
         )
 
     def test_five_axes_present(self):
@@ -271,8 +283,7 @@ class TestScoringWeightIntegrity:
         from app.services.scoring import DEFAULT_WEIGHTS
 
         model_axes = {
-            col.name for col in WeightVersion.__table__.columns
-            if col.name in DEFAULT_WEIGHTS
+            col.name for col in WeightVersion.__table__.columns if col.name in DEFAULT_WEIGHTS
         }
         assert model_axes == set(DEFAULT_WEIGHTS.keys()), (
             f"WeightVersionの軸がDEFAULT_WEIGHTSと不一致。"
@@ -296,7 +307,7 @@ class TestAPISecurityPatterns:
             lines = content.splitlines()
             for i, line in enumerate(lines):
                 # @router.post / put / delete を検出
-                if re.match(r'\s*@router\.(post|put|delete)\(', line):
+                if re.match(r"\s*@router\.(post|put|delete)\(", line):
                     # 前後5行にlimiter.limitがあるか確認
                     surrounding = "\n".join(lines[max(0, i - 5) : min(len(lines), i + 5)])
                     if "limiter.limit" not in surrounding:
@@ -320,9 +331,8 @@ class TestAPISecurityPatterns:
             for i, line in enumerate(content.splitlines(), 1):
                 if raw_sql_pattern.search(line):
                     violations.append(f"{path.name}:{i}")
-        assert not violations, (
-            "セキュリティ違反: APIレイヤーに生SQLが含まれています\n"
-            + "\n".join(violations)
+        assert not violations, "セキュリティ違反: APIレイヤーに生SQLが含まれています\n" + "\n".join(
+            violations
         )
 
 
@@ -340,7 +350,7 @@ class TestScoringConsistency:
         content = path.read_text(encoding="utf-8")
 
         # フォールバック値を検出
-        fallback_matches = re.findall(r'result\[.+?\]\s*=\s*(\d+\.?\d*)', content)
+        fallback_matches = re.findall(r"result\[.+?\]\s*=\s*(\d+\.?\d*)", content)
         for val in fallback_matches:
             assert float(val) == 50.0, (
                 f"LLMフォールバック値が50.0ではありません: {val}\n"

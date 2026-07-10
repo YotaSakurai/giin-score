@@ -24,9 +24,7 @@ class UserReview(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    member_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("members.id"), nullable=False
-    )
+    member_id: Mapped[int] = mapped_column(Integer, ForeignKey("members.id"), nullable=False)
     reviewer_id: Mapped[str] = mapped_column(String(36), nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
@@ -49,21 +47,15 @@ class UserReview(Base):
     )
 
     member = relationship("Member")
-    likes = relationship(
-        "ReviewLike", back_populates="review", cascade="all, delete-orphan"
-    )
+    likes = relationship("ReviewLike", back_populates="review", cascade="all, delete-orphan")
 
 
 class ReviewLike(Base):
     __tablename__ = "review_likes"
-    __table_args__ = (
-        UniqueConstraint("review_id", "liker_id", name="uq_review_liker"),
-    )
+    __table_args__ = (UniqueConstraint("review_id", "liker_id", name="uq_review_liker"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    review_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("user_reviews.id"), nullable=False
-    )
+    review_id: Mapped[int] = mapped_column(Integer, ForeignKey("user_reviews.id"), nullable=False)
     liker_id: Mapped[str] = mapped_column(String(36), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
