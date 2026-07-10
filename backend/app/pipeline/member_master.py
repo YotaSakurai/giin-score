@@ -81,9 +81,15 @@ def normalize_name(name: str) -> str:
 
 
 def guess_party(faction: str) -> str | None:
-    """会派名から政党名を推定する。"""
+    """会派名から政党名を推定する。
+
+    混合会派（「立憲民主・社民・無所属」等）からは個人の政党を
+    導出できないため、会派名をそのまま返す。
+    """
     if not faction:
         return None
+    if "・" in faction:
+        return faction
     for keyword, party in FACTION_PARTY_MAP.items():
         if keyword in faction:
             return party
@@ -115,9 +121,10 @@ def guess_role_category(role: str, party: str | None) -> str:
 
 
 def _is_ruling_party(party: str | None) -> bool:
+    """与党判定。partyには混合会派名（「自由民主党・無所属の会」等）も入りうるため包含判定。"""
     if not party:
         return False
-    return party in ("自由民主党", "公明党")
+    return any(kw in party for kw in ("自由民主", "公明"))
 
 
 def find_or_create_member(

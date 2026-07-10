@@ -26,4 +26,7 @@ class Member(Base):
     speeches = relationship("Speech", back_populates="member")
     vote_records = relationship("VoteRecord", back_populates="member")
     bill_sponsorships = relationship("BillSponsor", back_populates="member")
-    scores = relationship("MemberScore", back_populates="member")
+    # 最新会期が先頭（詳細表示は scores[0] を最新として扱う）
+    scores = relationship(
+        "MemberScore", back_populates="member", order_by="desc(MemberScore.session_id)"
+    )

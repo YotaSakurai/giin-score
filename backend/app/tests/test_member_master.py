@@ -58,8 +58,10 @@ class TestGuessParty:
         assert guess_party("立憲") == "立憲民主党"
         assert guess_party("維新") == "日本維新の会"
 
-    def test_faction_with_party_name(self):
-        assert guess_party("自由民主党・国民の声") == "自由民主党"
+    def test_mixed_faction_kept_as_is(self):
+        # 混合会派からは個人の政党を導出できないため会派名をそのまま返す
+        assert guess_party("自由民主党・国民の声") == "自由民主党・国民の声"
+        assert guess_party("立憲民主・社民・無所属") == "立憲民主・社民・無所属"
 
     def test_unknown_faction(self):
         # マッピングにない会派はそのまま返す
@@ -203,5 +205,5 @@ class TestFindOrCreateMember:
             db, "山田太郎", "representatives",
             party="自由民主党・国民の声",
         )
-        assert m.party == "自由民主党"
+        assert m.party == "自由民主党・国民の声"
         assert m.faction == "自由民主党・国民の声"

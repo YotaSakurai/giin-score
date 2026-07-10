@@ -73,10 +73,26 @@ def compute_scores_for_session(db: Session, session_number: int) -> int:
         logger.error(f"Session {session_number} not found")
         return 0
 
-    members = db.query(Member).all()
-    if not members:
-        logger.warning("No members found")
+    # 会期内に活動実績（発言/投票/法案発議/質問主意書）のある議員のみ対象。
+    # 在籍していない会期のスコアが付くのを防ぐ（当選前・引退後・名前だけの重複レコード等）
+    active_ids = _get_active_member_ids(db, diet_session)
+    if not active_ids:
+        logger.warning(f"No active members found for session {session_number}")
         return 0
+
+    members = db.query(Member).filter(Member.id.in_(active_ids)).all()
+
+    # 活動実績のない議員の既存スコアを削除（表示もさせない）
+    stale = (
+        db.query(MemberScore)
+        .filter(
+            MemberScore.session_id == diet_session.id,
+            MemberScore.member_id.notin_(active_ids),
+        )
+        .delete(synchronize_session=False)
+    )
+    if stale:
+        logger.info(f"Deleted {stale} stale scores (inactive members) for session {session_number}")
 
     logger.info(f"Computing scores for {len(members)} members in session {session_number}")
 
@@ -95,9 +111,7 @@ def compute_scores_for_session(db: Session, session_number: int) -> int:
     # Phase 1: raw スコア算出
     raw_scores: dict[int, dict] = {}
     for member in members:
-        raw = _compute_raw_scores(
-            db, member, diet_session, quality_scores, fund_data
-        )
+        raw = _compute_raw_scores(db, member, diet_session, quality_scores, fund_data)
         raw_scores[member.id] = raw
 
     # Phase 2: パーセンタイルランク正規化 (比較群: chamber × role_category)
@@ -209,6 +223,52 @@ def compute_scores_for_session(db: Session, session_number: int) -> int:
     return count
 
 
+def _get_active_member_ids(db: Session, session: DietSession) -> set[int]:
+    """会期内に活動実績のある議員IDを返す。
+
+    活動実績 = 発言・投票・法案発議・質問主意書のいずれか。
+    """
+    ids: set[int] = set()
+
+    speech_ids = (
+        db.query(Speech.member_id)
+        .filter(Speech.session_id == session.id, Speech.member_id.isnot(None))
+        .distinct()
+        .all()
+    )
+    ids.update(row[0] for row in speech_ids)
+
+    vote_ids = (
+        db.query(VoteRecord.member_id)
+        .join(VoteResult)
+        .join(Bill)
+        .filter(Bill.session_id == session.id)
+        .distinct()
+        .all()
+    )
+    ids.update(row[0] for row in vote_ids)
+
+    sponsor_ids = (
+        db.query(BillSponsor.member_id)
+        .join(Bill)
+        .filter(Bill.session_id == session.id)
+        .distinct()
+        .all()
+    )
+    ids.update(row[0] for row in sponsor_ids)
+
+    wq_ids = (
+        db.query(WrittenQuestion.member_id)
+        .filter(WrittenQuestion.session_id == session.id, WrittenQuestion.member_id.isnot(None))
+        .distinct()
+        .all()
+    )
+    ids.update(row[0] for row in wq_ids)
+
+    ids.discard(None)
+    return ids
+
+
 def _compute_raw_scores(
     db: Session,
     member: Member,
@@ -240,7 +300,9 @@ def _compute_raw_scores(
 
 
 def _compute_legislative_activity(
-    db: Session, member: Member, session: DietSession,
+    db: Session,
+    member: Member,
+    session: DietSession,
 ) -> tuple[float, dict]:
     """立法活動スコア (LAS)"""
     # 法案発議
@@ -490,7 +552,9 @@ FUND_TRANSPARENCY_WEIGHT = 0.3  # 政治資金データの透明性への寄与�
 
 
 def _compute_transparency(
-    db: Session, member: Member, session: DietSession,
+    db: Session,
+    member: Member,
+    session: DietSession,
     fund_data: dict[int, dict] | None = None,
 ) -> tuple[float, dict]:
     """透明性スコア (TS) - 多様な委員会への参加率 + 政治資金の透明性
@@ -537,8 +601,7 @@ def _compute_transparency(
     # 政治資金データがある場合のみブレンド
     if fund_data and member.id in fund_data:
         ts_raw = (
-            diversity_rate * (1 - FUND_TRANSPARENCY_WEIGHT)
-            + fund_score * FUND_TRANSPARENCY_WEIGHT
+            diversity_rate * (1 - FUND_TRANSPARENCY_WEIGHT) + fund_score * FUND_TRANSPARENCY_WEIGHT
         )
     else:
         ts_raw = diversity_rate
@@ -553,9 +616,7 @@ def _compute_transparency(
     return ts_raw, breakdown
 
 
-def _compute_sleeping_penalties_bulk(
-    db: Session, session: DietSession
-) -> dict[int, dict]:
+def _compute_sleeping_penalties_bulk(db: Session, session: DietSession) -> dict[int, dict]:
     """会期内の承認済み居眠り検出からペナルティを一括計算する。
 
     Returns:
@@ -686,9 +747,7 @@ def _compute_fund_data_bulk(db: Session) -> dict[int, dict]:
             fundraising_ratio = info["fundraising_party"] / income
 
             expenditure = info["total_expenditure"]
-            research_ratio = (
-                info["research_expenses"] / expenditure if expenditure > 0 else 0.0
-            )
+            research_ratio = info["research_expenses"] / expenditure if expenditure > 0 else 0.0
 
             # 透明性スコア計算 (0-100)
             # 1. 基本点: 報告書が存在する = 30点
