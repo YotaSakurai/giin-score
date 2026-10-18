@@ -420,13 +420,23 @@ class TestDetectorComponents:
             assert len(urls) == 2
             assert urls[0]["url"] == "https://a.com/1.mp4"
 
-    def test_get_video_urls_empty(self):
-        """環境変数未設定の場合"""
+    def test_get_video_urls_auto_scrape(self):
+        """環境変数未設定の場合、自動スクレイパーにフォールバック"""
         from app.pipeline.sleeping_detector import _get_video_urls
 
-        with patch.dict("os.environ", {}, clear=True):
+        mock_videos = [
+            {"url": "https://shugiintv.go.jp/test", "meeting_name": "予算委員会", "date": None}
+        ]
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch(
+                "app.pipeline.sleeping_detector.get_video_urls_for_session",
+                return_value=mock_videos,
+            ),
+        ):
             urls = _get_video_urls(MagicMock(), 215)
-            assert len(urls) == 0
+            assert len(urls) == 1
+            assert urls[0]["url"] == "https://shugiintv.go.jp/test"
 
 
 class TestRunnerIntegration:

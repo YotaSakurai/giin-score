@@ -573,14 +573,20 @@ def _get_video_urls(db: Session, session_number: int) -> list[dict]:
 
     優先順位:
     1. 環境変数 SLEEPING_VIDEO_URLS (カンマ区切り)
-    2. 将来的にはDB内の会議データから自動取得
+    2. 衆議院TV・参議院TVから自動取得
     """
     env_urls = os.getenv("SLEEPING_VIDEO_URLS", "")
     if env_urls:
         return [{"url": url.strip()} for url in env_urls.split(",") if url.strip()]
 
-    # 将来: 衆議院TV / 参議院中継 の動画URL一覧をスクレイピング
-    logger.info(
-        "No SLEEPING_VIDEO_URLS set. Set environment variable with comma-separated video URLs."
-    )
-    return []
+    from app.pipeline.video_url_scraper import get_video_urls_for_session
+
+    videos = get_video_urls_for_session(db, session_number)
+    return [
+        {
+            "url": v["url"],
+            "meeting_name": v.get("meeting_name"),
+            "date": v.get("date"),
+        }
+        for v in videos
+    ]

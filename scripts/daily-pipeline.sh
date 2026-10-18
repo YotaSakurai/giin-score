@@ -47,19 +47,35 @@ if [ "$PIPELINE" = "speech_quality" ]; then
   cd "$BACKEND_DIR"
   DATABASE_URL="$HOST_DB_URL" OLLAMA_BASE_URL="http://127.0.0.1:11434" \
     python3 -m app.pipeline.runner --pipeline speech_quality --session "$SESSION" 2>&1 | tee -a "$LOG_FILE"
+elif [ "$PIPELINE" = "sleeping" ]; then
+  # sleepingはMediaPipe/OpenCV/yt-dlpが必要なためホスト側で実行
+  log "[INFO] Running sleeping detection on host (MediaPipe/yt-dlp required)"
+  cd "$BACKEND_DIR"
+  DATABASE_URL="$HOST_DB_URL" \
+    python3 -m app.pipeline.runner --pipeline sleeping --session "$SESSION" 2>&1 | tee -a "$LOG_FILE"
+
+  # sleeping後にスコア再計算
+  log "[INFO] Re-scoring after sleeping detection..."
+  docker compose exec -T backend python -m app.pipeline.runner \
+    --pipeline scoring --session "$SESSION" 2>&1 | tee -a "$LOG_FILE"
 elif [ "$PIPELINE" = "all" ]; then
-  # allの場合: まずDocker内でspeech_quality以外を実行し、その後ホストでspeech_quality
+  # allの場合: まずDocker内でメインパイプラインを実行
   log "[INFO] Running main pipelines in Docker..."
   docker compose exec -T backend python -m app.pipeline.runner \
     --pipeline all --session "$SESSION" 2>&1 | tee -a "$LOG_FILE"
 
+  # ホスト側で実行が必要なパイプライン
   log "[INFO] Running speech_quality on host (Ollama access)..."
   cd "$BACKEND_DIR"
   DATABASE_URL="$HOST_DB_URL" OLLAMA_BASE_URL="http://127.0.0.1:11434" \
     python3 -m app.pipeline.runner --pipeline speech_quality --session "$SESSION" 2>&1 | tee -a "$LOG_FILE"
 
-  # speech_quality後にスコア再計算
-  log "[INFO] Re-scoring after speech_quality..."
+  log "[INFO] Running sleeping detection on host (MediaPipe/yt-dlp)..."
+  DATABASE_URL="$HOST_DB_URL" \
+    python3 -m app.pipeline.runner --pipeline sleeping --session "$SESSION" 2>&1 | tee -a "$LOG_FILE"
+
+  # ホスト側パイプライン完了後にスコア再計算
+  log "[INFO] Re-scoring after host pipelines..."
   docker compose exec -T backend python -m app.pipeline.runner \
     --pipeline scoring --session "$SESSION" 2>&1 | tee -a "$LOG_FILE"
 else
