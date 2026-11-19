@@ -1,6 +1,14 @@
 import type { MetadataRoute } from "next";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+// ビルド時はbackendに到達できないため、リクエスト時に生成する
+// （議員一覧のfetch自体は revalidate: 86400 でキャッシュされる）
+export const dynamic = "force-dynamic";
+
+// サーバーサイドfetchのため、コンテナ内部URL（API_INTERNAL_URL）を優先する
+const API_BASE =
+  process.env.API_INTERNAL_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:8000/api/v1";
 
 async function fetchMemberIds(): Promise<number[]> {
   try {

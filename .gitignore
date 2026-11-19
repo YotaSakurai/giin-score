@@ -58,5 +58,6 @@ infra/.terraform.lock.hcl
 # Environment variants (keep .env.example)
 .env.*
 !.env.example
+!.env.production.example
 backend/test.db
 logs/
